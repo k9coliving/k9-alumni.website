@@ -4,6 +4,8 @@ Whether you've been a K9er for a few months or many years, moving out is never e
 
 This is a password-protected alumni community website built with Next.js, TypeScript, and Tailwind CSS.
 
+> **Note**: This project is shared publicly to take advantage of free hosting tiers (Vercel's Next.js free tier). It is not intended as a reusable open source project and will not be maintained as such. The code is specific to our K9 alumni community needs.
+
 ## Features
 
 - **Password Protection**: Secure access with shared password authentication
