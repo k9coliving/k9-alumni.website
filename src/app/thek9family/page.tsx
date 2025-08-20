@@ -60,7 +60,7 @@ export default async function Database() {
               The K9 Family
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Connect with fellow K9 alumni around the world. Find roommates, get career advice, 
+              Connect with fellow K9 alumni around the world. Find roommates, get life advice, 
               or simply catch up with old friends.
             </p>
           </div>
@@ -128,18 +128,44 @@ export default async function Database() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {alumniMembers.map((member) => (
               <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <ProfileImage
-                      src={member.photo?.url}
-                      alt={member.photo?.alt || `${member.name} profile photo`}
-                      name={member.name}
-                      size={48}
+                {/* Full width profile photo */}
+                <div className="w-full h-64 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {member.photo?.url ? (
+                    <img
+                      src={member.photo.url}
+                      alt={member.photo.alt || `${member.name} profile photo`}
+                      className="w-full h-full object-cover"
                     />
-                    <div className="ml-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
-                      <p className="text-sm text-gray-600">K9 {member.yearsInK9}</p>
+                  ) : (
+                    <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                      <img
+                        src={`/missing/${[
+                          'Animals with Balloons.svg',
+                          'Cat Astronaut Illustration.svg', 
+                          'Cat Pumpkin Illustration.svg',
+                          'Cat Throwing Vase.svg',
+                          'Chicken Eating a Worm.svg',
+                          'Cute Chicken Illustration.svg',
+                          'Diving with Animals.svg',
+                          'Dog Paw Illustration.svg',
+                          'Kiwi Bird Illustration.svg',
+                          'Octopus Vector Illustration.svg',
+                          'Penguin Family Illustration.svg',
+                          'Playful Cat Illustration.svg',
+                          'cat.svg'
+                        ][Math.floor(Math.random() * 13)]}`}
+                        alt="Profile placeholder illustration"
+                        className="w-48 h-48"
+                      />
                     </div>
+                  )}
+                </div>
+
+                <div className="px-6 py-6">
+                  {/* Name and K9 period centered */}
+                  <div className="text-center mb-4">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{member.name}</h3>
+                    <p className="text-sm text-gray-600">K9 {member.yearsInK9}</p>
                   </div>
 
                   <div className="space-y-2 mb-4">
@@ -147,9 +173,9 @@ export default async function Database() {
                       <span className="mr-2">📍</span>
                       {member.location}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">💼</span>
-                      {member.profession}
+                    <div className="flex items-start text-sm text-gray-600">
+                      <span className="mr-2 mt-0.5">💼</span>
+                      <span className="line-clamp-2">{member.profession}</span>
                     </div>
                   </div>
 
