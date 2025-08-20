@@ -6,13 +6,13 @@ import Image from 'next/image';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const navigationItems = [
-  { name: 'The K9 Family', href: '/thek9family' },
-  { name: 'Newsletter', href: '/newsletter' },
-  { name: 'Events', href: '/events' },
-  { name: 'Tips', href: '/tips' },
-  { name: 'Holdmyhair', href: '/holdmyhair' },
-  { name: 'Relocation', href: '/relocation' },
-  { name: 'Who are we', href: '/who-are-we' },
+  { name: 'The K9 Family', href: '/thek9family', enabled: true },
+  { name: 'Newsletter', href: '/newsletter', enabled: false },
+  { name: 'Events', href: '/events', enabled: false },
+  { name: 'Tips', href: '/tips', enabled: false },
+  { name: 'Holdmyhair', href: '/holdmyhair', enabled: false },
+  { name: 'Relocation', href: '/relocation', enabled: false },
+  { name: 'Who are we', href: '/who-are-we', enabled: true },
 ];
 
 export default function Navigation() {
@@ -49,6 +49,21 @@ export default function Navigation() {
                 'hover:text-orange-600', // Relocation
                 'hover:text-green-600', // Who are we
               ];
+              
+              if (!item.enabled) {
+                return (
+                  <div
+                    key={item.name}
+                    className="relative px-3 py-2 text-sm font-medium text-gray-400 cursor-default"
+                  >
+                    {item.name}
+                    <span className="absolute -top-1 -right-1 bg-orange-100 text-orange-800 text-xs px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                      Soon
+                    </span>
+                  </div>
+                );
+              }
+              
               return (
                 <Link
                   key={item.name}
@@ -92,6 +107,21 @@ export default function Navigation() {
                 'hover:text-orange-600', // Relocation
                 'hover:text-green-600', // Who are we
               ];
+              
+              if (!item.enabled) {
+                return (
+                  <div
+                    key={item.name}
+                    className="relative block px-3 py-2 text-base font-medium text-gray-400 cursor-default"
+                  >
+                    {item.name}
+                    <span className="absolute top-1 right-3 bg-orange-100 text-orange-800 text-xs px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                      Soon
+                    </span>
+                  </div>
+                );
+              }
+              
               return (
                 <Link
                   key={item.name}

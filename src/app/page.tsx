@@ -47,75 +47,90 @@ export default function Home() {
               <p className="text-cyan-100 text-center text-sm">Introduce yourself and find other alumni</p>
             </a>
             
-            <a href="/events" className="block bg-gradient-to-br from-violet-400 to-purple-600 hover:from-violet-500 hover:to-purple-700 p-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
+            <div className="block bg-gradient-to-br from-violet-400 to-purple-600 p-8 rounded-3xl shadow-xl relative">
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
+                Coming soon
+              </div>
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/calendar.svg" 
                   alt="Calendar icon - discover upcoming K9 alumni events and gatherings" 
                   width={120} 
                   height={120}
-                  className="rounded-lg"
+                  className="rounded-lg opacity-75"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Upcoming Events</h3>
               <p className="text-violet-100 text-center text-sm">Share and discover alumni events</p>
-            </a>
+            </div>
             
-            <a href="/relocation" className="block bg-gradient-to-br from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 pt-4 px-8 pb-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
+            <div className="block bg-gradient-to-br from-orange-400 to-red-500 pt-4 px-8 pb-8 rounded-3xl shadow-xl relative">
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
+                Coming soon
+              </div>
               <div className="flex justify-center mb-2">
                 <Image 
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/moving-no-bg.png`}
                   alt="Moving boxes illustration - relocation support and resources for K9 alumni" 
                   width={200} 
                   height={200}
-                  className="rounded-lg"
+                  className="rounded-lg opacity-75"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Relocation</h3>
               <p className="text-orange-100 text-center text-sm">Find alumni in your neighbourhood</p>
-            </a>
+            </div>
             
-            <a href="/newsletter" className="block bg-gradient-to-br from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
+            <div className="block bg-gradient-to-br from-amber-400 to-yellow-500 p-8 rounded-3xl shadow-xl relative">
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
+                Coming soon
+              </div>
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/reading-side.svg" 
                   alt="Person reading illustration - stay updated with K9 alumni newsletter" 
                   width={120} 
                   height={120}
-                  className="rounded-lg"
+                  className="rounded-lg opacity-75"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Newsletter</h3>
               <p className="text-amber-100 text-center text-sm">Catch up and share life updates</p>
-            </a>
+            </div>
             
-            <a href="/tips" className="block bg-gradient-to-br from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
+            <div className="block bg-gradient-to-br from-blue-400 to-indigo-500 p-8 rounded-3xl shadow-xl relative">
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
+                Coming soon
+              </div>
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/did-youknow.png" 
                   alt="Light bulb with question mark - discover helpful tips and offerings from fellow alumni" 
                   width={140} 
                   height={140}
-                  className="rounded-lg"
+                  className="rounded-lg opacity-75"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Tips & Offerings</h3>
               <p className="text-blue-100 text-center text-sm">Share what you can<br />Find what you need</p>
-            </a>
+            </div>
             
-            <a href="/holdmyhair" className="block bg-gradient-to-br from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
+            <div className="block bg-gradient-to-br from-pink-400 to-rose-500 p-8 rounded-3xl shadow-xl relative">
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
+                Coming soon
+              </div>
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/help.png" 
                   alt="Helping hands icon - peer support and assistance within K9 alumni community" 
                   width={120} 
                   height={120}
-                  className="rounded-lg"
+                  className="rounded-lg opacity-75"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Hold my Hair</h3>
               <p className="text-pink-100 text-center text-sm">Tell us what you need</p>
-            </a>
+            </div>
           </div>
           
           {/* Why we're here */}
