@@ -100,6 +100,10 @@ From a shared view URL like your curl request, extract:
 - HTTP-only cookies for session management
 - Secure token validation on server-side
 
+## Credits
+
+- **Illustrations**: [Storyset](https://storyset.com) - Profile placeholder graphics
+
 ## Deploy on Vercel
 
 The easiest way to deploy is using the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
