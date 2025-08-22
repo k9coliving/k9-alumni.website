@@ -18,6 +18,7 @@ interface AlumniMember {
     alt: string;
   };
   placeholderImage?: string;
+  currentlyLivingInHouse: boolean;
 }
 
 interface FilterOptions {
@@ -96,7 +97,8 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
           url: result.resident.photo_url,
           alt: result.resident.photo_alt || `${result.resident.name} profile photo`
         } : undefined,
-        placeholderImage: result.resident.preferences?.placeholder_image
+        placeholderImage: result.resident.preferences?.placeholder_image,
+        currentlyLivingInHouse: result.resident.currently_living_in_house || false
       };
 
       // Add the new member to the list
@@ -116,13 +118,20 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
 
   return (
     <>
-      <div className="bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">
+      <div className="min-h-screen relative" style={{
+        background: `
+          radial-gradient(circle at 10px 10px, rgba(156, 163, 175, 0.15) 1px, transparent 1px)
+        `,
+        backgroundColor: '#f9fafb',
+        backgroundSize: '20px 20px'
+      }}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="page-header">
+            <h1 className="page-header-title">
               The K9 Family
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <div className="page-header-divider"></div>
+            <p className="page-header-subtitle">
               Connect with fellow K9 alumni around the world. Find roommates, get life advice, 
               or simply catch up with old friends.
             </p>
@@ -180,89 +189,111 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {members.map((member) => (
-              <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="w-full h-64 bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {member.photo?.url ? (
-                    <Image
-                      src={member.photo.url}
-                      alt={member.photo.alt || `${member.name} profile photo`}
-                      width={400}
-                      height={256}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-50 flex items-center justify-center">
-                      <Image
-                        src={`/missing/${member.placeholderImage || 'cat.svg'}`}
-                        alt="Profile placeholder illustration"
-                        width={192}
-                        height={192}
-                        className="w-48 h-48"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-6 py-6">
-                  <div className="text-center mb-4">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{member.name}</h3>
-                    <p className="text-sm text-gray-600">K9 {member.yearsInK9}</p>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">📍</span>
-                      {member.location}
-                    </div>
-                    <div className="flex items-start text-sm text-gray-600">
-                      <span className="mr-2 mt-0.5">💼</span>
-                      <span className="line-clamp-2">{member.profession}</span>
+          <div className="space-y-16 mb-12">
+            {members.map((member, index) => {
+              const isEven = index % 2 === 0;
+              
+              return (
+                <div key={member.id} className={`flex items-start gap-12 ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
+                  {/* Profile Image */}
+                  <div className="flex-shrink-0">
+                    <div className="w-80 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+                      {member.photo?.url ? (
+                        <Image
+                          src={member.photo.url}
+                          alt={member.photo.alt || `${member.name} profile photo`}
+                          width={320}
+                          height={320}
+                          className="w-80 h-auto object-contain rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-80 h-80 bg-gray-50 flex items-center justify-center rounded-lg">
+                          <Image
+                            src={`/missing/${member.placeholderImage || 'cat.svg'}`}
+                            alt="Profile placeholder illustration"
+                            width={256}
+                            height={256}
+                            className="w-64 h-64"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {member.interests.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Interests:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {member.interests.slice(0, 6).map((interest, index) => (
-                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                            {interest}
+                  {/* Profile Content */}
+                  <div className="flex-1 space-y-6">
+                    <div className="space-y-1">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>{member.name}</h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            member.currentlyLivingInHouse 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {member.currentlyLivingInHouse ? 'Resident' : 'Alumni'}
                           </span>
-                        ))}
-                        {member.interests.length > 6 && (
-                          <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
-                            +{member.interests.length - 6} more
-                          </span>
-                        )}
+                        </div>
+                        <p className="text-lg text-gray-600 font-medium">At K9: {member.yearsInK9}</p>
                       </div>
+                      
+                      {member.location && (
+                        <div className="flex items-center text-gray-600">
+                          <span className="mr-3 text-lg">🌍</span>
+                          <span className="text-lg">{member.location}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {member.description && (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 line-clamp-3">
-                        {member.description}
-                      </p>
-                    </div>
-                  )}
+                    {member.description && (
+                      <div>
+                        <p className="text-gray-700 text-lg leading-relaxed">
+                          {member.description}
+                        </p>
+                      </div>
+                    )}
 
-                  {member.email && (
-                    <a 
-                      href={`mailto:${member.email}`}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors block text-center"
-                    >
-                      Connect
-                    </a>
-                  )}
+                    {member.profession && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">What I do:</p>
+                        <p className="text-gray-600 text-lg">
+                          {member.profession}
+                        </p>
+                      </div>
+                    )}
+
+                    {member.interests.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-3">Interests:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {member.interests.map((interest, index) => (
+                            <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                              {interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {member.email && (
+                      <div>
+                        <a 
+                          href={`mailto:${member.email}`}
+                          className="inline-flex items-center gap-2 text-xl font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400 font-parisienne"
+                        >
+                          <span>🎈</span>
+                          {member.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Not Listed Yet?</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Excited about this?</h2>
             <p className="text-gray-600 mb-6">
               Join our alumni database to connect with fellow K9ers and help grow our community network.
             </p>

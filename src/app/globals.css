@@ -27,6 +27,24 @@ body {
   overflow: hidden;
 }
 
+/* Page Header Styling - used across all main pages */
+.page-header {
+  @apply text-center mb-20;
+}
+
+.page-header-title {
+  @apply text-6xl sm:text-7xl font-extrabold text-gray-900 mb-4 tracking-tight;
+  font-family: serif;
+}
+
+.page-header-divider {
+  @apply w-24 h-1 bg-amber-600 mx-auto rounded-full mb-8;
+}
+
+.page-header-subtitle {
+  @apply text-lg text-gray-500 font-light max-w-2xl mx-auto leading-relaxed;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

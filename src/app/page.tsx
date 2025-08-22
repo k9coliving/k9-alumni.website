@@ -12,7 +12,7 @@ export default function Home() {
         backgroundSize: '20px 20px'
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
+          <div className="page-header mb-12">
             <div className="flex justify-center mb-8">
               <Image 
                 src="/k9-alumni-logo.png" 
@@ -22,10 +22,11 @@ export default function Home() {
                 className="rounded-lg"
               />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">
+            <h1 className="page-header-title">
               Welcome to K9 Alumni
             </h1>
-            <p className="text-xl leading-relaxed mb-12 max-w-4xl mx-auto text-gray-600">
+            <div className="page-header-divider"></div>
+            <p className="page-header-subtitle">
               Whether you&apos;ve been a K9er for a few months or many years, moving out is never easy. 
               We are on a journey to build a strong alumni network, so the K9 magic lives on, 
               inside and outside the walls of the house.
