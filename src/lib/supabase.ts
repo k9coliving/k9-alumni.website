@@ -90,3 +90,17 @@ export async function searchResidents(filters: {
 
   return data || [];
 }
+
+export async function addResident(newResident: Omit<ResidentRecord, 'id' | 'created_at' | 'updated_at'>): Promise<ResidentRecord> {
+  const { data, error } = await supabase
+    .from('residents')
+    .insert([newResident])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to add resident: ${error.message}`);
+  }
+
+  return data;
+}

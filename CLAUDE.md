@@ -50,7 +50,7 @@ This is a password-protected website for K9 alumni. Users need to know one share
 
 ## Testing & Preview
 - **Dev Server**: Run `npm run dev` to start development server
-- **Preview**: Use playwright mcp server to view `http://localhost:3001`
+- **Preview**: Use playwright mcp server to view `http://localhost:3000`
 - **Site Password**: See environment variable `SITE_PASSWORD` in .env.local
 - **Theme**: Light theme with gray-50 background for better text readability
 
