@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 
 interface AddProfileFormProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface FormData {
   description: string;
   interests: string[];
   photoUrl: string;
+  photoFile: File | null;
 }
 
 export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfileFormProps) {
@@ -28,34 +30,158 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
     yearsInK9: '',
     description: '',
     interests: [],
-    photoUrl: ''
+    photoUrl: '',
+    photoFile: null
   });
+
+  // Local state for input values to prevent re-renders
+  const [localName, setLocalName] = useState('');
+  const [localEmail, setLocalEmail] = useState('');
+  const [localYearsInK9, setLocalYearsInK9] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+  // Handle Escape key to close modal and prevent background scrolling
+  useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (isOpen) {
+      // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleEscapeKey);
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    return () => {
+      // Restore background scrolling
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen, onClose]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleFileSelect = useCallback((file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
     }
 
-
-
-    if (!formData.yearsInK9) {
-      newErrors.yearsInK9 = 'K9 period is required';
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setFormData(prev => ({ ...prev, photoFile: file, photoUrl: '' }));
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      handleFileSelect(imageFile);
+    }
+  }, [handleFileSelect]);
+
+  const uploadImageToSupabase = async (file: File): Promise<string> => {
+    // Create form data for upload
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      setUploadProgress(0);
+      
+      // Upload to Supabase storage
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const { url } = await response.json();
+      setUploadProgress(100);
+      
+      return url;
+    } catch (error) {
+      setUploadProgress(null);
+      throw error;
+    }
   };
+
+  const validateField = useCallback((fieldName: keyof FormData, value: string) => {
+    let error = '';
+    
+    switch (fieldName) {
+      case 'name':
+        if (!value.trim()) {
+          error = 'Name is required';
+        }
+        break;
+      case 'email':
+        if (!value.trim()) {
+          error = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'yearsInK9':
+        if (!value) {
+          error = 'K9 period is required';
+        }
+        break;
+    }
+
+    setErrors(prev => ({ ...prev, [fieldName]: error }));
+    return !error;
+  }, []);
+
+  const validateForm = useCallback((): boolean => {
+    const nameValid = validateField('name', formData.name);
+    const emailValid = validateField('email', formData.email);
+    const yearsValid = validateField('yearsInK9', formData.yearsInK9);
+
+    return nameValid && emailValid && yearsValid;
+  }, [formData.name, formData.email, formData.yearsInK9, validateField]);
+
+  // Memoize the preview URL to prevent flickering on re-renders
+  const previewUrl = useMemo(() => {
+    if (formData.photoFile) {
+      return URL.createObjectURL(formData.photoFile);
+    }
+    return null;
+  }, [formData.photoFile]);
+
+  // Clean up object URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +192,19 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      let finalPhotoUrl = formData.photoUrl;
+      
+      // Upload image if a file was selected
+      if (formData.photoFile) {
+        finalPhotoUrl = await uploadImageToSupabase(formData.photoFile);
+      }
+
+      const submissionData = {
+        ...formData,
+        photoUrl: finalPhotoUrl
+      };
+
+      await onSubmit(submissionData);
       setFormData({
         name: '',
         email: '',
@@ -75,11 +213,14 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
         yearsInK9: '',
         description: '',
         interests: [],
-        photoUrl: ''
+        photoUrl: '',
+        photoFile: null
       });
+      setUploadProgress(null);
       onClose();
     } catch (error) {
       console.error('Error submitting profile:', error);
+      alert('Failed to submit profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -121,20 +262,120 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
             </p>
           </div>
           <div className="space-y-4">
+            {/* Photo Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Photo
+              </label>
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDragging
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {formData.photoFile && previewUrl ? (
+                  <div className="space-y-2">
+                    <div className="relative w-40 h-40 mx-auto">
+                      <Image
+                        src={previewUrl}
+                        alt="Preview"
+                        width={160}
+                        height={160}
+                        className="w-full h-full object-cover rounded-md"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600">{formData.photoFile.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, photoFile: null }))}
+                      className="text-red-500 text-sm hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-gray-400 mb-2">
+                      <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Drag and drop an image here, or{' '}
+                      <label className="text-blue-500 hover:text-blue-700 cursor-pointer">
+                        browse
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileSelect(file);
+                          }}
+                        />
+                      </label>
+                    </p>
+                    <p className="text-xs text-gray-400">Max 5MB, PNG/JPG/GIF</p>
+                  </div>
+                )}
+                
+                {uploadProgress !== null && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Uploading... {uploadProgress}%</p>
+                  </div>
+                )}
+              </div>
+              
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Who are you? *
               </label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                onBlur={(e) => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }));
+                  validateField('name', e.target.value);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter your full name"
               />
-              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              <div className="h-6">
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                When did you live at K9? *
+              </label>
+              <input
+                type="text"
+                value={localYearsInK9}
+                onChange={(e) => setLocalYearsInK9(e.target.value)}
+                onBlur={(e) => {
+                  setFormData(prev => ({ ...prev, yearsInK9: e.target.value }));
+                  validateField('yearsInK9', e.target.value);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 2020-2021, November 2016 - June 2018, etc."
+              />
+              <div className="h-6">
+                {errors.yearsInK9 && <p className="text-red-500 text-sm mt-1">{errors.yearsInK9}</p>}
+              </div>
             </div>
 
             <div>
@@ -143,14 +384,18 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
               </label>
               <input
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
+                value={localEmail}
+                onChange={(e) => setLocalEmail(e.target.value)}
+                onBlur={(e) => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                  validateField('email', e.target.value);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="your.email@example.com"
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              <div className="h-6">
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              </div>
             </div>
 
             <div>
@@ -177,38 +422,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder=""
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                When did you live at K9? *
-              </label>
-              <input
-                type="text"
-                value={formData.yearsInK9}
-                onChange={(e) => setFormData(prev => ({ ...prev, yearsInK9: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.yearsInK9 ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g. 2020-2021, November 2016 - June 2018, etc."
-              />
-              {errors.yearsInK9 && <p className="text-red-500 text-sm mt-1">{errors.yearsInK9}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Profile Photo URL
-              </label>
-              <input
-                type="url"
-                value={formData.photoUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, photoUrl: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://example.com/photo.jpg"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Add a link to your profile photo (from LinkedIn, social media, etc.)
-              </p>
             </div>
 
             <div>
