@@ -17,6 +17,7 @@ interface AlumniMember {
     url: string;
     alt: string;
   };
+  placeholderImage?: string;
 }
 
 interface FilterOptions {
@@ -34,6 +35,10 @@ interface FormData {
   description: string;
   interests: string[];
   photoUrl: string;
+  involvementLevel: string;
+  otherInvolvementText: string;
+  birthday: Date | null;
+  currentlyLivingInHouse: boolean;
 }
 
 interface K9FamilyClientProps {
@@ -62,7 +67,11 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
           years_in_k9: formData.yearsInK9,
           description: formData.description,
           interests: formData.interests,
-          photo_url: formData.photoUrl || null
+          photo_url: formData.photoUrl || null,
+          involvementLevel: formData.involvementLevel,
+          otherInvolvementText: formData.otherInvolvementText,
+          birthday: formData.birthday,
+          currentlyLivingInHouse: formData.currentlyLivingInHouse
         }),
       });
 
@@ -86,7 +95,8 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
         photo: result.resident.photo_url ? {
           url: result.resident.photo_url,
           alt: result.resident.photo_alt || `${result.resident.name} profile photo`
-        } : undefined
+        } : undefined,
+        placeholderImage: result.resident.preferences?.placeholder_image
       };
 
       // Add the new member to the list
@@ -168,14 +178,6 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
             <div>
               <p className="text-gray-600">Showing {members.length} alumni</p>
             </div>
-            <div className="flex space-x-2">
-              <button className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                Grid View
-              </button>
-              <button className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md">
-                List View
-              </button>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -193,21 +195,7 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
                   ) : (
                     <div className="w-full h-full bg-gray-50 flex items-center justify-center">
                       <Image
-                        src={`/missing/${[
-                          'Animals with Balloons.svg',
-                          'Cat Astronaut Illustration.svg', 
-                          'Cat Pumpkin Illustration.svg',
-                          'Cat Throwing Vase.svg',
-                          'Chicken Eating a Worm.svg',
-                          'Cute Chicken Illustration.svg',
-                          'Diving with Animals.svg',
-                          'Dog Paw Illustration.svg',
-                          'Kiwi Bird Illustration.svg',
-                          'Octopus Vector Illustration.svg',
-                          'Penguin Family Illustration.svg',
-                          'Playful Cat Illustration.svg',
-                          'cat.svg'
-                        ][Math.floor(Math.random() * 13)]}`}
+                        src={`/missing/${member.placeholderImage || 'cat.svg'}`}
                         alt="Profile placeholder illustration"
                         width={192}
                         height={192}
@@ -278,18 +266,13 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
             <p className="text-gray-600 mb-6">
               Join our alumni database to connect with fellow K9ers and help grow our community network.
             </p>
-            <div className="space-x-4">
-              <button 
-                onClick={() => setIsFormOpen(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                disabled={isSubmitting}
-              >
-                Add Your Profile
-              </button>
-              <button className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                Update Existing Profile
-              </button>
-            </div>
+            <button 
+              onClick={() => setIsFormOpen(true)}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              disabled={isSubmitting}
+            >
+              Add Your Profile
+            </button>
           </div>
         </div>
       </div>

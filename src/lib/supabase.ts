@@ -27,6 +27,14 @@ export interface ResidentRecord {
   email?: string;
   photo_url?: string;
   photo_alt?: string;
+  preferences?: {
+    involvement_level?: string;
+    involvement_level_full?: string;
+    other_involvement_text?: string;
+    placeholder_image?: string;
+  };
+  birthday?: Date;
+  currently_living_in_house?: boolean;
   created_at?: string;
   updated_at?: string;
 }

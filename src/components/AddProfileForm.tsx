@@ -19,6 +19,10 @@ interface FormData {
   interests: string[];
   photoUrl: string;
   photoFile: File | null;
+  involvementLevel: string;
+  otherInvolvementText: string;
+  birthday: Date | null;
+  currentlyLivingInHouse: boolean;
 }
 
 export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfileFormProps) {
@@ -31,13 +35,18 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
     description: '',
     interests: [],
     photoUrl: '',
-    photoFile: null
+    photoFile: null,
+    involvementLevel: 'full-engagement',
+    otherInvolvementText: '',
+    birthday: null,
+    currentlyLivingInHouse: false
   });
 
   // Local state for input values to prevent re-renders
   const [localName, setLocalName] = useState('');
   const [localEmail, setLocalEmail] = useState('');
   const [localYearsInK9, setLocalYearsInK9] = useState('');
+  const [localInterests, setLocalInterests] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -214,8 +223,16 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
         description: '',
         interests: [],
         photoUrl: '',
-        photoFile: null
+        photoFile: null,
+        involvementLevel: 'full-engagement',
+        otherInvolvementText: '',
+        birthday: null,
+        currentlyLivingInHouse: false
       });
+      setLocalName('');
+      setLocalEmail('');
+      setLocalYearsInK9('');
+      setLocalInterests('');
       setUploadProgress(null);
       onClose();
     } catch (error) {
@@ -430,11 +447,12 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
               </label>
               <input
                 type="text"
-                value={formData.interests.join(', ')}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  interests: e.target.value.split(',').map(interest => interest.trim()).filter(Boolean)
-                }))}
+                value={localInterests}
+                onChange={(e) => setLocalInterests(e.target.value)}
+                onBlur={(e) => {
+                  const interests = e.target.value.split(',').map(interest => interest.trim()).filter(Boolean);
+                  setFormData(prev => ({ ...prev, interests }));
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder=""
               />
@@ -455,6 +473,99 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                 placeholder="Tell us a bit about yourself, what you're up to, or what you're looking for from the K9 community..."
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                How involved do you want to be in the network?
+              </label>
+              <select
+                value={formData.involvementLevel}
+                onChange={(e) => setFormData(prev => ({ ...prev, involvementLevel: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="full-engagement">Notify me of everything</option>
+                <option value="newsletter-only">Newsletter</option>
+                <option value="database-only">Just join</option>
+                <option value="team-member">Alumni Network Team</option>
+                <option value="other">Other</option>
+              </select>
+              
+              {/* Disclaimer based on selection */}
+              {formData.involvementLevel && formData.involvementLevel !== 'other' && (
+                <p className="text-base text-gray-600 mt-2">
+                  {formData.involvementLevel === 'full-engagement' && 
+                    "🔊 I want to receive newsletters, be invited to events, be notified of everything"}
+                  {formData.involvementLevel === 'newsletter-only' && 
+                    "📮 I just want the newsletter"}
+                  {formData.involvementLevel === 'database-only' && 
+                    "🫣 I'm happy to be in the database but I don't want to be contacted"}
+                  {formData.involvementLevel === 'team-member' && 
+                    "🚀 I want to join the Alumni Network team!"}
+                </p>
+              )}
+              
+              {/* Other input field when "Other" is selected */}
+              {formData.involvementLevel === 'other' && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    You picked Other. What do you have in mind?
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.otherInvolvementText}
+                    onChange={(e) => setFormData(prev => ({ ...prev, otherInvolvementText: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Tell us what you have in mind..."
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                When is your birthday?
+              </label>
+              <input
+                type="date"
+                value={formData.birthday ? formData.birthday.toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  birthday: e.target.value ? new Date(e.target.value) : null 
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                placeholder="Select your birthday"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Do you currently live in the house?
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, currentlyLivingInHouse: false }))}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    !formData.currentlyLivingInHouse
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  No, I'm an alumni
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, currentlyLivingInHouse: true }))}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    formData.currentlyLivingInHouse
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Yes, I live in the house
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
@@ -468,7 +579,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Adding...' : 'Add Profile'}
