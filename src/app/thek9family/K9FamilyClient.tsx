@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import AddProfileForm from '@/components/AddProfileForm';
 
@@ -49,8 +49,34 @@ interface K9FamilyClientProps {
 
 export default function K9FamilyClient({ initialMembers, filterOptions }: K9FamilyClientProps) {
   const [members, setMembers] = useState<AlumniMember[]>(initialMembers);
+  const [filteredMembers, setFilteredMembers] = useState<AlumniMember[]>(initialMembers);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Live search functionality
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredMembers(members);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = members.filter(member => {
+      // Search across name, location, profession, and interests
+      const matchesName = member.name.toLowerCase().includes(query);
+      const matchesLocation = member.location?.toLowerCase().includes(query) || false;
+      const matchesProfession = member.profession?.toLowerCase().includes(query) || false;
+      const matchesInterests = member.interests.some(interest => 
+        interest.toLowerCase().includes(query)
+      );
+      const matchesYears = member.yearsInK9?.toLowerCase().includes(query) || false;
+      
+      return matchesName || matchesLocation || matchesProfession || matchesInterests || matchesYears;
+    });
+    
+    setFilteredMembers(filtered);
+  }, [searchQuery, members]);
 
   const handleAddProfile = async (formData: FormData) => {
     setIsSubmitting(true);
@@ -126,7 +152,7 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
         backgroundSize: '20px 20px'
       }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="page-header">
+          <div className="page-header !mb-4">
             <h1 className="page-header-title">
               The K9 Family
             </h1>
@@ -137,60 +163,32 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Search & Filter Alumni</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search by name</label>
-                <input 
-                  type="text" 
-                  placeholder="Enter name..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">All cities</option>
-                  {filterOptions.cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Interests</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">All interests</option>
-                  {filterOptions.interests.map(interest => (
-                    <option key={interest} value={interest}>{interest}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">K9 Period</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">All periods</option>
-                  {filterOptions.periods.map(period => (
-                    <option key={period} value={period}>{period}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                Search
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <p className="text-gray-600">Showing {members.length} alumni</p>
+          <div className="max-w-2xl mx-auto">
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, location, profession, interests, or K9 period..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 text-lg bg-white shadow-sm"
+            />
+            <div className="text-center mt-2 mb-16">
+              <p className="text-gray-500 text-sm">
+                {searchQuery 
+                  ? `${filteredMembers.length} ${filteredMembers.length === 1 ? 'person' : 'people'}` 
+                  : `${members.length} ${members.length === 1 ? 'person' : 'people'}`
+                }
+              </p>
             </div>
           </div>
 
           <div className="space-y-16 mb-12">
-            {members.map((member, index) => {
+            {filteredMembers.length === 0 && searchQuery ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No alumni found matching "{searchQuery}"</p>
+                <p className="text-gray-400 text-sm mt-2">Try searching for a different name, location, profession, or interest</p>
+              </div>
+            ) : (
+              filteredMembers.map((member, index) => {
               const isEven = index % 2 === 0;
               
               return (
@@ -289,7 +287,7 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-md text-center">
