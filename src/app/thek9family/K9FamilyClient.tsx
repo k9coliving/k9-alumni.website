@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import AddProfileForm from '@/components/AddProfileForm';
 
@@ -48,11 +49,20 @@ interface K9FamilyClientProps {
 }
 
 export default function K9FamilyClient({ initialMembers, filterOptions }: K9FamilyClientProps) {
+  const searchParams = useSearchParams();
   const [members, setMembers] = useState<AlumniMember[]>(initialMembers);
   const [filteredMembers, setFilteredMembers] = useState<AlumniMember[]>(initialMembers);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize search query from URL parameter
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   // Live search functionality
   useEffect(() => {
