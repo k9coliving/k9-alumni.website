@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addResident } from '@/lib/supabase';
+import { addResident, getResidentsData } from '@/lib/supabase';
 
 // Helper function to get the full involvement level text
 function getInvolvementLevelFull(level: string): string {
@@ -14,6 +14,19 @@ function getInvolvementLevelFull(level: string): string {
       return "🚀 I want to join the Alumni Network team!";
     default:
       return "";
+  }
+}
+
+export async function GET() {
+  try {
+    const residents = await getResidentsData();
+    return NextResponse.json(residents);
+  } catch (error) {
+    console.error('Error fetching residents:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch residents' },
+      { status: 500 }
+    );
   }
 }
 
