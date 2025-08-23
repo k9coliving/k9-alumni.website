@@ -38,7 +38,7 @@ dev.log
 passwords.json
 
 # example files
-*.example.md
+*.example.*
 
 # screenshots
 screenshots/

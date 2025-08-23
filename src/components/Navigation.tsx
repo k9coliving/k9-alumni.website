@@ -8,7 +8,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 const navigationItems = [
   { name: 'The K9 Family', href: '/thek9family', enabled: true },
   { name: 'Newsletter', href: '/newsletter', enabled: false },
-  { name: 'Events', href: '/events', enabled: false },
+  { name: 'Events', href: '/events', enabled: true },
   { name: 'Tips', href: '/tips', enabled: false },
   { name: 'Holdmyhair', href: '/holdmyhair', enabled: false },
   { name: 'Relocation', href: '/relocation', enabled: false },
