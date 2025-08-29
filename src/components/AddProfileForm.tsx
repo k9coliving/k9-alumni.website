@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback } from 'react';
+import ImageUpload from './ImageUpload';
 
 interface AddProfileFormProps {
   isOpen: boolean;
@@ -50,8 +50,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData>>({});
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Handle Escape key to close modal and prevent background scrolling
   useEffect(() => {
@@ -73,72 +71,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [isOpen, onClose]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleFileSelect = useCallback((file: File) => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setFormData(prev => ({ ...prev, photoFile: file, photoUrl: '' }));
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const imageFile = files.find(file => file.type.startsWith('image/'));
-    
-    if (imageFile) {
-      handleFileSelect(imageFile);
-    }
-  }, [handleFileSelect]);
-
-  const uploadImageToSupabase = async (file: File): Promise<string> => {
-    // Create form data for upload
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    try {
-      setUploadProgress(0);
-      
-      // Upload to Supabase storage
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const { url } = await response.json();
-      setUploadProgress(100);
-      
-      return url;
-    } catch (error) {
-      setUploadProgress(null);
-      throw error;
-    }
-  };
 
   const validateField = useCallback((fieldName: keyof FormData, value: string) => {
     let error = '';
@@ -175,22 +107,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
     return nameValid && emailValid && yearsValid;
   }, [formData.name, formData.email, formData.yearsInK9, validateField]);
 
-  // Memoize the preview URL to prevent flickering on re-renders
-  const previewUrl = useMemo(() => {
-    if (formData.photoFile) {
-      return URL.createObjectURL(formData.photoFile);
-    }
-    return null;
-  }, [formData.photoFile]);
-
-  // Clean up object URL when component unmounts or file changes
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +121,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
       
       // Upload image if a file was selected
       if (formData.photoFile) {
-        finalPhotoUrl = await uploadImageToSupabase(formData.photoFile);
+        finalPhotoUrl = await ImageUpload.uploadToSupabase(formData.photoFile);
       }
 
       const submissionData = {
@@ -233,7 +149,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
       setLocalEmail('');
       setLocalYearsInK9('');
       setLocalInterests('');
-      setUploadProgress(null);
       onClose();
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -280,80 +195,11 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
           </div>
           <div className="space-y-4">
             {/* Photo Upload Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Photo
-              </label>
-              <div
-                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                  isDragging
-                    ? 'border-blue-400 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                {formData.photoFile && previewUrl ? (
-                  <div className="space-y-2">
-                    <div className="relative w-40 h-40 mx-auto">
-                      <Image
-                        src={previewUrl}
-                        alt="Preview"
-                        width={160}
-                        height={160}
-                        className="w-full h-full object-cover rounded-md"
-                      />
-                    </div>
-                    <p className="text-sm text-gray-600">{formData.photoFile.name}</p>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, photoFile: null }))}
-                      className="text-red-500 text-sm hover:text-red-700"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-gray-400 mb-2">
-                      <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Drag and drop an image here, or{' '}
-                      <label className="text-blue-500 hover:text-blue-700 cursor-pointer">
-                        browse
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleFileSelect(file);
-                          }}
-                        />
-                      </label>
-                    </p>
-                    <p className="text-xs text-gray-400">Max 5MB, PNG/JPG/GIF</p>
-                  </div>
-                )}
-                
-                {uploadProgress !== null && (
-                  <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Uploading... {uploadProgress}%</p>
-                  </div>
-                )}
-              </div>
-              
-            </div>
+            <ImageUpload
+              label="Profile Photo"
+              value={formData.photoFile}
+              onChange={(file) => setFormData(prev => ({ ...prev, photoFile: file, photoUrl: file ? '' : prev.photoUrl }))}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
