@@ -48,22 +48,19 @@ export default function Home() {
               <p className="text-cyan-100 text-center text-sm">Introduce yourself and find other alumni</p>
             </a>
             
-            <div className="block bg-gradient-to-br from-violet-400 to-purple-600 p-8 rounded-3xl shadow-xl relative">
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
-                Coming soon
-              </div>
+            <a href="/events" className="block bg-gradient-to-br from-violet-400 to-purple-600 hover:from-violet-500 hover:to-purple-700 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/calendar.svg" 
                   alt="Calendar icon - discover upcoming K9 alumni events and gatherings" 
                   width={120} 
                   height={120}
-                  className="rounded-lg opacity-75"
+                  className="rounded-lg"
                 />
               </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Upcoming Events</h3>
+              <h3 className="text-2xl font-bold text-white text-center mb-1">Events</h3>
               <p className="text-violet-100 text-center text-sm">Share and discover alumni events</p>
-            </div>
+            </a>
             
             <div className="block bg-gradient-to-br from-orange-400 to-red-500 pt-4 px-8 pb-8 rounded-3xl shadow-xl relative">
               <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
@@ -82,22 +79,19 @@ export default function Home() {
               <p className="text-orange-100 text-center text-sm">Find alumni in your neighbourhood</p>
             </div>
             
-            <div className="block bg-gradient-to-br from-amber-400 to-yellow-500 p-8 rounded-3xl shadow-xl relative">
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
-                Coming soon
-              </div>
+            <a href="/newsletter" className="block bg-gradient-to-br from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/reading-side.svg" 
                   alt="Person reading illustration - stay updated with K9 alumni newsletter" 
                   width={120} 
                   height={120}
-                  className="rounded-lg opacity-75"
+                  className="rounded-lg"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Newsletter</h3>
               <p className="text-amber-100 text-center text-sm">Catch up and share life updates</p>
-            </div>
+            </a>
             
             <div className="block bg-gradient-to-br from-blue-400 to-indigo-500 p-8 rounded-3xl shadow-xl relative">
               <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">

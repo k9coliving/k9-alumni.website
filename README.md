@@ -11,7 +11,7 @@ This is a password-protected alumni community website built with Next.js, TypeSc
 - **Password Protection**: Secure access with shared password authentication
 - **Session Management**: JWT-based authentication that persists across browser sessions
 - **Responsive Design**: Mobile-first design with Tailwind CSS
-- **Airtable Integration**: Uses shared view API for seamless data access without authentication
+- **Supabase Integration**: PostgreSQL database with real-time capabilities
 
 ## Getting Started
 
@@ -36,9 +36,10 @@ This is a password-protected alumni community website built with Next.js, TypeSc
    Fill in the required values in `.env.local`:
    - `SITE_PASSWORD`: The shared password for site access
    - `JWT_SECRET`: Secret key for JWT token signing (use a secure random string)
-   - `AIRTABLE_BASE_ID`: Your Airtable base ID (e.g., `appXx1AbC2DeFgH3I`)
-   - `AIRTABLE_*_VIEW_ID`: Shared view IDs for each section (e.g., `viwXx1AbC2DeFgH3I`)
-   - `AIRTABLE_*_SHARE_ID`: Share IDs for each view (e.g., `shrXx1AbC2DeFgH3I`)
+   - `SUPABASE_URL`: Your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key for server-side access
+   - `NEXT_PUBLIC_NEWSLETTER_FORM_URL`: URL for newsletter contribution form
+   - `NEXT_PUBLIC_NEWSLETTER_LATEST_URL`: URL for latest newsletter
 
 4. Run the development server:
    ```bash
@@ -60,7 +61,7 @@ src/
 │   └── PasswordGate.tsx   # Password entry form
 └── lib/
     ├── auth.ts           # Server-side auth utilities
-    └── airtable.ts       # Airtable shared view API client
+    └── supabase.ts       # Supabase client configuration
 ```
 
 ## Development Phases
@@ -81,17 +82,10 @@ See `development-plan.md` for detailed roadmap.
 |----------|----------|-------------|
 | `SITE_PASSWORD` | Yes | Shared password for site access |
 | `JWT_SECRET` | Yes | Secret key for JWT token signing |
-| `AIRTABLE_BASE_ID` | Yes | Airtable base ID (from shared view URLs) |
-| `AIRTABLE_*_VIEW_ID` | Yes | Shared view IDs for each section |
-| `AIRTABLE_*_SHARE_ID` | Yes | Share IDs for each shared view |
-| `AIRTABLE_ONBOARDING_FORM_ID` | Yes | Form ID for onboarding/database registration |
-
-### Extracting Airtable IDs
-
-From a shared view URL like your curl request, extract:
-- **Base ID**: `appXx1AbC2DeFgH3I` (from `applicationId` or `x-airtable-application-id`)
-- **View ID**: `viwXx1AbC2DeFgH3I` (from the URL path)
-- **Share ID**: `shrXx1AbC2DeFgH3I` (from `shareId` in the access policy)
+| `SUPABASE_URL` | Yes | Your Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key for server-side database access |
+| `NEXT_PUBLIC_NEWSLETTER_FORM_URL` | Yes | URL for newsletter contribution form |
+| `NEXT_PUBLIC_NEWSLETTER_LATEST_URL` | Yes | URL for latest newsletter |
 
 ## Security
 
