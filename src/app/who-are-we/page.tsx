@@ -48,6 +48,22 @@ const teamMembers = [
   }
 ];
 
+interface ProfileFormData {
+  name: string;
+  email: string;
+  location: string;
+  profession: string;
+  yearsInK9: string;
+  description: string;
+  interests: string[];
+  photoUrl: string;
+  photoFile: File | null;
+  involvementLevel: string;
+  otherInvolvementText: string;
+  birthday: Date | null;
+  currentlyLivingInHouse: boolean;
+}
+
 export default function WhoAreWe() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -55,7 +71,7 @@ export default function WhoAreWe() {
     setIsFormOpen(true);
   };
 
-  const handleAddProfile = async (formData: any) => {
+  const handleAddProfile = async (formData: ProfileFormData) => {
     try {
       const response = await fetch('/api/residents', {
         method: 'POST',

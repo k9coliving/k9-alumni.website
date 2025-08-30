@@ -73,7 +73,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
       }
 
       // Use story as description
-      let description = formData.story;
+      const description = formData.story;
 
       // Submit to API
       const response = await fetch('/api/tips-and-requests', {
@@ -102,8 +102,6 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
         name: '',
         title: '',
         story: '',
-        supportType: '',
-        contactMethod: '',
         link: '',
         imageFile: null,
       });
@@ -188,7 +186,6 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
           onCancel={onClose}
           isSubmitting={isSubmitting}
           submitText="Submit"
-          submitClass="bg-pink-600 hover:bg-pink-700"
         />
       </form>
     </BaseModal>

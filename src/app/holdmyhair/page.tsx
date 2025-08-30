@@ -29,7 +29,7 @@ export default function HoldMyHair() {
             </h1>
             <div className="page-header-divider"></div>
             <p className="page-header-subtitle">
-              You post your tip/offering and it will appear on this page. We will also review it to see if we can match it with another alumni's set of skills and we will add it to the upcoming newsletter.
+              You post your tip/offering and it will appear on this page. We will also review it to see if we can match it with another alumni&apos;s set of skills and we will add it to the upcoming newsletter.
             </p>
           </div>
 

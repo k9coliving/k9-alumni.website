@@ -809,9 +809,11 @@ export default function Events() {
                                 if (imageUrl) {
                                   return (
                                     <div className="relative">
-                                      <img 
+                                      <Image 
                                         src={imageUrl} 
                                         alt="Event" 
+                                        width={96}
+                                        height={96}
                                         className="w-24 h-24 rounded-full object-cover border border-gray-200"
                                       />
                                       <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full border border-gray-100 w-6 h-6 flex items-center justify-center">
