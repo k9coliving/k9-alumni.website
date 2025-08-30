@@ -15,6 +15,8 @@ interface AlumniMember {
     url: string;
     alt: string;
   };
+  placeholderImage?: string;
+  currentlyLivingInHouse: boolean;
 }
 
 // Helper function to transform Supabase data to component format
@@ -31,7 +33,9 @@ function transformResidentRecord(record: ResidentRecord): AlumniMember {
     photo: record.photo_url ? {
       url: record.photo_url,
       alt: record.photo_alt || `${record.name} profile photo`
-    } : undefined
+    } : undefined,
+    placeholderImage: record.preferences?.placeholder_image,
+    currentlyLivingInHouse: record.currently_living_in_house || false
   };
 }
 

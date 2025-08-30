@@ -49,7 +49,7 @@ interface K9FamilyClientProps {
   filterOptions: FilterOptions;
 }
 
-export default function K9FamilyClient({ initialMembers, filterOptions }: K9FamilyClientProps) {
+export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) {
   const searchParams = useSearchParams();
   const [members, setMembers] = useState<AlumniMember[]>(initialMembers);
   const [filteredMembers, setFilteredMembers] = useState<AlumniMember[]>(initialMembers);
@@ -195,7 +195,7 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
           <div className="space-y-16 mb-12">
             {filteredMembers.length === 0 && searchQuery ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No alumni found matching "{searchQuery}"</p>
+                <p className="text-gray-500 text-lg">No alumni found matching &ldquo;{searchQuery}&rdquo;</p>
                 <p className="text-gray-400 text-sm mt-2">Try searching for a different name, location, profession, or interest</p>
               </div>
             ) : (

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare preferences JSONB data
-    const preferences: any = {};
+    const preferences: Record<string, string> = {};
     
     if (body.involvementLevel) {
       preferences.involvement_level = body.involvementLevel.trim();

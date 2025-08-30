@@ -109,7 +109,8 @@ export default function CustomEventForm({ isOpen, onClose, onSubmit }: CustomEve
     
     let isValid = true;
     requiredFields.forEach(field => {
-      if (!validateField(field, formData[field])) {
+      const value = formData[field];
+      if (typeof value === 'string' && !validateField(field, value)) {
         isValid = false;
       }
     });
@@ -192,7 +193,7 @@ export default function CustomEventForm({ isOpen, onClose, onSubmit }: CustomEve
     >
       <div className="mb-6">
         <p className="text-sm text-gray-600">
-          Share your event with the K9 community! Whether it's a meetup, party, or any gathering, let everyone know.
+          Share your event with the K9 community! Whether it&apos;s a meetup, party, or any gathering, let everyone know.
         </p>
       </div>
 

@@ -362,7 +362,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  No, I'm an alumni
+                  No, I&apos;m an alumni
                 </button>
                 <button
                   type="button"

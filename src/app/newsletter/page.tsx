@@ -40,59 +40,6 @@ export default function Newsletter() {
 
     fetchQuotes();
   }, []);
-  const recentIssues = [
-    {
-      title: "Summer Alumni Updates",
-      date: "July 2024",
-      preview: "Catch up on summer events, new alumni spotlights, and upcoming gatherings across the country...",
-      topics: ["Events", "Alumni Spotlights", "Summer Gatherings"]
-    },
-    {
-      title: "Career Moves & Celebrations",
-      date: "June 2024",
-      preview: "Celebrating recent promotions, job changes, and professional achievements in our community...",
-      topics: ["Career Updates", "Achievements", "Professional Network"]
-    },
-    {
-      title: "Relocation Wave",
-      date: "May 2024",
-      preview: "So many alumni are on the move! Find out who&apos;s relocating where and how to connect...",
-      topics: ["Relocations", "City Updates", "Housing"]
-    }
-  ];
-
-  const newsletterFeatures = [
-    {
-      icon: "📰",
-      title: "Alumni Spotlights",
-      description: "Get to know fellow alumni through featured profiles and their post-K9 journeys"
-    },
-    {
-      icon: "🎉",
-      title: "Event Updates",
-      description: "Stay informed about upcoming gatherings, reunions, and local meetups"
-    },
-    {
-      icon: "💼",
-      title: "Career News",
-      description: "Celebrate promotions, job changes, and professional achievements"
-    },
-    {
-      icon: "🏠",
-      title: "Housing Board",
-      description: "Latest housing opportunities, roommate searches, and relocation updates"
-    },
-    {
-      icon: "💡",
-      title: "Tips & Advice",
-      description: "Featured tips from alumni and practical advice for post-K9 life"
-    },
-    {
-      icon: "📅",
-      title: "Community Calendar",
-      description: "Important dates, deadlines, and opportunities you won&apos;t want to miss"
-    }
-  ];
 
   return (
     <Layout>
@@ -114,7 +61,7 @@ export default function Newsletter() {
                 Remember those late-night kitchen conversations and weekend catch-ups that made K9 feel like home? Our quarterly newsletter brings that same energy to your inbox, sharing the adventures, milestones, and everyday moments of our extended K9 family.
               </p>
               <p className="text-lg text-gray-500 font-light leading-relaxed">
-                We'll give you a heads-up a week before each newsletter goes out, so you can share whatever feels right—big news, small wins, or just letting everyone know where life has taken you lately. Both alumni and current residents are welcome to share, and we'll add you to the list when you join the resident list on The K9 Family. Staying connected should feel as natural as it did when we all lived under the same roof. ❤️
+                We&apos;ll give you a heads-up a week before each newsletter goes out, so you can share whatever feels right—big news, small wins, or just letting everyone know where life has taken you lately. Both alumni and current residents are welcome to share, and we&apos;ll add you to the list when you join the resident list on The K9 Family. Staying connected should feel as natural as it did when we all lived under the same roof. ❤️
               </p>
             </div>
           </div>
@@ -167,7 +114,7 @@ export default function Newsletter() {
                         <div className="flex-1 space-y-6">
                           <div>
                             <p className="text-gray-700 text-lg leading-relaxed italic mb-4">
-                              "{quote.quote}"
+                              &ldquo;{quote.quote}&rdquo;
                             </p>
                             <div className="text-right">
                               <p className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>

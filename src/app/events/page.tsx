@@ -6,6 +6,22 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import CustomEventForm from '@/components/CustomEventForm';
 
+interface ResidentData {
+  id: string;
+  name: string;
+  birthday: string;
+  location?: string;
+  profession?: string;
+  email?: string;
+  years_in_k9?: string;
+  photo_url?: string;
+  photo_alt?: string;
+  interests?: string[];
+  preferences?: {
+    placeholder_image?: string;
+  };
+}
+
 interface BirthdayEvent {
   id: string;
   name: string;
@@ -32,10 +48,25 @@ interface CustomEvent {
   location: string;
   start_datetime: string;
   end_datetime: string;
+  duration?: string;
   info_link?: string;
   visual_url?: string;
   additional_notes?: string;
   created_at: string;
+}
+
+interface CustomEventFormData {
+  organizerName: string;
+  organizerEmail: string;
+  eventTitle: string;
+  eventDescription: string;
+  eventLocation: string;
+  startDateTime: string;
+  duration: string;
+  infoLink: string;
+  visualUrl: string;
+  visualFile: File | null;
+  additionalNotes: string;
 }
 
 interface Event {
@@ -50,7 +81,6 @@ interface Event {
 }
 
 export default function Events() {
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState<BirthdayEvent[]>([]);
   const [allBirthdays, setAllBirthdays] = useState<BirthdayEvent[]>([]);
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
@@ -76,12 +106,12 @@ export default function Events() {
         
         // Process residents/birthdays
         if (residentsResponse.ok) {
-          const residents = await residentsResponse.json();
+          const residents: ResidentData[] = await residentsResponse.json();
           
           // Filter residents with birthdays and convert to events
           birthdayEvents = residents
-            .filter((resident: any) => resident.birthday)
-            .map((resident: any) => {
+            .filter((resident) => resident.birthday)
+            .map((resident) => {
               // Extract month and day from birthday (ignore the stored year - birthdays repeat annually)
               const birthday = new Date(resident.birthday);
               const birthdayMonth = birthday.getMonth(); // 0-indexed
@@ -112,7 +142,7 @@ export default function Events() {
                 yearsInK9: resident.years_in_k9
               };
             })
-            .sort((a: any, b: any) => a.birthdayThisYear - b.birthdayThisYear);
+            .sort((a, b) => (a.birthdayThisYear?.getTime() || 0) - (b.birthdayThisYear?.getTime() || 0));
         }
         
         // Process custom events
@@ -175,9 +205,6 @@ export default function Events() {
         
         setUpcomingEvents(finalEvents);
         
-        // Keep legacy birthday filtering for backward compatibility
-        const finalBirthdays = finalEvents.filter(e => e.type === 'birthday').map(e => e.birthdayEvent!); 
-        setUpcomingBirthdays(finalBirthdays);
         
       } catch (error) {
         console.error('Error fetching events:', error);
@@ -205,7 +232,7 @@ export default function Events() {
     }
   }, [selectedEventDate]);
 
-  const handleCustomEventSubmit = async (formData: any) => {
+  const handleCustomEventSubmit = async (formData: CustomEventFormData) => {
     try {
       const response = await fetch('/api/custom-events', {
         method: 'POST',
@@ -220,8 +247,6 @@ export default function Events() {
         throw new Error(errorData.error || 'Failed to create event');
       }
 
-      const result = await response.json();
-      
       // Refresh events by re-running the fetch
       const customEventsResponse = await fetch('/api/custom-events');
       if (customEventsResponse.ok) {
@@ -288,25 +313,6 @@ export default function Events() {
     }
   };
 
-  const formatBirthdayDate = (dateString: string) => {
-    // Parse the date string manually to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number);
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return `${monthNames[month - 1]} ${day}`;
-  };
-
-  const formatBirthdayDateEuropean = (dateString: string) => {
-    // Parse the date string manually to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number);
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return `${day} ${monthNames[month - 1]}`;
-  };
 
   const renderCalendar = () => {
     const today = new Date();
@@ -328,7 +334,7 @@ export default function Events() {
     return (
       <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {months.map(({ month, year }, monthIndex) => {
+          {months.map(({ month, year }) => {
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
             const startingDayOfWeek = firstDay.getDay();
@@ -465,7 +471,7 @@ export default function Events() {
       });
     };
     
-    const daysUntil = Math.ceil((new Date(selectedEventDate) - new Date()) / (1000 * 60 * 60 * 24));
+    const daysUntil = Math.ceil((new Date(selectedEventDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     
     return (
       <div id="event-details" className="mt-16">
@@ -520,7 +526,7 @@ export default function Events() {
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">🎉</div>
                         <div>
-                          <h4 className="text-xl font-semibold text-gray-900">{birthday.name}'s Birthday</h4>
+                          <h4 className="text-xl font-semibold text-gray-900">{birthday.name}&apos;s Birthday</h4>
                           {birthday.yearsInK9 && (
                             <p className="text-sm text-gray-500">In K9: {birthday.yearsInK9}</p>
                           )}
@@ -730,7 +736,7 @@ export default function Events() {
                   {upcomingEvents.length > 0 ? (
                     upcomingEvents.map((event, index) => {
                       const formatEventDate = (dateString: string) => {
-                        const [year, month, day] = dateString.split('-').map(Number);
+                        const [, month, day] = dateString.split('-').map(Number);
                         const monthNames = [
                           'January', 'February', 'March', 'April', 'May', 'June',
                           'July', 'August', 'September', 'October', 'November', 'December'
@@ -760,7 +766,7 @@ export default function Events() {
                               {formatEventDate(event.date).split(' ')[0]}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {Math.ceil((event.eventDate - new Date()) / (1000 * 60 * 60 * 24))} days
+                              {Math.ceil((event.eventDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

@@ -31,7 +31,7 @@ export default function Tips() {
             <div className="text-8xl mb-8">💡</div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Coming Soon</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-              We're working on building a comprehensive tips and offerings platform where alumni 
+              We&apos;re working on building a comprehensive tips and offerings platform where alumni 
               can share advice, resources, and help each other navigate post-K9 life.
             </p>
             
