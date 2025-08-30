@@ -14,7 +14,7 @@ export default function JoinCallToAction({ onAddProfileClick, isSubmitting = fal
       </p>
       <button 
         onClick={onAddProfileClick}
-        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        className="btn-primary px-6 py-3"
         disabled={isSubmitting}
       >
         Add Your Profile

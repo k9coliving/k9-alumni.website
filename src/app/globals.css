@@ -45,6 +45,11 @@ body {
   @apply text-lg text-gray-500 font-light max-w-2xl mx-auto leading-relaxed;
 }
 
+/* Button Styles - reusable across the website */
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium rounded-lg cursor-pointer;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

@@ -14,7 +14,7 @@ export default function NewsletterCallToAction({ className = "" }: NewsletterCal
             href={process.env.NEXT_PUBLIC_NEWSLETTER_FORM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer inline-block"
+            className="btn-primary px-6 py-3 inline-block"
           >
             Share with us and join the next newsletter*
           </a>

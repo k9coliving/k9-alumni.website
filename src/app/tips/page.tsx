@@ -40,7 +40,7 @@ export default function Tips() {
           <div className="text-center mt-12">
             <button
               onClick={() => setIsFormOpen(true)}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg cursor-pointer"
+              className="btn-primary px-8 py-3"
             >
               Share a Tip or Offering
             </button>

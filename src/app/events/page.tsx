@@ -587,7 +587,7 @@ export default function Events() {
                           <div className="flex items-center gap-6">
                             <a 
                               href={`mailto:${birthday.email}`}
-                              className="inline-flex items-center gap-2 text-lg font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400"
+                              className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400"
                             >
                               <span>🎈</span>
                               {birthday.email}
@@ -863,7 +863,7 @@ export default function Events() {
             <div className="text-center mt-16 mb-8">
               <button 
                 onClick={() => setIsCustomEventFormOpen(true)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                className="btn-primary px-6 py-3"
               >
                 Create Your Own Event
               </button>

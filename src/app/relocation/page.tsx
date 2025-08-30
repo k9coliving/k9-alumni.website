@@ -70,7 +70,7 @@ export default function Relocation() {
                 </p>
                 <a 
                   href="/database" 
-                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                  className="inline-block btn-primary px-4 py-2"
                 >
                   Search Alumni Database
                 </a>
@@ -165,7 +165,7 @@ export default function Relocation() {
                   <span className="text-sm text-gray-600">Updated 3 weeks ago</span>
                 </div>
               </div>
-              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+              <button className="btn-primary w-full py-2 px-4">
                 Browse All Guides
               </button>
             </div>

@@ -29,7 +29,7 @@ export default function FormButtons({
         type={submitType}
         onClick={submitType === 'button' ? onSubmit : undefined}
         disabled={isSubmitting}
-        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+        className="btn-primary px-6 py-2 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : submitText}
       </button>
