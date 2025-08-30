@@ -9,6 +9,7 @@ interface AddProfileFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: FormData) => Promise<void>;
+  prefilledInvolvement?: string;
 }
 
 interface FormData {
@@ -27,7 +28,14 @@ interface FormData {
   currentlyLivingInHouse: boolean;
 }
 
-export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfileFormProps) {
+export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInvolvement }: AddProfileFormProps) {
+  const getInitialInvolvementLevel = () => {
+    if (prefilledInvolvement === "Alumni Network Team") {
+      return 'team-member';
+    }
+    return 'full-engagement';
+  };
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -38,7 +46,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
     interests: [],
     photoUrl: '',
     photoFile: null,
-    involvementLevel: 'full-engagement',
+    involvementLevel: getInitialInvolvementLevel(),
     otherInvolvementText: '',
     birthday: null,
     currentlyLivingInHouse: false
@@ -178,7 +186,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                   setFormData(prev => ({ ...prev, name: e.target.value }));
                   validateField('name', e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder="Enter your full name"
               />
               <div className="h-6">
@@ -198,7 +206,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                   setFormData(prev => ({ ...prev, yearsInK9: e.target.value }));
                   validateField('yearsInK9', e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder="e.g. 2020-2021, November 2016 - June 2018, etc."
               />
               <div className="h-6">
@@ -218,7 +226,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                   setFormData(prev => ({ ...prev, email: e.target.value }));
                   validateField('email', e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder="your.email@example.com"
               />
               <div className="h-6">
@@ -234,7 +242,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder="City, Country, nomad"
               />
             </div>
@@ -247,7 +255,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                 type="text"
                 value={formData.profession}
                 onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder=""
               />
             </div>
@@ -264,7 +272,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                   const interests = e.target.value.split(',').map(interest => interest.trim()).filter(Boolean);
                   setFormData(prev => ({ ...prev, interests }));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 placeholder=""
               />
               <p className="text-sm text-gray-500 mt-1">
@@ -279,7 +287,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
                 rows={3}
                 placeholder="Tell us a bit about yourself, what you're up to, or what you're looking for from the K9 community..."
               />
@@ -292,7 +300,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
               <select
                 value={formData.involvementLevel}
                 onChange={(e) => setFormData(prev => ({ ...prev, involvementLevel: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
               >
                 <option value="full-engagement">Notify me of everything</option>
                 <option value="newsletter-only">Newsletter</option>
@@ -325,7 +333,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                     type="text"
                     value={formData.otherInvolvementText}
                     onChange={(e) => setFormData(prev => ({ ...prev, otherInvolvementText: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-input"
                     placeholder="Tell us what you have in mind..."
                   />
                 </div>
@@ -343,7 +351,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                   ...prev, 
                   birthday: e.target.value ? new Date(e.target.value) : null 
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className="form-input text-gray-500"
                 placeholder="Select your birthday"
               />
             </div>

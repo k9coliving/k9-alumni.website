@@ -147,7 +147,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
             required
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="form-input"
             placeholder="Enter your name"
           />
         </FormField>
@@ -157,7 +157,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
             type="text"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="form-input"
             placeholder=""
           />
         </FormField>
@@ -168,7 +168,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
             value={formData.story}
             onChange={(e) => handleInputChange('story', e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="form-input"
             placeholder=""
           />
         </FormField>
@@ -179,7 +179,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
             type="text"
             value={formData.link}
             onChange={(e) => handleInputChange('link', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="form-input"
             placeholder="your@email.com or helpful link"
           />
         </FormField>

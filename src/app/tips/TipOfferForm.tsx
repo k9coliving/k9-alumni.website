@@ -141,7 +141,7 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
             required
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="form-input"
             placeholder="Enter your name"
           />
         </FormField>
@@ -151,7 +151,7 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
             type="text"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="form-input"
             placeholder="Give your tip/offer a title"
           />
         </FormField>
@@ -162,7 +162,7 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
             value={formData.tipOffer}
             onChange={(e) => handleInputChange('tipOffer', e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="form-input"
             placeholder="Describe your tip or what you're offering..."
           />
         </FormField>
@@ -172,7 +172,7 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
             type="text"
             value={formData.link}
             onChange={(e) => handleInputChange('link', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="form-input"
             placeholder="https://example.com or your@email.com"
           />
         </FormField>

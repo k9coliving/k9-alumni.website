@@ -50,6 +50,11 @@ body {
   @apply bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium rounded-lg cursor-pointer;
 }
 
+/* Form Input Styles - consistent across all forms */
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
