@@ -101,6 +101,7 @@ export default function Events() {
         
         const today = new Date();
         const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
         let birthdayEvents: BirthdayEvent[] = [];
         let fetchedCustomEvents: CustomEvent[] = [];
         
@@ -111,36 +112,59 @@ export default function Events() {
           // Filter residents with birthdays and convert to events
           birthdayEvents = residents
             .filter((resident) => resident.birthday)
-            .map((resident) => {
+            .flatMap((resident) => {
               // Extract month and day from birthday (ignore the stored year - birthdays repeat annually)
               const birthday = new Date(resident.birthday);
               const birthdayMonth = birthday.getMonth(); // 0-indexed
               const birthdayDay = birthday.getDate();
               
-              // Create birthday for current year
-              const thisYearBirthday = new Date(currentYear, birthdayMonth, birthdayDay);
+              const events = [];
               
-              // If birthday already passed this year, show next year's birthday
-              if (thisYearBirthday < today) {
-                thisYearBirthday.setFullYear(currentYear + 1);
+              // Current month birthday (even if passed)
+              if (birthdayMonth === currentMonth) {
+                const currentMonthBirthday = new Date(currentYear, birthdayMonth, birthdayDay);
+                events.push({
+                  id: resident.id,
+                  name: resident.name,
+                  birthday: `${currentYear}-${String(birthdayMonth + 1).padStart(2, '0')}-${String(birthdayDay).padStart(2, '0')}`,
+                  location: resident.location,
+                  profession: resident.profession,
+                  email: resident.email,
+                  photo: resident.photo_url ? {
+                    url: resident.photo_url,
+                    alt: resident.photo_alt || `${resident.name} profile photo`
+                  } : undefined,
+                  placeholderImage: resident.preferences?.placeholder_image,
+                  birthdayThisYear: currentMonthBirthday,
+                  interests: resident.interests,
+                  yearsInK9: resident.years_in_k9
+                });
               }
               
-              return {
-                id: resident.id,
-                name: resident.name,
-                birthday: `${thisYearBirthday.getFullYear()}-${String(thisYearBirthday.getMonth() + 1).padStart(2, '0')}-${String(thisYearBirthday.getDate()).padStart(2, '0')}`,
-                location: resident.location,
-                profession: resident.profession,
-                email: resident.email,
-                photo: resident.photo_url ? {
-                  url: resident.photo_url,
-                  alt: resident.photo_alt || `${resident.name} profile photo`
-                } : undefined,
-                placeholderImage: resident.preferences?.placeholder_image,
-                birthdayThisYear: thisYearBirthday,
-                interests: resident.interests,
-                yearsInK9: resident.years_in_k9
-              };
+              // Next month birthday
+              const nextMonth = (currentMonth + 1) % 12;
+              const nextMonthYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+              if (birthdayMonth === nextMonth) {
+                const nextMonthBirthday = new Date(nextMonthYear, birthdayMonth, birthdayDay);
+                events.push({
+                  id: `${resident.id}-next`,
+                  name: resident.name,
+                  birthday: `${nextMonthYear}-${String(birthdayMonth + 1).padStart(2, '0')}-${String(birthdayDay).padStart(2, '0')}`,
+                  location: resident.location,
+                  profession: resident.profession,
+                  email: resident.email,
+                  photo: resident.photo_url ? {
+                    url: resident.photo_url,
+                    alt: resident.photo_alt || `${resident.name} profile photo`
+                  } : undefined,
+                  placeholderImage: resident.preferences?.placeholder_image,
+                  birthdayThisYear: nextMonthBirthday,
+                  interests: resident.interests,
+                  yearsInK9: resident.years_in_k9
+                });
+              }
+              
+              return events;
             })
             .sort((a, b) => (a.birthdayThisYear?.getTime() || 0) - (b.birthdayThisYear?.getTime() || 0));
         }
@@ -179,15 +203,17 @@ export default function Events() {
         
         setAllEvents(combinedEvents);
         
-        // Apply filtering logic to combined events
+        // Apply filtering logic to combined events - only show future events
+        const futureEvents = combinedEvents.filter(event => event.eventDate >= today);
+        
         const fourteenDaysFromNow = new Date(today);
         fourteenDaysFromNow.setDate(today.getDate() + 14);
         
         const threeMonthsFromNow = new Date(today);
         threeMonthsFromNow.setMonth(today.getMonth() + 3);
         
-        // First, get events in the next 14 days
-        const eventsInNext14Days = combinedEvents.filter(event => 
+        // First, get future events in the next 14 days
+        const eventsInNext14Days = futureEvents.filter(event => 
           event.eventDate <= fourteenDaysFromNow
         );
         
@@ -196,8 +222,8 @@ export default function Events() {
           // If we have 3 or more events in next 14 days, show all of them
           finalEvents = eventsInNext14Days;
         } else {
-          // If less than 3 events in next 14 days, show next 3 events within 3 months
-          const eventsInNext3Months = combinedEvents.filter(event => 
+          // If less than 3 events in next 14 days, show next 3 future events within 3 months
+          const eventsInNext3Months = futureEvents.filter(event => 
             event.eventDate <= threeMonthsFromNow
           );
           finalEvents = eventsInNext3Months.slice(0, 3);
@@ -770,7 +796,34 @@ export default function Events() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <div className="text-2xl">{event.type === 'birthday' ? '🎉' : '☕'}</div>
+                            {/* Event Image or Icon */}
+                            <div className="flex-shrink-0">
+                              {(() => {
+                                let imageUrl = null;
+                                if (event.type === 'birthday' && event.birthdayEvent?.photo?.url) {
+                                  imageUrl = event.birthdayEvent.photo.url;
+                                } else if (event.type === 'custom' && event.customEvent?.visual_url) {
+                                  imageUrl = event.customEvent.visual_url;
+                                }
+                                
+                                if (imageUrl) {
+                                  return (
+                                    <div className="relative">
+                                      <img 
+                                        src={imageUrl} 
+                                        alt="Event" 
+                                        className="w-24 h-24 rounded-full object-cover border border-gray-200"
+                                      />
+                                      <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full border border-gray-100 w-6 h-6 flex items-center justify-center">
+                                        {event.type === 'birthday' ? '🎉' : '☕'}
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  return <div className="text-2xl">{event.type === 'birthday' ? '🎉' : '☕'}</div>;
+                                }
+                              })()}
+                            </div>
                             <div>
                               <h3 className="font-semibold text-gray-900 text-lg">{event.title}</h3>
                               {event.location && (
@@ -801,7 +854,7 @@ export default function Events() {
             )}
             
             {/* Calendar View */}
-            {!loading && (allBirthdays.length > 0 || customEvents.length > 0) && renderCalendar()}
+            {renderCalendar()}
 
             {/* Event Details */}
             {selectedEventDate && renderEventDetails()}

@@ -27,61 +27,103 @@ export default function TipCard({ tip }: TipCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-      {/* Image */}
-      {tip.image_url && (
-        <div className="h-48 w-full relative">
-          <Image
-            src={tip.image_url}
-            alt={tip.image_alt || `Image for ${tip.title}`}
-            fill
-            className="object-cover"
-          />
+    <div className="flex items-start gap-6">
+      {/* Tip Image */}
+      <div className="flex-shrink-0">
+        <div className="w-48 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+          {tip.image_url ? (
+            <Image
+              src={tip.image_url}
+              alt={tip.image_alt || `Image for ${tip.title}`}
+              width={192}
+              height={192}
+              className="w-48 h-auto object-contain rounded-lg"
+            />
+          ) : (
+            <div className="w-48 h-48 bg-gray-50 flex items-center justify-center rounded-lg">
+              <Image
+                src={`/missing/${(() => {
+                  const placeholderImages = [
+                    'Animals with Balloons.svg',
+                    'Cat Astronaut Illustration.svg', 
+                    'Cat Pumpkin Illustration.svg',
+                    'Cat Throwing Vase.svg',
+                    'Chicken Eating a Worm.svg',
+                    'Cute Chicken Illustration.svg',
+                    'Diving with Animals.svg',
+                    'Dog Paw Illustration.svg',
+                    'Kiwi Bird Illustration.svg',
+                    'Octopus Vector Illustration.svg',
+                    'Penguin Family Illustration.svg',
+                    'Playful Cat Illustration.svg',
+                    'cat.svg'
+                  ];
+                  // Use tip ID to deterministically choose an image
+                  const index = parseInt(tip.id.slice(-1), 16) % placeholderImages.length;
+                  return placeholderImages[index];
+                })()}`}
+                alt="Tip placeholder illustration"
+                width={96}
+                height={96}
+                className="w-24 h-24"
+              />
+            </div>
+          )}
         </div>
-      )}
-      
-      {/* Content */}
-      <div className="p-6">
+      </div>
+
+      {/* Tip Details */}
+      <div className="flex-1 space-y-4">
+        <div className="flex items-center gap-3">
+          <div>
+            <h4 className="text-xl font-semibold text-gray-900">{tip.title}</h4>
+            <p className="text-sm text-gray-500">{formatDate(tip.created_at)}</p>
+          </div>
+        </div>
+        
         {/* Hold My Hair Badge */}
         {tip.is_hold_my_hair && (
-          <div className="inline-block mb-3">
+          <div className="flex items-center gap-2 text-gray-600">
+            <span className="text-lg">🔥</span>
             <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
               Hold My Hair
             </span>
           </div>
         )}
         
-        {/* Title */}
-        <h3 className="text-xl font-bold text-gray-900 mb-3">
-          {tip.title}
-        </h3>
-        
         {/* Description */}
-        <p className="text-gray-700 mb-4 leading-relaxed">
-          {tip.description}
-        </p>
+        <div>
+          <p className="text-gray-600 leading-relaxed">{tip.description}</p>
+        </div>
         
         {/* External Link */}
         {tip.external_link && (
-          <div className="mb-4">
+          <div>
             <a
               href={tip.external_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium hover:underline"
+              className="text-gray-700 hover:text-gray-900 hover:underline font-medium"
             >
-              🔗 Learn more
-              <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+              {(() => {
+                const link = tip.external_link;
+                // Handle mailto links
+                if (link.startsWith('mailto:')) {
+                  const email = link.substring(7); // Remove 'mailto:' prefix
+                  return email.length > 50 ? email.substring(0, 50) + '...' : email;
+                }
+                // Handle regular URLs
+                return link.length > 50 ? link.substring(0, 50) + '...' : link;
+              })()}
             </a>
           </div>
         )}
         
-        {/* Footer */}
-        <div className="flex items-center justify-between text-sm text-gray-500 border-t pt-4 mt-4">
-          <span className="font-medium">by {tip.submitter_name}</span>
-          <span>{formatDate(tip.created_at)}</span>
+        {/* Signature */}
+        <div className="flex justify-end mt-6">
+          <div className="text-right">
+            <p className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>— {tip.submitter_name}</p>
+          </div>
         </div>
       </div>
     </div>

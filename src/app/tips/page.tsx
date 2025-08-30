@@ -7,6 +7,12 @@ import { useState } from 'react';
 
 export default function Tips() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleTipSubmitted = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <Layout>
       <div className="min-h-screen relative" style={{
@@ -28,7 +34,7 @@ export default function Tips() {
           </div>
 
           {/* Tips listing */}
-          <TipsList />
+          <TipsList refreshTrigger={refreshTrigger} />
 
           {/* Add tip button */}
           <div className="text-center mt-12">
@@ -46,6 +52,7 @@ export default function Tips() {
       <TipOfferForm 
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
+        onSubmitted={handleTipSubmitted}
       />
     </Layout>
   );

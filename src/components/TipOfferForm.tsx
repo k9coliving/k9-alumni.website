@@ -17,9 +17,10 @@ interface TipOfferFormData {
 interface TipOfferFormProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmitted?: () => void;
 }
 
-export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
+export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferFormProps) {
   const [formData, setFormData] = useState<TipOfferFormData>({
     name: '',
     title: '',
@@ -61,6 +62,16 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
         }
       }
 
+      // Process link - convert email to mailto if needed
+      let processedLink = formData.link.trim();
+      if (processedLink) {
+        // Simple email detection regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(processedLink) && !processedLink.startsWith('mailto:')) {
+          processedLink = `mailto:${processedLink}`;
+        }
+      }
+
       // Submit to API
       const response = await fetch('/api/tips-and-requests', {
         method: 'POST',
@@ -71,7 +82,7 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
           submitterName: formData.name,
           title: formData.title,
           description: formData.tipOffer,
-          externalLink: formData.link,
+          externalLink: processedLink,
           imageUrl,
           imageAlt,
           isHoldMyHair: false // Default to false, can be updated later for different form types
@@ -92,6 +103,7 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
         imageFile: null,
       });
       onClose();
+      onSubmitted?.(); // Trigger refresh of tips list
       alert('Tip/offer submitted successfully!');
     } catch (error) {
       console.error('Error submitting tip/offer:', error);
@@ -156,13 +168,13 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
           />
         </FormField>
 
-        <FormField label="Does it have a link?">
+        <FormField label="Link or Email">
           <input
-            type="url"
+            type="text"
             value={formData.link}
             onChange={(e) => handleInputChange('link', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="https://example.com"
+            placeholder="https://example.com or your@email.com"
           />
         </FormField>
 

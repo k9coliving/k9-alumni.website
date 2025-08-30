@@ -15,7 +15,11 @@ interface Tip {
   created_at: string;
 }
 
-export default function TipsList() {
+interface TipsListProps {
+  refreshTrigger?: number;
+}
+
+export default function TipsList({ refreshTrigger }: TipsListProps) {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export default function TipsList() {
     };
 
     fetchTips();
-  }, []);
+  }, [refreshTrigger]);
 
   if (loading) {
     return (
@@ -74,10 +78,19 @@ export default function TipsList() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {tips.map((tip) => (
-        <TipCard key={tip.id} tip={tip} />
-      ))}
+    <div className="max-w-3xl mx-auto">
+      <div className="space-y-8">
+        {tips.map((tip, index) => (
+          <div key={tip.id}>
+            {index > 0 && (
+              <div className="flex justify-center mb-8">
+                <div className="border-t border-gray-200 w-[70%]"></div>
+              </div>
+            )}
+            <TipCard tip={tip} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
