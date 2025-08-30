@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-import CustomEventForm from '@/components/CustomEventForm';
+import CustomEventForm from './CustomEventForm';
 
 interface ResidentData {
   id: string;
