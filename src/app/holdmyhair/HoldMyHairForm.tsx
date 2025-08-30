@@ -10,8 +10,6 @@ interface HoldMyHairFormData {
   name: string;
   title: string;
   story: string;
-  supportType: string;
-  contactMethod: string;
   link: string;
   imageFile: File | null;
 }
@@ -27,8 +25,6 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
     name: '',
     title: '',
     story: '',
-    supportType: '',
-    contactMethod: '',
     link: '',
     imageFile: null,
   });
@@ -41,8 +37,8 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
 
     try {
       // Validate required fields
-      if (!formData.name.trim() || !formData.title.trim() || !formData.story.trim()) {
-        alert('Please fill in your name, title, and story.');
+      if (!formData.name.trim() || !formData.story.trim()) {
+        alert('Please fill in your name and how we can help.');
         return;
       }
 
@@ -76,14 +72,8 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
         }
       }
 
-      // Create description with support type and contact method if provided
+      // Use story as description
       let description = formData.story;
-      if (formData.supportType) {
-        description += `\n\n**Support Type:** ${formData.supportType}`;
-      }
-      if (formData.contactMethod) {
-        description += `\n**Preferred Contact:** ${formData.contactMethod}`;
-      }
 
       // Submit to API
       const response = await fetch('/api/tips-and-requests', {
@@ -135,37 +125,13 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
     }));
   };
 
-  const supportTypes = [
-    'Emotional Support',
-    'Practical Help',
-    'Professional Guidance',
-    'Life Transition Support',
-    'Emergency Support',
-    'Just need someone to listen',
-    'Other'
-  ];
-
-  const contactMethods = [
-    'Email',
-    'Phone call',
-    'Text message',
-    'Video call',
-    'Any method works'
-  ];
 
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Share Your Story"
+      title="Hold my hair"
     >
-      <div className="mb-4 p-4 bg-pink-50 border border-pink-200 rounded-lg">
-        <p className="text-sm text-pink-800">
-          💕 Your story matters. Share what you're going through or offer support to others. 
-          This is a safe space for our K9 family to hold each other up.
-        </p>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormField label="Image (optional)">
           <ImageUpload
@@ -186,53 +152,27 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
           />
         </FormField>
 
-        <FormField label="Title" required>
+        <FormField label="What's going on?">
           <input
             type="text"
-            required
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            placeholder="Give your story a title (e.g., 'Need support through job transition')"
+            placeholder=""
           />
         </FormField>
 
-        <FormField label="What's going on?" required>
+        <FormField label="How can we help?" required>
           <textarea
             required
             value={formData.story}
             onChange={(e) => handleInputChange('story', e.target.value)}
-            rows={5}
+            rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            placeholder="Share as much or as little as you're comfortable with. Whether you need support or want to offer help, we're here for you."
+            placeholder=""
           />
         </FormField>
 
-        <FormField label="What kind of support? (optional)">
-          <select
-            value={formData.supportType}
-            onChange={(e) => handleInputChange('supportType', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-          >
-            <option value="">Select support type...</option>
-            {supportTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </FormField>
-
-        <FormField label="Preferred contact method (optional)">
-          <select
-            value={formData.contactMethod}
-            onChange={(e) => handleInputChange('contactMethod', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-          >
-            <option value="">Select contact method...</option>
-            {contactMethods.map((method) => (
-              <option key={method} value={method}>{method}</option>
-            ))}
-          </select>
-        </FormField>
 
         <FormField label="Contact info or helpful link (optional)">
           <input
@@ -247,7 +187,7 @@ export default function HoldMyHairForm({ isOpen, onClose, onSubmitted }: HoldMyH
         <FormButtons
           onCancel={onClose}
           isSubmitting={isSubmitting}
-          submitText="Share Story"
+          submitText="Submit"
           submitClass="bg-pink-600 hover:bg-pink-700"
         />
       </form>

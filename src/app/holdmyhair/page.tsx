@@ -43,7 +43,7 @@ export default function HoldMyHair() {
               onClick={() => setIsFormOpen(true)}
               className="btn-primary px-6 py-3"
             >
-              Share Your Story
+              Hold my hair request
             </button>
           </div>
 
