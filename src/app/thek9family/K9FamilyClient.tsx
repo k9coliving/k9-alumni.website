@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import AddProfileForm from '@/components/AddProfileForm';
+import JoinCallToAction from '@/components/JoinCallToAction';
 
 interface AlumniMember {
   id: string;
@@ -198,11 +199,13 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
                 <p className="text-gray-400 text-sm mt-2">Try searching for a different name, location, profession, or interest</p>
               </div>
             ) : (
-              filteredMembers.map((member, index) => {
-              const isEven = index % 2 === 0;
-              
-              return (
-                <div key={member.id} className={`flex items-start gap-12 ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
+              <>
+                {filteredMembers.map((member, index) => {
+                  const isEven = index % 2 === 0;
+                  
+                  return (
+                    <div key={`member-${member.id}`}>
+                      <div className={`flex items-start gap-12 ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
                   {/* Profile Image */}
                   <div className="flex-shrink-0">
                     <div className="w-80 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
@@ -293,26 +296,30 @@ export default function K9FamilyClient({ initialMembers, filterOptions }: K9Fami
                           {member.email}
                         </a>
                       </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            }))}
+                      
+                      {/* Show call-to-action after 3rd entry */}
+                      {index === 2 && (
+                        <div className="mt-16">
+                          <JoinCallToAction 
+                            onAddProfileClick={() => setIsFormOpen(true)}
+                            isSubmitting={isSubmitting}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Excited about this?</h2>
-            <p className="text-gray-600 mb-6">
-              Join our alumni database to connect with fellow K9ers and help grow our community network.
-            </p>
-            <button 
-              onClick={() => setIsFormOpen(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              disabled={isSubmitting}
-            >
-              Add Your Profile
-            </button>
-          </div>
+          <JoinCallToAction 
+            onAddProfileClick={() => setIsFormOpen(true)}
+            isSubmitting={isSubmitting}
+          />
         </div>
       </div>
 
