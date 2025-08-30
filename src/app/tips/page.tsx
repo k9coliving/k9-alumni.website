@@ -1,8 +1,8 @@
 'use client';
 
 import Layout from '@/components/Layout';
-import TipOfferForm from '@/components/TipOfferForm';
-import TipsList from '@/components/TipsList';
+import TipOfferForm from './TipOfferForm';
+import TipsList from './TipsList';
 import { useState } from 'react';
 
 export default function Tips() {
