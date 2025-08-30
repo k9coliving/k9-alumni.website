@@ -8,6 +8,7 @@ import ImageUpload from './ImageUpload';
 
 interface TipOfferFormData {
   name: string;
+  title: string;
   tipOffer: string;
   link: string;
   imageFile: File | null;
@@ -21,6 +22,7 @@ interface TipOfferFormProps {
 export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
   const [formData, setFormData] = useState<TipOfferFormData>({
     name: '',
+    title: '',
     tipOffer: '',
     link: '',
     imageFile: null,
@@ -33,12 +35,58 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement API call to submit tip/offer
-      console.log('Tip/Offer submitted:', formData);
+      // Validate required fields
+      if (!formData.name.trim() || !formData.title.trim() || !formData.tipOffer.trim()) {
+        alert('Please fill in your name, title, and tip/offer description.');
+        return;
+      }
+
+      // Upload image if provided
+      let imageUrl = null;
+      let imageAlt = null;
       
+      if (formData.imageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', formData.imageFile);
+        
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          imageUrl = uploadResult.url;
+          imageAlt = `Image for tip: ${formData.title}`;
+        }
+      }
+
+      // Submit to API
+      const response = await fetch('/api/tips-and-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submitterName: formData.name,
+          title: formData.title,
+          description: formData.tipOffer,
+          externalLink: formData.link,
+          imageUrl,
+          imageAlt,
+          isHoldMyHair: false // Default to false, can be updated later for different form types
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit tip/offer');
+      }
+
       // Reset form and close
       setFormData({
         name: '',
+        title: '',
         tipOffer: '',
         link: '',
         imageFile: null,
@@ -47,7 +95,7 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
       alert('Tip/offer submitted successfully!');
     } catch (error) {
       console.error('Error submitting tip/offer:', error);
-      alert('Error submitting tip/offer. Please try again.');
+      alert(error instanceof Error ? error.message : 'Error submitting tip/offer. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -83,6 +131,17 @@ export default function TipOfferForm({ isOpen, onClose }: TipOfferFormProps) {
             onChange={(e) => handleInputChange('name', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your name"
+          />
+        </FormField>
+
+        <FormField label="Title" required>
+          <input
+            type="text"
+            required
+            value={formData.title}
+            onChange={(e) => handleInputChange('title', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Give your tip/offer a title"
           />
         </FormField>
 
