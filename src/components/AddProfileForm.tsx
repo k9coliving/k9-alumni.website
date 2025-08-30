@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import BaseModal from './BaseModal';
+import FormButtons from './FormButtons';
 import ImageUpload from './ImageUpload';
 
 interface AddProfileFormProps {
@@ -51,26 +53,6 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData>>({});
 
-  // Handle Escape key to close modal and prevent background scrolling
-  useEffect(() => {
-    const handleEscapeKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      // Prevent background scrolling
-      document.body.style.overflow = 'hidden';
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
-    return () => {
-      // Restore background scrolling
-      document.body.style.overflow = 'unset';
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [isOpen, onClose]);
 
   const validateField = useCallback((fieldName: keyof FormData, value: string) => {
     let error = '';
@@ -159,41 +141,24 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
   };
 
 
-  if (!isOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center p-4 z-50"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={onClose}
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Tell us who you are"
+      maxWidth="2xl"
     >
-      <div 
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Tell us who you are</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
-              disabled={isSubmitting}
-            >
-              ×
-            </button>
-          </div>
-        </div>
+      <div className="mb-6">
+        <p className="text-sm text-gray-600">
+          Let&apos;s take care of each other beyond the walls of K9.
+        </p>
+        <p className="text-sm text-gray-600 mt-3">
+          This information will be accessible to other K9 alumni and current residents. Only share what you are comfortable sharing 😊
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-          <div className="mb-6">
-            <p className="text-sm text-gray-600">
-              Let&apos;s take care of each other beyond the walls of K9.
-            </p>
-            <p className="text-sm text-gray-600 mt-3">
-              This information will be accessible to other K9 alumni and current residents. Only share what you are comfortable sharing 😊
-            </p>
-          </div>
-          <div className="space-y-4">
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
             {/* Photo Upload Section */}
             <ImageUpload
               label="Profile Photo"
@@ -412,27 +377,14 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit }: AddProfile
                 </button>
               </div>
             </div>
-          </div>
+        </div>
 
-          <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Adding...' : 'Add Profile'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <FormButtons
+          onCancel={onClose}
+          isSubmitting={isSubmitting}
+          submitText="Add Profile"
+        />
+      </form>
+    </BaseModal>
   );
 }
