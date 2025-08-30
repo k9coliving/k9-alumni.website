@@ -104,11 +104,11 @@ export default function Newsletter() {
         backgroundSize: '20px 20px'
       }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-20">
-            <h1 className="text-6xl sm:text-7xl font-extrabold text-gray-900 mb-4 tracking-tight" style={{ fontFamily: 'serif' }}>
+          <div className="page-header">
+            <h1 className="page-header-title">
               Newsletter
             </h1>
-            <div className="w-24 h-1 bg-amber-600 mx-auto rounded-full mb-8"></div>
+            <div className="page-header-divider"></div>
             <div className="max-w-4xl mx-auto text-left space-y-4">
               <p className="text-lg text-gray-500 font-light leading-relaxed">
                 Remember those late-night kitchen conversations and weekend catch-ups that made K9 feel like home? Our quarterly newsletter brings that same energy to your inbox, sharing the adventures, milestones, and everyday moments of our extended K9 family.
@@ -124,14 +124,14 @@ export default function Newsletter() {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-8">
               Letters from the past
             </h2>
-            <div className="w-24 h-1 bg-amber-600 mx-auto rounded-full mb-16"></div>
+            <div className="page-header-divider"></div>
             
             {quotesLoading ? (
               <div className="text-center py-12">
                 <p className="text-gray-500">Loading community updates...</p>
               </div>
             ) : quotes.length > 0 ? (
-              <div className="space-y-16">
+              <div className="space-y-20">
                 {quotes.map((quote, index) => {
                   const isEven = index % 2 === 0;
                   
@@ -140,14 +140,14 @@ export default function Newsletter() {
                       <div className={`flex items-start gap-12 ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
                         {/* Profile Image */}
                         <div className="flex-shrink-0">
-                          <div className="w-48 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+                          <div className="bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
                             {quote.effective_image_url ? (
                               <Image
                                 src={quote.effective_image_url}
                                 alt={`${quote.name} profile photo`}
-                                width={192}
-                                height={192}
-                                className="w-48 h-auto object-contain rounded-lg"
+                                width={256}
+                                height={256}
+                                className="max-w-64 max-h-64 w-auto h-auto object-contain rounded-lg"
                               />
                             ) : (
                               <div className="w-48 h-48 bg-gray-50 flex items-center justify-center rounded-lg">

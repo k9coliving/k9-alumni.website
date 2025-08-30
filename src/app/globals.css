@@ -38,7 +38,7 @@ body {
 }
 
 .page-header-divider {
-  @apply w-24 h-1 bg-amber-600 mx-auto rounded-full mb-8;
+  @apply w-32 h-1 bg-amber-600 mx-auto rounded-full mb-8;
 }
 
 .page-header-subtitle {

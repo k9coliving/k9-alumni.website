@@ -55,12 +55,12 @@ export default function WhoAreWe() {
         backgroundSize: '20px 20px'
       }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-20">
-            <h1 className="text-6xl sm:text-7xl font-extrabold text-gray-900 mb-4 tracking-tight" style={{ fontFamily: 'serif' }}>
+          <div className="page-header">
+            <h1 className="page-header-title">
               This is Us
             </h1>
-            <div className="w-24 h-1 bg-amber-600 mx-auto rounded-full mb-8"></div>
-            <p className="text-lg text-gray-500 font-light max-w-2xl mx-auto leading-relaxed">
+            <div className="page-header-divider"></div>
+            <p className="page-header-subtitle">
               Meet the team behind the K9 Alumni Network
             </p>
           </div>
