@@ -37,8 +37,8 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
 
     try {
       // Validate required fields
-      if (!formData.name.trim() || !formData.title.trim() || !formData.tipOffer.trim()) {
-        alert('Please fill in your name, title, and tip/offer description.');
+      if (!formData.name.trim() || !formData.tipOffer.trim()) {
+        alert('Please fill in your name and tip/offer description.');
         return;
       }
 
@@ -146,10 +146,9 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
           />
         </FormField>
 
-        <FormField label="Title" required>
+        <FormField label="Title">
           <input
             type="text"
-            required
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
