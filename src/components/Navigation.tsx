@@ -9,7 +9,7 @@ const navigationItems = [
   { name: 'The K9 Family', href: '/thek9family', enabled: true },
   { name: 'Newsletter', href: '/newsletter', enabled: true },
   { name: 'Events', href: '/events', enabled: true },
-  { name: 'Tips', href: '/tips', enabled: false },
+  { name: 'Tips', href: '/tips', enabled: true },
   { name: 'Holdmyhair', href: '/holdmyhair', enabled: false },
   { name: 'Relocation', href: '/relocation', enabled: false },
   { name: 'Who are we', href: '/who-are-we', enabled: true },

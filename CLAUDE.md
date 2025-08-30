@@ -49,8 +49,10 @@ This is a password-protected website for K9 alumni. Users need to know one share
 - **Overall Tone**: "Childish love" aesthetic - warm, friendly, community-focused
 
 ## Testing & Preview
-- **Dev Server**: Run `npm run dev` to start development server
+- **Dev Server**: ALWAYS RUNNING on port 3000 - DO NOT run `npm run dev`
+- **Build Testing**: Use `npm run build` only when explicitly requested
 - **Preview**: Use playwright mcp server to view `http://localhost:3000`
+- **Dev Logs**: Check `dev.log` file or use `tail -n 50 dev.log` for recent entries
 - **Site Password**: See environment variable `SITE_PASSWORD` in .env.local
 - **Theme**: Light theme with gray-50 background for better text readability
 

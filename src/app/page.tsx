@@ -93,22 +93,19 @@ export default function Home() {
               <p className="text-amber-100 text-center text-sm">Catch up and share life updates</p>
             </a>
             
-            <div className="block bg-gradient-to-br from-blue-400 to-indigo-500 p-8 rounded-3xl shadow-xl relative">
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
-                Coming soon
-              </div>
+            <a href="/tips" className="block bg-gradient-to-br from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/did-youknow.png" 
                   alt="Light bulb with question mark - discover helpful tips and offerings from fellow alumni" 
                   width={140} 
                   height={140}
-                  className="rounded-lg opacity-75"
+                  className="rounded-lg"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Tips & Offerings</h3>
               <p className="text-blue-100 text-center text-sm">Share what you can<br />Find what you need</p>
-            </div>
+            </a>
             
             <div className="block bg-gradient-to-br from-pink-400 to-rose-500 p-8 rounded-3xl shadow-xl relative">
               <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
