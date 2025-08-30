@@ -125,8 +125,8 @@ export default function Newsletter() {
                         </div>
                       </div>
                       
-                      {/* Show call-to-action after first quote */}
-                      {index === 0 && (
+                      {/* Show call-to-action after third quote */}
+                      {index === 2 && (
                         <NewsletterCallToAction className="mt-16 mb-8" />
                       )}
                     </div>
