@@ -1,8 +1,8 @@
 'use client';
 
 import Layout from '@/components/Layout';
-import HoldMyHairForm from '@/components/HoldMyHairForm';
-import HoldMyHairTipsList from '@/components/HoldMyHairTipsList';
+import HoldMyHairForm from './HoldMyHairForm';
+import HoldMyHairTipsList from './HoldMyHairTipsList';
 import { useState } from 'react';
 
 export default function HoldMyHair() {

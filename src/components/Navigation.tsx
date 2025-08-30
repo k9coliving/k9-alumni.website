@@ -10,7 +10,7 @@ const navigationItems = [
   { name: 'Newsletter', href: '/newsletter', enabled: true },
   { name: 'Events', href: '/events', enabled: true },
   { name: 'Tips', href: '/tips', enabled: true },
-  { name: 'Holdmyhair', href: '/holdmyhair', enabled: false },
+  { name: 'Holdmyhair', href: '/holdmyhair', enabled: true },
   { name: 'Relocation', href: '/relocation', enabled: false },
   { name: 'Who are we', href: '/who-are-we', enabled: true },
 ];

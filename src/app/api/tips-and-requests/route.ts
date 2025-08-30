@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    
+    let query = supabase
       .from('tips_and_requests')
-      .select('*')
+      .select('*');
+
+    // Filter based on type parameter
+    if (type === 'holdmyhair') {
+      query = query.eq('is_hold_my_hair', true);
+    } else if (type === 'tips') {
+      query = query.eq('is_hold_my_hair', false);
+    }
+    // If no type specified, return all (for backward compatibility)
+
+    const { data, error } = await query
+      .order('priority', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error) {
