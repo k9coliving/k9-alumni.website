@@ -2,6 +2,7 @@
 
 import Layout from '@/components/Layout';
 import TipOfferForm from '@/components/TipOfferForm';
+import TipsList from '@/components/TipsList';
 import { useState } from 'react';
 
 export default function Tips() {
@@ -26,16 +27,11 @@ export default function Tips() {
             </p>
           </div>
 
-          {/* Coming soon placeholder */}
-          <div className="text-center py-20">
-            <div className="text-8xl mb-8">💡</div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Coming Soon</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-              We&apos;re working on building a comprehensive tips and offerings platform where alumni 
-              can share advice, resources, and help each other navigate post-K9 life.
-            </p>
-            
-            {/* Submit tip/offer button */}
+          {/* Tips listing */}
+          <TipsList />
+
+          {/* Add tip button */}
+          <div className="text-center mt-12">
             <button
               onClick={() => setIsFormOpen(true)}
               className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg cursor-pointer"
