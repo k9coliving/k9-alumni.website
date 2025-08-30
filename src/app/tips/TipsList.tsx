@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TipCard from '@/components/TipCard';
+import TipCard from './TipCard';
 
 interface Tip {
   id: string;

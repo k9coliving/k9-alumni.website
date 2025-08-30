@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TipCard from '@/components/TipCard';
+import Image from 'next/image';
 
 interface Tip {
   id: string;
@@ -18,6 +18,84 @@ interface Tip {
 
 interface HoldMyHairTipsListProps {
   refreshTrigger?: number;
+}
+
+interface HoldMyHairCardProps {
+  tip: Tip;
+}
+
+function HoldMyHairCard({ tip }: HoldMyHairCardProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  return (
+    <div className="flex items-start gap-6">
+      {/* Support Request Image - only show if exists */}
+      {tip.image_url && (
+        <div className="flex-shrink-0">
+          <div className="bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+            <Image
+              src={tip.image_url}
+              alt={tip.image_alt || `Image for ${tip.title}`}
+              width={256}
+              height={256}
+              className="max-w-80 max-h-48 w-auto h-auto object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Support Request Details */}
+      <div className="flex-1 space-y-4">
+        {/* Title and Description */}
+        <div className="space-y-1">
+          {tip.title && (
+            <p className="text-gray-600 leading-relaxed">{tip.title}</p>
+          )}
+          <p className="text-gray-800 leading-relaxed font-medium">{tip.description}</p>
+        </div>
+        
+        {/* External Link */}
+        {tip.external_link && (
+          <div>
+            <a
+              href={tip.external_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-700 hover:text-gray-900 hover:underline font-medium"
+            >
+              {(() => {
+                const link = tip.external_link;
+                // Handle mailto links
+                if (link.startsWith('mailto:')) {
+                  const email = link.substring(7); // Remove 'mailto:' prefix
+                  return email.length > 50 ? email.substring(0, 50) + '...' : email;
+                }
+                // Handle regular URLs
+                return link.length > 50 ? link.substring(0, 50) + '...' : link;
+              })()}
+            </a>
+          </div>
+        )}
+        
+        {/* Signature */}
+        <div className="flex justify-end mt-6">
+          <div className="text-right">
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-gray-400">{formatDate(tip.created_at)}</p>
+              <p className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>— {tip.submitter_name}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function HoldMyHairTipsList({ refreshTrigger }: HoldMyHairTipsListProps) {
@@ -79,7 +157,7 @@ export default function HoldMyHairTipsList({ refreshTrigger }: HoldMyHairTipsLis
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="space-y-8">
         {tips.map((tip, index) => (
           <div key={tip.id}>
@@ -88,7 +166,7 @@ export default function HoldMyHairTipsList({ refreshTrigger }: HoldMyHairTipsLis
                 <div className="border-t border-gray-200 w-[70%]"></div>
               </div>
             )}
-            <TipCard tip={tip} hideHoldMyHairBadge={true} />
+            <HoldMyHairCard tip={tip} />
           </div>
         ))}
       </div>
