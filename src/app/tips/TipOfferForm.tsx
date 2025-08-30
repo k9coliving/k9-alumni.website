@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import BaseModal from './BaseModal';
-import FormField from './FormField';
-import FormButtons from './FormButtons';
-import ImageUpload from './ImageUpload';
+import BaseModal from '@/components/BaseModal';
+import FormField from '@/components/FormField';
+import FormButtons from '@/components/FormButtons';
+import ImageUpload from '@/components/ImageUpload';
 
 interface TipOfferFormData {
   name: string;
