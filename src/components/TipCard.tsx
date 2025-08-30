@@ -9,14 +9,16 @@ interface Tip {
   image_url?: string;
   image_alt?: string;
   is_hold_my_hair: boolean;
+  priority: number;
   created_at: string;
 }
 
 interface TipCardProps {
   tip: Tip;
+  hideHoldMyHairBadge?: boolean;
 }
 
-export default function TipCard({ tip }: TipCardProps) {
+export default function TipCard({ tip, hideHoldMyHairBadge = false }: TipCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -30,14 +32,14 @@ export default function TipCard({ tip }: TipCardProps) {
     <div className="flex items-start gap-6">
       {/* Tip Image */}
       <div className="flex-shrink-0">
-        <div className="w-48 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+        <div className="bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
           {tip.image_url ? (
             <Image
               src={tip.image_url}
               alt={tip.image_alt || `Image for ${tip.title}`}
-              width={192}
-              height={192}
-              className="w-48 h-auto object-contain rounded-lg"
+              width={256}
+              height={256}
+              className="max-w-80 max-h-48 w-auto h-auto object-contain rounded-lg"
             />
           ) : (
             <div className="w-48 h-48 bg-gray-50 flex items-center justify-center rounded-lg">
@@ -82,7 +84,7 @@ export default function TipCard({ tip }: TipCardProps) {
         </div>
         
         {/* Hold My Hair Badge */}
-        {tip.is_hold_my_hair && (
+        {tip.is_hold_my_hair && !hideHoldMyHairBadge && (
           <div className="flex items-center gap-2 text-gray-600">
             <span className="text-lg">🔥</span>
             <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
