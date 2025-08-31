@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { requireAuth } from '@/lib/api-auth';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -57,6 +63,26 @@ export async function POST(request: NextRequest) {
     const { data: urlData } = supabaseAdmin.storage
       .from('images')
       .getPublicUrl(fileName);
+
+    // Log successful image upload
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await logAuditEvent({
+      event_type: 'data_modified',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        action: 'upload_image',
+        file_name: fileName,
+        file_size: file.size,
+        file_type: file.type,
+        public_url: urlData.publicUrl
+      }
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/api-auth';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
@@ -35,6 +41,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const body = await request.json();
     
@@ -66,6 +76,29 @@ export async function POST(request: NextRequest) {
       console.error('Error creating tip/request:', error);
       return NextResponse.json({ error: 'Failed to create tip/request' }, { status: 500 });
     }
+
+    // Log successful tip/request creation
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    const createdItem = data[0];
+    await logAuditEvent({
+      event_type: 'data_modified',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        action: createdItem.is_hold_my_hair ? 'create_hold_my_hair_request' : 'create_tip',
+        item_id: createdItem.id,
+        title: createdItem.title,
+        submitter_name: createdItem.submitter_name,
+        is_hold_my_hair: createdItem.is_hold_my_hair,
+        has_external_link: !!createdItem.external_link,
+        has_image: !!createdItem.image_url
+      }
+    });
 
     return NextResponse.json(data[0], { status: 201 });
   } catch (error) {

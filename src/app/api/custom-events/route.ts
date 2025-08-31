@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '@/lib/api-auth';
+import { logAuditEvent } from '@/lib/audit';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const { data: events, error } = await supabase
       .from('events')
@@ -28,6 +34,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const body = await request.json();
     
@@ -108,6 +118,29 @@ export async function POST(request: NextRequest) {
     if (error) {
       throw error;
     }
+
+    // Log successful event creation
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await logAuditEvent({
+      event_type: 'data_modified',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        action: 'create_event',
+        event_id: event.id,
+        event_title: event.title,
+        organizer_name: event.organizer_name,
+        organizer_email: event.organizer_email,
+        event_location: event.location,
+        start_datetime: event.start_datetime,
+        duration: event.duration
+      }
+    });
 
     return NextResponse.json({
       success: true,

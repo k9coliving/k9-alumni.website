@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addResident, getResidentsData } from '@/lib/supabase';
+import { requireAuth } from '@/lib/api-auth';
+import { logAuditEvent } from '@/lib/audit';
 
 // Helper function to get the full involvement level text
 function getInvolvementLevelFull(level: string): string {
@@ -17,7 +19,11 @@ function getInvolvementLevelFull(level: string): string {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const residents = await getResidentsData();
     return NextResponse.json(residents);
@@ -31,6 +37,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // Check authentication first
+  const authResponse = await requireAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const body = await request.json();
     
@@ -106,6 +116,27 @@ export async function POST(request: NextRequest) {
 
     // Add to database
     const result = await addResident(newResident);
+
+    // Log successful resident creation
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await logAuditEvent({
+      event_type: 'user_added',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        resident_id: result.id,
+        resident_name: result.name,
+        resident_email: result.email,
+        years_in_k9: result.years_in_k9,
+        involvement_level: result.preferences?.involvement_level || 'not_specified',
+        currently_living_in_house: result.currently_living_in_house || false
+      }
+    });
 
     return NextResponse.json({
       success: true,
