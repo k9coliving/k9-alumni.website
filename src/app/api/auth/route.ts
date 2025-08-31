@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { logAuditEvent, getFailedLoginAttempts, calculateBackoffDelay } from '@/lib/audit';
 
 const SITE_PASSWORD = process.env.SITE_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -34,9 +35,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { password } = await request.json();
+    const { password, email } = await request.json();
+    
+    // Get client IP address
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
 
     if (password === SITE_PASSWORD) {
+      // Get failed attempts for logging purposes
+      const failedAttempts = await getFailedLoginAttempts(ip);
+      // Log successful login
+      await logAuditEvent({
+        event_type: 'successful_login',
+        ip_address: ip,
+        user_agent: userAgent,
+        details: { 
+          previous_failed_attempts: failedAttempts,
+          email: email || null 
+        }
+      });
+      
       // Set authentication cookie with signed token
       const response = NextResponse.json({ success: true });
       const authToken = createAuthToken();
@@ -50,8 +71,77 @@ export async function POST(request: NextRequest) {
 
       return response;
     } else {
+      // Check for rate limiting ONLY for wrong passwords
+      const failedAttempts = await getFailedLoginAttempts(ip);
+      const requiredDelay = calculateBackoffDelay(failedAttempts);
+      
+      // Require email after 10 failed attempts
+      if (failedAttempts >= 10 && !email) {
+        return NextResponse.json(
+          { 
+            error: 'Email required',
+            requireEmail: true,
+            message: 'Please provide your email address for identification purposes'
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Validate email format if provided (after 10+ attempts)
+      if (failedAttempts >= 10 && email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return NextResponse.json(
+            { 
+              error: 'Invalid email format',
+              requireEmail: true,
+              message: 'Please provide a valid email address'
+            },
+            { status: 400 }
+          );
+        }
+      }
+      
+      if (requiredDelay > 0) {
+        await logAuditEvent({
+          event_type: 'failed_login',
+          ip_address: ip,
+          user_agent: userAgent,
+          details: { 
+            reason: 'rate_limited',
+            attempts: failedAttempts,
+            required_delay: requiredDelay,
+            email: email || null
+          }
+        });
+        
+        return NextResponse.json(
+          { 
+            error: 'Too many failed attempts', 
+            retryAfter: requiredDelay,
+            message: `Please wait ${requiredDelay} seconds before trying again`
+          },
+          { status: 429 }
+        );
+      }
+
+      // Log failed login attempt
+      await logAuditEvent({
+        event_type: 'failed_login',
+        ip_address: ip,
+        user_agent: userAgent,
+        details: { 
+          reason: 'invalid_password',
+          attempts: failedAttempts + 1,
+          email: email || null
+        }
+      });
+      
       return NextResponse.json(
-        { error: 'Invalid password' },
+        { 
+          error: 'Invalid password',
+          requireEmail: failedAttempts + 1 >= 10
+        },
         { status: 401 }
       );
     }
