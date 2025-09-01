@@ -13,7 +13,7 @@ interface AuditLogEntry {
   event_type: AuditEventType;
   ip_address?: string;
   user_agent?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   session_id?: string;
 }
 

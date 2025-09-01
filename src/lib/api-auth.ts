@@ -44,7 +44,7 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
   }
 }
 
-export async function withAuth<T extends any[]>(
+export async function withAuth<T extends unknown[]>(
   request: NextRequest,
   handler: (request: NextRequest, ...args: T) => Promise<NextResponse>,
   ...args: T
