@@ -74,8 +74,14 @@ export default function Newsletter() {
             <div className="page-header-divider"></div>
             
             {quotesLoading ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 space-y-6">
                 <p className="text-gray-500">Loading community updates...</p>
+                <a 
+                  href="mailto:cami@k9coliving.com?subject=Newsletter Update"
+                  className="inline-block btn-primary px-8 py-3"
+                >
+                  Write your news
+                </a>
               </div>
             ) : quotes.length > 0 ? (
               <div className="space-y-20">

@@ -48,6 +48,27 @@ This is a password-protected website for K9 alumni. Users need to know one share
 - **Visual Style**: Vibrant, playful, and colorful design - avoid serious/corporate appearance
 - **Overall Tone**: "Childish love" aesthetic - warm, friendly, community-focused
 
+## Styling Guide
+
+### Global CSS Classes (defined in globals.css)
+- **`.btn-primary`**: Blue buttons (bg-blue-600, hover:bg-blue-700) - ALWAYS use this for buttons
+- **`.form-input`**: Standard form inputs with blue focus ring
+- **`.page-header`**: Centered page headers with bottom margin
+- **`.page-header-title`**: Large serif titles (6xl/7xl, extrabold, gray-900)
+- **`.page-header-divider`**: Amber horizontal divider (w-32, h-1, bg-amber-600)
+- **`.page-header-subtitle`**: Subtitle text (lg, gray-500, font-light)
+- **`.line-clamp-3`**: Text truncation utility for 3 lines
+- **`.animate-fadeInUp`**: Custom fade-in animation
+
+### Color Scheme
+- **Primary Button Color**: Blue (#2563eb / bg-blue-600)
+- **Hover Button Color**: Dark Blue (#1d4ed8 / bg-blue-700)
+- **Accent Color**: Amber (#d97706 / bg-amber-600) - used for dividers
+- **Text Colors**: Gray-900 (titles), Gray-500 (subtitles), Gray-700 (body)
+- **Background**: White (#ffffff)
+- **Form Focus**: Blue ring (ring-blue-500)
+
+
 ## Testing & Preview
 - **Dev Server**: ALWAYS RUNNING on port 3000 - DO NOT run `npm run dev`
 - **Build Testing**: Use `npm run build` only when explicitly requested
