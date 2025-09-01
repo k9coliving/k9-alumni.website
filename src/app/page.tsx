@@ -107,22 +107,19 @@ export default function Home() {
               <p className="text-blue-100 text-center text-sm">Share what you can<br />Find what you need</p>
             </a>
             
-            <div className="block bg-gradient-to-br from-pink-400 to-rose-500 p-8 rounded-3xl shadow-xl relative">
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
-                Coming soon
-              </div>
+            <a href="/holdmyhair" className="block bg-gradient-to-br from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
               <div className="flex justify-center mb-6">
                 <Image 
                   src="/help.png" 
                   alt="Helping hands icon - peer support and assistance within K9 alumni community" 
                   width={120} 
                   height={120}
-                  className="rounded-lg opacity-75"
+                  className="rounded-lg"
                 />
               </div>
               <h3 className="text-2xl font-bold text-white text-center mb-1">Hold my Hair</h3>
               <p className="text-pink-100 text-center text-sm">Tell us what you need</p>
-            </div>
+            </a>
           </div>
           
           {/* Why we're here */}
