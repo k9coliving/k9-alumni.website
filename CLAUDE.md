@@ -31,6 +31,7 @@ This is a password-protected website for K9 alumni. Users need to know one share
 4. Validate forms and user inputs properly
 5. Run linting and type checking before committing changes
 6. **Suggest git commits at suitable points** - proactively recommend committing when logical milestones are reached
+7. **CRITICAL**: Always run `npm run build` before creating git commits - Vercel will fail to deploy if there are TypeScript or build errors
 
 ## Password Management
 - **Password File**: `passwords.json` contains site credentials in structured format
