@@ -23,6 +23,14 @@ const parisienne = Parisienne({
 export const metadata: Metadata = {
   title: "K9 Alumni Website",
   description: "Whether you've been a K9er for a few months or many years, moving out is never easy. We are on a journey to build a strong alumni network, so the K9 magic lives on, outside the walls of the house.",
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default async function RootLayout({
