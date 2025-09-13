@@ -50,31 +50,7 @@ This is a password-protected alumni community website built with Next.js, TypeSc
 
 ## Project Structure
 
-```
-src/
-├── app/
-│   ├── api/auth/          # Authentication API endpoint
-│   ├── layout.tsx         # Root layout with auth provider
-│   └── page.tsx          # Home page
-├── components/
-│   ├── AuthProvider.tsx   # Client-side auth state management
-│   └── PasswordGate.tsx   # Password entry form
-└── lib/
-    ├── auth.ts           # Server-side auth utilities
-    └── supabase.ts       # Supabase client configuration
-```
-
-## Development Phases
-
-This project follows a structured development plan:
-
-- **✅ Phase 1**: Project Setup & Authentication (Current)
-- **🚧 Phase 2**: Core Layout & Navigation  
-- **⏳ Phase 3**: Page Components (Priority Order)
-- **⏳ Phase 4**: Remaining Pages
-- **⏳ Phase 5**: Integration & Polish
-
-See `development-plan.md` for detailed roadmap.
+The project follows Next.js App Router conventions with pages in `src/app/`, reusable components in `src/components/`, API routes in `src/app/api/`, and utilities in `src/lib/`. Page-specific components are co-located in the same directory as their page. Authentication, navigation, and all main pages are fully implemented.
 
 ## Environment Variables
 
@@ -83,7 +59,9 @@ See `development-plan.md` for detailed roadmap.
 | `SITE_PASSWORD` | Yes | Shared password for site access |
 | `JWT_SECRET` | Yes | Secret key for JWT token signing |
 | `SUPABASE_URL` | Yes | Your Supabase project URL |
+| `SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key for client-side access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key for server-side database access |
+| `NEXT_PUBLIC_SUPABASE_STORAGE_URL` | Yes | Base URL for Supabase storage bucket (for images) |
 | `NEXT_PUBLIC_NEWSLETTER_FORM_URL` | Yes | URL for newsletter contribution form |
 | `NEXT_PUBLIC_NEWSLETTER_LATEST_URL` | Yes | URL for latest newsletter |
 
@@ -93,6 +71,7 @@ See `development-plan.md` for detailed roadmap.
 - Environment variables are gitignored
 - HTTP-only cookies for session management
 - Secure token validation on server-side
+- Search engine protection: robots.txt and meta tags prevent crawling/indexing
 
 ## Credits
 
