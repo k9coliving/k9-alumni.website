@@ -47,6 +47,9 @@ class NewRelicLogger {
         ...otherProps
       };
 
+      console.log(`[DEBUG] Sending to New Relic endpoint: ${this.apiUrl}`);
+      console.log(`[DEBUG] Environment: ${process.env.NODE_ENV}, License key starts with: ${this.licenseKey?.substring(0, 4)}...`);
+
       await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
@@ -55,9 +58,20 @@ class NewRelicLogger {
         },
         body: JSON.stringify([payload]),
       });
+
+      console.log(`[DEBUG] Successfully sent log to New Relic`);
     } catch (error) {
       // New Relic failed, but console log already happened above
-      console.error('Failed to send log to New Relic:', error);
+      console.error('Failed to send log to New Relic:', {
+        endpoint: this.apiUrl,
+        environment: process.env.NODE_ENV,
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          cause: error.cause,
+          stack: error.stack
+        } : error
+      });
     }
   }
 
