@@ -5,7 +5,7 @@ interface LogEntry {
   message: string;
   level: 'info' | 'warn' | 'error' | 'debug';
   timestamp?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class NewRelicLogger {
@@ -37,13 +37,14 @@ class NewRelicLogger {
     }
 
     try {
+      const { message, level, timestamp, ...otherProps } = logEntry;
       const payload = {
-        timestamp: logEntry.timestamp || Date.now(),
-        message: logEntry.message,
-        level: logEntry.level,
+        timestamp: timestamp || Date.now(),
+        message,
+        level,
         service: 'k9-alumni-website',
         environment: process.env.NODE_ENV || 'development',
-        ...logEntry
+        ...otherProps
       };
 
       await fetch(this.apiUrl, {
@@ -60,15 +61,15 @@ class NewRelicLogger {
     }
   }
 
-  info(message: string, meta?: any) {
+  info(message: string, meta?: Record<string, unknown>) {
     this.sendToNewRelic({ message, level: 'info', ...meta });
   }
 
-  warn(message: string, meta?: any) {
+  warn(message: string, meta?: Record<string, unknown>) {
     this.sendToNewRelic({ message, level: 'warn', ...meta });
   }
 
-  error(message: string, error?: Error | any, meta?: any) {
+  error(message: string, error?: Error | unknown, meta?: Record<string, unknown>) {
     const errorData = error instanceof Error ? {
       error: error.message,
       stack: error.stack,
@@ -82,7 +83,7 @@ class NewRelicLogger {
     });
   }
 
-  debug(message: string, meta?: any) {
+  debug(message: string, meta?: Record<string, unknown>) {
     this.sendToNewRelic({ message, level: 'debug', ...meta });
   }
 }
@@ -91,26 +92,54 @@ class NewRelicLogger {
 export const logger = new NewRelicLogger();
 
 // Helper function for API route logging
-export function logApiRequest(req: any, additionalData?: any) {
+export function logApiRequest(req: unknown, additionalData?: Record<string, unknown>) {
+  const request = req as { method?: string; url?: string; headers?: { get?: (name: string) => string | null } | Record<string, string>; connection?: { remoteAddress?: string } };
+  const headers = request.headers;
+
+  let userAgent: string | null | undefined;
+  let forwardedFor: string | null | undefined;
+
+  if (headers && typeof headers === 'object' && 'get' in headers && typeof headers.get === 'function') {
+    userAgent = headers.get('user-agent');
+    forwardedFor = headers.get('x-forwarded-for');
+  } else if (headers && typeof headers === 'object') {
+    const headersRecord = headers as Record<string, string>;
+    userAgent = headersRecord['user-agent'];
+    forwardedFor = headersRecord['x-forwarded-for'];
+  }
+
   logger.info('API Request', {
-    method: req.method,
-    url: req.url,
-    userAgent: req.headers['user-agent'],
-    ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress,
+    method: request.method,
+    url: request.url,
+    userAgent,
+    ip: forwardedFor || request.connection?.remoteAddress,
     ...additionalData
   });
 }
 
 // Helper function for API errors
-export function logApiError(req: any, error: Error | string, additionalData?: any) {
-  const errorMessage = typeof error === 'string' ? error : error.message;
+export function logApiError(req: unknown, error: Error | string, additionalData?: Record<string, unknown>) {
   const stack = error instanceof Error ? error.stack : undefined;
-  
+  const request = req as { method?: string; url?: string; headers?: { get?: (name: string) => string | null } | Record<string, string>; connection?: { remoteAddress?: string } };
+  const headers = request.headers;
+
+  let userAgent: string | null | undefined;
+  let forwardedFor: string | null | undefined;
+
+  if (headers && typeof headers === 'object' && 'get' in headers && typeof headers.get === 'function') {
+    userAgent = headers.get('user-agent');
+    forwardedFor = headers.get('x-forwarded-for');
+  } else if (headers && typeof headers === 'object') {
+    const headersRecord = headers as Record<string, string>;
+    userAgent = headersRecord['user-agent'];
+    forwardedFor = headersRecord['x-forwarded-for'];
+  }
+
   logger.error('API Error', error, {
-    method: req.method,
-    url: req.url,
-    userAgent: req.headers['user-agent'],
-    ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress,
+    method: request.method,
+    url: request.url,
+    userAgent,
+    ip: forwardedFor || request.connection?.remoteAddress,
     stack,
     ...additionalData
   });
