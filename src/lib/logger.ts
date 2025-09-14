@@ -14,10 +14,12 @@ class NewRelicLogger {
 
   constructor() {
     this.licenseKey = process.env.NEW_RELIC_LICENSE_KEY;
+    // TEMPORARY: Force US endpoint for testing
+    this.apiUrl = 'https://log-api.newrelic.com/log/v1';
     // Use EU endpoint if license key starts with 'eu', otherwise US
-    this.apiUrl = this.licenseKey?.startsWith('eu') 
-      ? 'https://log-api.eu.newrelic.com/log/v1'
-      : 'https://log-api.newrelic.com/log/v1';
+    // this.apiUrl = this.licenseKey?.startsWith('eu')
+    //   ? 'https://log-api.eu.newrelic.com/log/v1'
+    //   : 'https://log-api.newrelic.com/log/v1';
   }
 
 
