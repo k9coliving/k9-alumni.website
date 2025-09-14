@@ -12,6 +12,7 @@ This is a password-protected alumni community website built with Next.js, TypeSc
 - **Session Management**: JWT-based authentication that persists across browser sessions
 - **Responsive Design**: Mobile-first design with Tailwind CSS
 - **Supabase Integration**: PostgreSQL database with real-time capabilities
+- **Server-side Logging**: New Relic integration for log aggregation and monitoring
 
 ## Getting Started
 
@@ -40,6 +41,7 @@ This is a password-protected alumni community website built with Next.js, TypeSc
    - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key for server-side access
    - `NEXT_PUBLIC_NEWSLETTER_FORM_URL`: URL for newsletter contribution form
    - `NEXT_PUBLIC_NEWSLETTER_LATEST_URL`: URL for latest newsletter
+   - `NEW_RELIC_LICENSE_KEY`: New Relic license key for server-side logging (optional)
 
 4. Run the development server:
    ```bash
@@ -64,6 +66,7 @@ The project follows Next.js App Router conventions with pages in `src/app/`, reu
 | `NEXT_PUBLIC_SUPABASE_STORAGE_URL` | Yes | Base URL for Supabase storage bucket (for images) |
 | `NEXT_PUBLIC_NEWSLETTER_FORM_URL` | Yes | URL for newsletter contribution form |
 | `NEXT_PUBLIC_NEWSLETTER_LATEST_URL` | Yes | URL for latest newsletter |
+| `NEW_RELIC_LICENSE_KEY` | No | New Relic license key for server-side logging |
 
 ## Security
 
