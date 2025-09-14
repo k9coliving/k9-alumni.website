@@ -39,6 +39,11 @@ This is a password-protected website for K9 alumni. Users need to know one share
 - **Format**: JSON with name, url, password, description, and created date fields
 - **Usage**: Read this file when accessing password-protected sites during development
 
+## Deployment & Infrastructure
+- **Hosting Platform**: Vercel
+- **Logging Setup**: New Relic integration for server-side log aggregation
+- **Environment**: Next.js serverless functions on Vercel
+
 ## Project Status
 Website is fully functional with all core features implemented including authentication, navigation, page components, and search engine protection.
 
