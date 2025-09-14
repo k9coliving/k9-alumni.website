@@ -4,7 +4,9 @@
 At the moment we'd only be able to send emails to my signup address, and no other email addresses, which makes the feature pointless. 
 
 ## Overview
-Implement a secure profile editing system for The K9 Family page where users can edit their profiles through email-authenticated links without requiring individual user accounts.
+Implement a secure profile editing system for The K9 Family page where users can edit their profiles through email-authenticated links without requiring individual user accounts. Also the user will be able to delete their profile completely. 
+
+Future considerations: a similar system with email validation will be used for editing / removing hold my hair and tips and tricks entries. 
 
 ## UX Flow
 1. **Hover edit**: Small edit icon appears on profile card hover
