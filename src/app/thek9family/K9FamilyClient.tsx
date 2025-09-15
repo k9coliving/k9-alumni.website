@@ -300,10 +300,10 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
                     </div>
                   </div>
                       
-                      {/* Show call-to-action after 3rd entry */}
-                      {index === 2 && (
+                      {/* Show call-to-action after 3rd entry only if there are 5+ members total */}
+                      {index === 2 && filteredMembers.length >= 5 && (
                         <div className="mt-16">
-                          <JoinCallToAction 
+                          <JoinCallToAction
                             onAddProfileClick={() => setIsFormOpen(true)}
                             isSubmitting={isSubmitting}
                           />
