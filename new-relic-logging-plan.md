@@ -76,11 +76,14 @@ export async function GET/POST(request: NextRequest) {
 - ✅ Added: Comprehensive error logging with context
 - ✅ Added: Session lifecycle events and rate limiting monitoring
 
-#### **Residents API** (`/api/residents`)
+#### **Residents API** (`/api/residents`) ✅ **COMPLETED**
 **Priority: High** - Core functionality
 - ✅ Already has audit logging for user creation
-- ➕ Add: Search/filter operations, data validation failures
-- ➕ Add: Profile update tracking, photo upload correlation
+- ✅ Added: Request/response logging with New Relic integration
+- ✅ Added: Search/filter operations logging
+- ✅ Added: Data validation failure tracking with detailed context
+- ✅ Added: Profile creation metrics and photo upload correlation
+- ✅ Added: Request timing and comprehensive error logging
 
 #### **Tips & Requests API** (`/api/tips-and-requests`)
 **Priority: Medium** - User-generated content
@@ -94,11 +97,14 @@ export async function GET/POST(request: NextRequest) {
 - ➕ Add: Event validation failures, organizer tracking
 - ➕ Add: Event popularity metrics
 
-#### **Upload Image API** (`/api/upload-image`)
+#### **Upload Image API** (`/api/upload-image`) ✅ **COMPLETED**
 **Priority: Medium** - File handling
 - ✅ Already has audit logging for uploads
-- ➕ Add: File type/size validation details, storage metrics
-- ➕ Add: Image processing performance
+- ✅ Added: Request/response logging with New Relic integration
+- ✅ Added: File type/size validation details with comprehensive error tracking
+- ✅ Added: Image processing performance metrics (processing duration, upload duration)
+- ✅ Added: Storage metrics (file size, buffer size, file extension tracking)
+- ✅ Added: Request timing and enhanced error context
 
 #### **Newsletter Quotes API** (`/api/newsletter-quotes`)
 **Priority: Low** - Read-only data
@@ -121,7 +127,7 @@ export async function GET/POST(request: NextRequest) {
 ## Implementation Priority
 
 1. **Week 1**: ✅ **COMPLETED** - Add basic request/response logging to auth endpoints
-2. **Week 2**: Implement logging for residents and upload APIs
+2. **Week 2**: ✅ **COMPLETED** - Implement logging for residents and upload APIs
 3. **Week 3**: Add logging to remaining endpoints
 4. **Week 4**: Security monitoring enhancements
 
