@@ -44,6 +44,14 @@ This is a password-protected website for K9 alumni. Users need to know one share
 - **Logging Setup**: New Relic integration for server-side log aggregation
 - **Environment**: Next.js serverless functions on Vercel
 
+### Logging Best Practices for Vercel Lambdas
+- **CRITICAL**: Vercel lambdas terminate immediately after the response is sent
+- If logger calls are made just before `return NextResponse.json()`, the lambda may exit before logs reach New Relic
+- **Solution**: Add a 10ms delay after logging and before response: `await new Promise(resolve => setTimeout(resolve, 10));`
+- **Warning**: If logs are not appearing in New Relic, increase the delay incrementally (try 50ms, 100ms, 500ms)
+- Logging performance: Average 0.75ms per log call, maximum 3ms (tested with 20 requests)
+- Always place critical logging calls well before the response, not immediately before return statements
+
 ## Project Status
 Website is fully functional with all core features implemented including authentication, navigation, page components, and search engine protection.
 
