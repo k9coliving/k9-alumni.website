@@ -16,7 +16,10 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       responseData: data
     });
-    
+
+    // Wait 500ms to allow logging to complete before lambda termination
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     return NextResponse.json(data);
   } catch (error) {
     // Log errors automatically with context
@@ -65,6 +68,9 @@ export async function POST(request: NextRequest) {
       resourceId: result.id,
       resourceName: result.name
     });
+
+    // Wait 500ms to allow logging to complete before lambda termination
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
