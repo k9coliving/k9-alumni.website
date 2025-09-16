@@ -32,6 +32,10 @@ export interface ResidentRecord {
     involvement_level_full?: string;
     other_involvement_text?: string;
     placeholder_image?: string;
+    is_team_member?: boolean;
+    nickname?: string;
+    team_role?: string;
+    team_image_url?: string;
   };
   birthday?: Date;
   currently_living_in_house?: boolean;
@@ -103,6 +107,19 @@ export async function searchResidents(filters: {
 
   if (error) {
     throw new Error(`Failed to search residents: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+export async function getResidentsByIds(ids: string[]): Promise<ResidentRecord[]> {
+  const { data, error } = await supabase
+    .from('residents')
+    .select('*')
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(`Failed to fetch residents: ${error.message}`);
   }
 
   return data || [];

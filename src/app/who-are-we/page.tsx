@@ -1,46 +1,23 @@
-'use client';
-
-import { useState } from 'react';
 import Layout from '@/components/Layout';
-import Image from 'next/image';
-import AddProfileForm from '@/components/AddProfileForm';
+import TeamMembersClient from '@/components/TeamMembersClient';
+import { getResidentsByIds } from '@/lib/supabase';
 
-const teamMembers = [
-  {
-    name: "Abhi",
-    role: "in house mole",
-    image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/abhi.jpg`
-  },
-  {
-    name: "Mo", 
-    role: "Newsletter whisperer",
-    image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/mo.jpg`
-  },
-  {
-    name: "Jho",
-    role: "Onboarding boss", 
-    image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/jho.jpg`
-  },
+const teamMemberIds = [
+  "6d06684d-5934-4e0e-95ca-79b187ff5d54", // Abhi
+  "3c533489-54f5-4db4-ae2a-a4badb05dc61", // Mo
+  "e8924b97-10b3-460c-9e85-4662979d8f6f", // Jho
   {
     name: "Flow",
     role: "Map Master",
     image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/flow.jpg`
   },
+  "69589ae9-f47e-4307-9166-d23f1ecb54bf", // Per
   {
-    name: "Per",
-    role: "Summit Guru",
-    image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/per.jpg`
-  },
-  {
-    name: "Annelise", 
+    name: "Annelise",
     role: "Chief Event Officer",
     image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/annelise.jpg`
   },
-  {
-    name: "Camelia",
-    role: "Tips & Offers Fairy", 
-    image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/cami2.jpg`
-  },
+  "47749294-7c80-4b33-8157-b8e48659a0b9", // Camelia
   {
     name: "You?",
     role: "Join our team!",
@@ -48,64 +25,51 @@ const teamMembers = [
   }
 ];
 
-interface ProfileFormData {
-  name: string;
-  email: string;
-  location: string;
-  profession: string;
-  yearsInK9: string;
-  description: string;
-  interests: string[];
-  photoUrl: string;
-  photoFile: File | null;
-  involvementLevel: string;
-  otherInvolvementText: string;
-  birthday: Date | null;
-  currentlyLivingInHouse: boolean;
+async function loadTeamMembers() {
+  try {
+    // Extract UUIDs from teamMemberIds
+    const uuids = teamMemberIds.filter(item => typeof item === 'string');
+
+    // Fetch all residents with team member UUIDs in one query
+    const residents = await getResidentsByIds(uuids);
+
+    // Create a lookup map for quick access
+    const residentMap = new Map();
+    residents.forEach(resident => {
+      if (resident.preferences?.is_team_member) {
+        residentMap.set(resident.id, resident);
+      }
+    });
+
+    // Build team members array
+    const members = teamMemberIds.map(memberConfig => {
+      // If it's a string (UUID), get from database
+      if (typeof memberConfig === 'string') {
+        const resident = residentMap.get(memberConfig);
+        if (resident) {
+          return {
+            name: resident.preferences?.nickname || resident.name,
+            role: resident.preferences?.team_role,
+            image: resident.preferences?.team_image_url || resident.photo_url,
+            hasUuid: true,
+            actualName: resident.name // Store the actual name for filtering
+          };
+        }
+        return null;
+      }
+      // If it's an object, use as-is (Flow, Annelise, You?)
+      return { ...memberConfig, hasUuid: false };
+    }).filter(member => member !== null);
+
+    return members;
+  } catch (error) {
+    console.error('Error loading team members:', error);
+    return [];
+  }
 }
 
-export default function WhoAreWe() {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-
-  const handleJoinTeamClick = () => {
-    setIsFormOpen(true);
-  };
-
-  const handleAddProfile = async (formData: ProfileFormData) => {
-    try {
-      const response = await fetch('/api/residents', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          location: formData.location,
-          profession: formData.profession,
-          years_in_k9: formData.yearsInK9,
-          description: formData.description,
-          interests: formData.interests,
-          photo_url: formData.photoUrl,
-          involvement_level: formData.involvementLevel,
-          other_involvement_text: formData.otherInvolvementText,
-          birthday: formData.birthday,
-          currently_living_in_house: formData.currentlyLivingInHouse
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add profile');
-      }
-
-      setIsFormOpen(false);
-      // Could add a success message here
-      alert('Welcome to the Alumni Network Team! Your profile has been added.');
-    } catch (error) {
-      console.error('Error adding profile:', error);
-      alert('Error adding profile. Please try again.');
-    }
-  };
+export default async function WhoAreWe() {
+  const teamMembers = await loadTeamMembers();
 
   return (
     <Layout>
@@ -127,62 +91,7 @@ export default function WhoAreWe() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-24 sm:gap-28 lg:gap-32 xl:gap-20 mb-16 justify-items-center xl:justify-center xl:max-w-none xl:mx-0 max-w-6xl mx-auto">
-              {teamMembers.map((member, index) => (
-                <div 
-                  key={index} 
-                  className="flex flex-col items-center text-center opacity-0 animate-fadeInUp"
-                  style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}
-                >
-                <div 
-                  className={`relative mb-4 transition-all duration-300 hover:scale-105 ${member.name === 'You?' ? 'cursor-pointer' : 'cursor-default'}`} 
-                  style={{ width: '260px', height: '288px' }}
-                  onClick={member.name === 'You?' ? handleJoinTeamClick : undefined}
-                >
-                  <Image
-                    src={member.image}
-                    alt={`Portrait photo of ${member.name}, ${member.role} for the K9 Alumni team`}
-                    width={120}
-                    height={160}
-                    className="object-cover rounded-lg"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: '120px',
-                      height: '160px',
-                      zIndex: 1,
-                      filter: member.name === 'Mo' ? 'none' : member.name === 'You?' ? 'sepia(25%) saturate(60%) contrast(75%) brightness(95%) hue-rotate(15deg) opacity(75%)' : 'sepia(15%) saturate(80%) contrast(90%) brightness(105%) hue-rotate(10deg)'
-                    }}
-                  />
-                  <Image
-                    src="/frame.png"
-                    alt="Decorative ornate gold vintage picture frame"
-                    width={260}
-                    height={288}
-                    className="w-full h-full"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      zIndex: 2,
-                      objectFit: 'fill'
-                    }}
-                  />
-                </div>
-                <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1 font-parisienne">
-                  {member.name}
-                </h3>
-                <p 
-                  className={`text-sm ${member.name === 'You?' ? 'text-blue-600 hover:text-blue-800 cursor-pointer hover:underline transition-colors' : 'text-gray-600'}`}
-                  onClick={member.name === 'You?' ? handleJoinTeamClick : undefined}
-                >
-                  {member.role}
-                </p>
-                </div>
-              ))}
-          </div>
+          <TeamMembersClient teamMembers={teamMembers} />
 
           <div className="max-w-4xl mx-auto px-4 mt-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-8">
@@ -209,14 +118,6 @@ export default function WhoAreWe() {
 
         </div>
       </div>
-
-      {/* Add Profile Form Modal */}
-      <AddProfileForm 
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleAddProfile}
-        prefilledInvolvement="Alumni Network Team"
-      />
     </Layout>
   );
 }
