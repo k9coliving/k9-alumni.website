@@ -109,7 +109,7 @@ export async function GET/POST(request: NextRequest) {
 #### **Newsletter Quotes API** (`/api/newsletter-quotes`)
 **Priority: Low** - Read-only data
 - ❌ No logging currently
-- ➕ Add: Query performance, fallback image usage
+- ➕ Add: Query performance
 
 #### **Test/Status Endpoints**
 **Priority: Low** - Infrastructure
@@ -143,3 +143,5 @@ export async function GET/POST(request: NextRequest) {
 - Use existing `logAuditEvent` for security events, `logger` for operational events
 - Include timing data for all operations to identify performance bottlenecks
 - Ensure sensitive data (passwords, tokens) is never logged
+
+- /residents and profile images are a bit spammy. I think we should get rid of "Image upload attempt", "Starting image processing", "Image processing completed", and "Resident profile creation attempt". Maybe even "Photo URL provided for new resident profile", since the image logs are just next to it. 
