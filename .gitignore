@@ -33,12 +33,14 @@ dev.log
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
 
 # password files
 passwords.json
 
 # example files
 *.example.*
+!.env.local.example
 
 # screenshots
 screenshots/
