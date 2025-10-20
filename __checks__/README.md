@@ -65,6 +65,27 @@ npx checkly deploy
 - **Location**: EU West (Ireland)
 - **Critical**: Yes - ensures site is accessible and secure
 
+### invalid-auth.spec.ts
+- **Purpose**: Ensures password protection rejects invalid passwords
+- **Schedule**: Daily at 19:00 CET (18:00 UTC)
+- **Checks**: Invalid password rejection, error handling, security measures
+- **Location**: EU West (Ireland)
+- **Critical**: Yes - security vulnerability if failing
+
+### protected-pages.spec.ts
+- **Purpose**: Verifies authenticated users can access key protected pages
+- **Schedule**: Daily at 19:00 CET (18:00 UTC)
+- **Checks**: Events, Tips, and Hold my Hair pages are accessible after authentication
+- **Location**: EU West (Ireland)
+- **Critical**: High - core functionality
+
+### k9family-directory.spec.ts
+- **Purpose**: Tests that the K9 Family alumni directory loads and functions correctly
+- **Schedule**: Daily at 19:00 CET (18:00 UTC)
+- **Checks**: Directory loads, resident cards display, search functionality, card interaction
+- **Location**: EU West (Ireland)
+- **Critical**: High - core feature of the site
+
 ## Adding New Checks
 
 1. Create a new file in this directory: `your-check-name.spec.ts`
