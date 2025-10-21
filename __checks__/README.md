@@ -56,6 +56,22 @@ npx checkly test --record
 npx checkly deploy
 ```
 
+### 7. Configure Alert Channels
+**IMPORTANT**: After deploying new checks via CLI, they need to be manually added to alert channels.
+
+Alerts for failing tests are sent to:
+- **Email**: Configured in Checkly UI
+- **Telegram**: Configured in Checkly UI
+
+To add new checks to alerts:
+1. Go to https://app.checkly.com
+2. Navigate to **Alert channels** in the left sidebar
+3. Select each alert channel (Email and Telegram)
+4. Add the newly deployed checks to the alert channel
+5. Save changes
+
+**Note**: Checks deployed via CLI are not automatically subscribed to existing alert channels. You must manually add them to ensure you receive alerts for failures.
+
 ## Available Checks
 
 ### homepage.spec.ts
