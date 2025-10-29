@@ -52,13 +52,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { password, email } = await request.json();
-    
+
     // Get client IP address
     const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : 
-               request.headers.get('x-real-ip') || 
+    const ip = forwarded ? forwarded.split(',')[0] :
+               request.headers.get('x-real-ip') ||
                'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    // Detect monitoring/synthetic traffic (Checkly, Playwright, etc.)
+    const isMonitoring = /checkly|playwright|synthetic|monitoring/i.test(userAgent);
 
     if (password === SITE_PASSWORD) {
       // Get failed attempts for logging purposes
@@ -70,7 +73,8 @@ export async function POST(request: NextRequest) {
         user_agent: userAgent,
         details: {
           previous_failed_attempts: failedAttempts,
-          email: email || null
+          email: email || null,
+          is_monitoring: isMonitoring
         }
       });
 
@@ -139,7 +143,8 @@ export async function POST(request: NextRequest) {
             reason: 'rate_limited',
             attempts: failedAttempts,
             required_delay: requiredDelay,
-            email: email || null
+            email: email || null,
+            is_monitoring: isMonitoring
           }
         });
 
@@ -174,7 +179,8 @@ export async function POST(request: NextRequest) {
         details: {
           reason: 'invalid_password',
           attempts: failedAttempts + 1,
-          email: email || null
+          email: email || null,
+          is_monitoring: isMonitoring
         }
       });
 
