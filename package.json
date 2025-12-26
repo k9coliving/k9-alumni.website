@@ -12,8 +12,8 @@
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.55.0",
     "next": "^16.1.1",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -25,7 +25,7 @@
     "checkly": "^6.8.1",
     "dotenv": "^17.2.1",
     "eslint": "^9",
-    "eslint-config-next": "15.4.3",
+    "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
