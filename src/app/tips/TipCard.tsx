@@ -94,8 +94,10 @@ export default function TipCard({ tip, hideHoldMyHairBadge = false }: TipCardPro
         )}
         
         {/* Description */}
-        <div>
-          <p className="text-gray-600 leading-relaxed">{tip.description}</p>
+        <div className="space-y-4">
+          {tip.description.split('\n').filter(para => para.trim()).map((paragraph, index) => (
+            <p key={index} className="text-gray-600 leading-relaxed">{paragraph}</p>
+          ))}
         </div>
         
         {/* External Link */}
