@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         user_agent: userAgent,
         previous_failed_attempts: failedAttempts,
         has_email: !!email,
+        is_monitoring: isMonitoring,
         duration: Date.now() - startTime
       });
 
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
           failed_attempts: failedAttempts,
           required_delay: requiredDelay,
           has_email: !!email,
+          is_monitoring: isMonitoring,
           duration: Date.now() - startTime
         });
 
@@ -193,6 +195,7 @@ export async function POST(request: NextRequest) {
         failed_attempts: failedAttempts + 1,
         will_require_email: failedAttempts + 1 >= 10,
         has_email: !!email,
+        is_monitoring: isMonitoring,
         duration: Date.now() - startTime
       });
 
