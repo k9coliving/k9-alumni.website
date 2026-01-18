@@ -498,12 +498,16 @@ export default function Events() {
     };
     
     const daysUntil = Math.ceil((new Date(selectedEventDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    
+    const isPastEvent = daysUntil < 0;
+    const absDaysUntil = Math.abs(daysUntil);
+
     return (
       <div id="event-details" className="mt-16">
         <div className="text-center mb-8">
           <h3 className="text-4xl font-bold text-gray-900">{formatSelectedDate(selectedEventDate)}</h3>
-          <p className="text-sm text-gray-500 mt-1">in {daysUntil} days</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {isPastEvent ? `${absDaysUntil} days ago` : `in ${daysUntil} days`}
+          </p>
         </div>
         
         <div className="space-y-8">
