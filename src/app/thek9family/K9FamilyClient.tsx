@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import AddProfileForm from '@/components/AddProfileForm';
 import JoinCallToAction from '@/components/JoinCallToAction';
+import BaseModal from '@/components/BaseModal';
 
 interface AlumniMember {
   id: string;
@@ -56,6 +57,9 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editRequestMember, setEditRequestMember] = useState<AlumniMember | null>(null);
+  const [editRequestStatus, setEditRequestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [editRequestError, setEditRequestError] = useState<string | null>(null);
 
   // Initialize search query from URL parameter
   useEffect(() => {
@@ -238,12 +242,22 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>{member.name}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            member.currentlyLivingInHouse 
-                              ? 'bg-green-100 text-green-800' 
+                            member.currentlyLivingInHouse
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-blue-100 text-blue-800'
                           }`}>
                             {member.currentlyLivingInHouse ? 'Resident' : 'Alumni'}
                           </span>
+                          <button
+                            onClick={() => setEditRequestMember(member)}
+                            className="mx-3 px-2 py-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1 text-sm"
+                            title="Edit profile"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            Edit
+                          </button>
                         </div>
                         <p className="text-lg text-gray-600 font-medium">At K9: {member.yearsInK9}</p>
                       </div>
@@ -328,6 +342,101 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleAddProfile}
       />
+
+      <BaseModal
+        isOpen={editRequestMember !== null}
+        onClose={() => {
+          setEditRequestMember(null);
+          setEditRequestStatus('idle');
+          setEditRequestError(null);
+        }}
+        title="Edit Profile"
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          {editRequestStatus === 'sent' ? (
+            <>
+              <div className="text-center py-4">
+                <div className="text-4xl mb-3">✉️</div>
+                <p className="text-gray-700 font-medium">Email sent!</p>
+                <p className="text-gray-600 text-sm mt-2">
+                  We&apos;ve sent an email to <strong>{editRequestMember?.email}</strong> with instructions for editing the profile.
+                </p>
+              </div>
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={() => {
+                    setEditRequestMember(null);
+                    setEditRequestStatus('idle');
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-700">
+                To edit this profile, we&apos;ll send a verification email to{' '}
+                <strong>{editRequestMember?.email}</strong>.
+              </p>
+              <p className="text-gray-600 text-sm">
+                The email will contain instructions for making changes to the profile.
+              </p>
+              {editRequestError && (
+                <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  {editRequestError}
+                </p>
+              )}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setEditRequestMember(null);
+                    setEditRequestStatus('idle');
+                    setEditRequestError(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!editRequestMember) return;
+                    setEditRequestStatus('sending');
+                    setEditRequestError(null);
+                    try {
+                      const response = await fetch('/api/request-edit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          memberId: editRequestMember.id,
+                          memberName: editRequestMember.name,
+                          memberEmail: editRequestMember.email
+                        })
+                      });
+                      const data = await response.json();
+                      if (data.success) {
+                        setEditRequestStatus('sent');
+                      } else {
+                        setEditRequestError(data.error || 'Failed to send email');
+                        setEditRequestStatus('idle');
+                      }
+                    } catch {
+                      setEditRequestError('Failed to send email. Please try again.');
+                      setEditRequestStatus('idle');
+                    }
+                  }}
+                  disabled={editRequestStatus === 'sending'}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {editRequestStatus === 'sending' ? 'Sending...' : 'Send Email'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </BaseModal>
     </>
   );
 }
