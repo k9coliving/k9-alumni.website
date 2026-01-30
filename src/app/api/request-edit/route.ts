@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import { setEditToken } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { logAuditEvent, getRecentEditRequestForResident } from '@/lib/audit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -10,7 +11,7 @@ function generateEditToken(): string {
   return crypto.randomUUID();
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { memberId, memberName, memberEmail } = await request.json();
 
@@ -24,6 +25,21 @@ export async function POST(request: Request) {
         { success: false, error: 'Member ID and email address are required' },
         { status: 400 }
       );
+    }
+
+    // Check if an edit request was already sent recently
+    const recentRequest = await getRecentEditRequestForResident(memberId, 24);
+    if (recentRequest.exists) {
+      logger.info('Edit request blocked - email already sent recently', {
+        endpoint: 'request-edit',
+        residentId: memberId,
+        lastSentAt: recentRequest.sentAt?.toISOString()
+      });
+      return NextResponse.json({
+        success: false,
+        alreadySent: true,
+        message: "We've already sent an edit link to this email address in the last 24 hours. Please check your inbox (and spam folder) for the previous email - that link is still valid!"
+      });
     }
 
     const editToken = generateEditToken();
@@ -68,6 +84,25 @@ export async function POST(request: Request) {
       residentId: memberId,
       residentName: memberName,
       messageId: data?.id
+    });
+
+    // Log to audit trail for spam prevention tracking
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] :
+               request.headers.get('x-real-ip') ||
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await logAuditEvent({
+      event_type: 'edit_request_sent',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        resident_id: memberId,
+        resident_name: memberName,
+        resident_email: memberEmail,
+        message_id: data?.id
+      }
     });
 
     return NextResponse.json({

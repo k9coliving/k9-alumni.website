@@ -55,7 +55,7 @@ export default function K9FamilyClient({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editRequestMember, setEditRequestMember] = useState<AlumniMember | null>(null);
-  const [editRequestStatus, setEditRequestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [editRequestStatus, setEditRequestStatus] = useState<'idle' | 'sending' | 'sent' | 'already_sent' | 'error'>('idle');
   const [editRequestError, setEditRequestError] = useState<string | null>(null);
 
   // Edit modal state
@@ -497,6 +497,30 @@ export default function K9FamilyClient({
                 </button>
               </div>
             </>
+          ) : editRequestStatus === 'already_sent' ? (
+            <>
+              <div className="text-center py-4">
+                <div className="text-4xl mb-3">📬</div>
+                <p className="text-gray-700 font-medium">Check your inbox!</p>
+                <p className="text-gray-600 text-sm mt-2">
+                  We&apos;ve already sent an edit link to <strong>{editRequestMember?.email}</strong> in the last 24 hours.
+                </p>
+                <p className="text-gray-600 text-sm mt-2">
+                  Please check your inbox (and spam folder) - that link is still valid!
+                </p>
+              </div>
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={() => {
+                    setEditRequestMember(null);
+                    setEditRequestStatus('idle');
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Got it
+                </button>
+              </div>
+            </>
           ) : (
             <>
               <p className="text-gray-700">
@@ -540,6 +564,9 @@ export default function K9FamilyClient({
                       const data = await response.json();
                       if (data.success) {
                         setEditRequestStatus('sent');
+                      } else if (data.alreadySent) {
+                        // Show friendly message for recently sent emails
+                        setEditRequestStatus('already_sent');
                       } else {
                         setEditRequestError(data.error || 'Failed to send email');
                         setEditRequestStatus('idle');

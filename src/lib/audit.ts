@@ -1,13 +1,14 @@
 import { supabaseAdmin } from './supabase';
 
-export type AuditEventType = 
+export type AuditEventType =
   | 'failed_login'
   | 'successful_login'
   | 'user_added'
   | 'user_modified'
   | 'data_modified'
   | 'password_changed'
-  | 'system_error';
+  | 'system_error'
+  | 'edit_request_sent';
 
 interface AuditLogEntry {
   event_type: AuditEventType;
@@ -71,8 +72,40 @@ export async function getFailedLoginAttempts(
 
 export function calculateBackoffDelay(attemptCount: number): number {
   if (attemptCount <= 3) return 0;
-  
+
   // Exponential backoff: 2^(attempt-3) seconds, capped at 300 seconds (5 minutes)
   const delay = Math.pow(2, attemptCount - 3);
   return Math.min(delay, 300);
+}
+
+export async function getRecentEditRequestForResident(
+  residentId: string,
+  timeWindowHours: number = 24
+): Promise<{ exists: boolean; sentAt?: Date }> {
+  try {
+    const cutoffTime = new Date(Date.now() - (timeWindowHours * 60 * 60 * 1000)).toISOString();
+
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('timestamp')
+      .eq('event_type', 'edit_request_sent')
+      .contains('details', { resident_id: residentId })
+      .gte('timestamp', cutoffTime)
+      .order('timestamp', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Failed to check recent edit requests:', error);
+      return { exists: false };
+    }
+
+    if (data && data.length > 0) {
+      return { exists: true, sentAt: new Date(data[0].timestamp) };
+    }
+
+    return { exists: false };
+  } catch (err) {
+    console.error('Error checking recent edit requests:', err);
+    return { exists: false };
+  }
 }
