@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addResident, getResidentsData, updateResident, verifyEditToken } from '@/lib/supabase';
+import { addResident, getResidentsData, getResidentById, updateResident, verifyEditToken } from '@/lib/supabase';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
 import { logger, logApiRequest, logApiError } from '@/lib/logger';
@@ -337,6 +337,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Fetch existing resident to preserve preferences
+    const existingResident = await getResidentById(body.id);
+    if (!existingResident) {
+      logger.warn('Resident update failed - resident not found', {
+        endpoint: 'residents',
+        method: request.method,
+        residentId: body.id,
+        duration: Date.now() - startTime
+      });
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return NextResponse.json(
+        { error: 'Resident not found' },
+        { status: 404 }
+      );
+    }
+
     // Log profile update attempt
     logger.info('Resident profile update attempt', {
       endpoint: 'residents',
@@ -397,20 +413,25 @@ export async function PUT(request: NextRequest) {
       currently_living_in_house: body.currentlyLivingInHouse || false
     };
 
-    // Update preferences if involvement level is provided
+    // Merge preferences with existing preferences to preserve fields like placeholder_image
+    const existingPreferences = existingResident.preferences || {};
+    const newPreferences: Record<string, string | boolean | undefined> = { ...existingPreferences };
+
     if (body.involvementLevel) {
-      const preferences: Record<string, string> = {};
-      preferences.involvement_level = body.involvementLevel.trim();
-      preferences.involvement_level_full = body.involvementLevel === 'other'
+      newPreferences.involvement_level = body.involvementLevel.trim();
+      newPreferences.involvement_level_full = body.involvementLevel === 'other'
         ? body.otherInvolvementText?.trim() || ''
         : getInvolvementLevelFull(body.involvementLevel);
 
       if (body.involvementLevel === 'other' && body.otherInvolvementText) {
-        preferences.other_involvement_text = body.otherInvolvementText.trim();
+        newPreferences.other_involvement_text = body.otherInvolvementText.trim();
+      } else {
+        // Clear other_involvement_text if not using 'other' option
+        delete newPreferences.other_involvement_text;
       }
-
-      Object.assign(updateData, { preferences });
     }
+
+    Object.assign(updateData, { preferences: newPreferences });
 
     // Update the resident in database
     const result = await updateResident(body.id, updateData);
@@ -439,7 +460,33 @@ export async function PUT(request: NextRequest) {
       details: {
         resident_id: result.id,
         resident_name: result.name,
-        resident_email: result.email
+        resident_email: result.email,
+        before: {
+          name: existingResident.name,
+          email: existingResident.email,
+          location: existingResident.location,
+          profession: existingResident.profession,
+          years_in_k9: existingResident.years_in_k9,
+          description: existingResident.description,
+          interests: existingResident.interests,
+          photo_url: existingResident.photo_url,
+          birthday: existingResident.birthday,
+          currently_living_in_house: existingResident.currently_living_in_house,
+          preferences: existingResident.preferences
+        },
+        after: {
+          name: result.name,
+          email: result.email,
+          location: result.location,
+          profession: result.profession,
+          years_in_k9: result.years_in_k9,
+          description: result.description,
+          interests: result.interests,
+          photo_url: result.photo_url,
+          birthday: result.birthday,
+          currently_living_in_house: result.currently_living_in_house,
+          preferences: result.preferences
+        }
       }
     });
 

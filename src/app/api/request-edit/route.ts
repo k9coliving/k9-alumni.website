@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import { setEditToken } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -14,6 +15,11 @@ export async function POST(request: Request) {
     const { memberId, memberName, memberEmail } = await request.json();
 
     if (!memberEmail || !memberId) {
+      logger.warn('Edit request failed - missing required fields', {
+        endpoint: 'request-edit',
+        hasMemberId: !!memberId,
+        hasMemberEmail: !!memberEmail
+      });
       return NextResponse.json(
         { success: false, error: 'Member ID and email address are required' },
         { status: 400 }
@@ -24,8 +30,8 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://alumni.k9coliving.com';
     const editUrl = `${baseUrl}/thek9family?edit=${memberId}&token=${editToken}`;
 
-    // Store token in database (expires in 24 hours)
-    await setEditToken(memberId, editToken, 24);
+    // Store token in database (expires in 3 days)
+    await setEditToken(memberId, editToken, 72);
 
     const { data, error } = await resend.emails.send({
       from: 'K9 Alumni <noreply@mail.k9coliving.com>',
@@ -46,12 +52,23 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.error('Edit request email failed to send', {
+        endpoint: 'request-edit',
+        residentId: memberId,
+        error: error.message
+      });
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 }
       );
     }
+
+    logger.info('Edit request email sent successfully', {
+      endpoint: 'request-edit',
+      residentId: memberId,
+      residentName: memberName,
+      messageId: data?.id
+    });
 
     return NextResponse.json({
       success: true,
@@ -59,7 +76,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Email request error:', error);
+    logger.error('Edit request failed with exception', {
+      endpoint: 'request-edit',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
 
     return NextResponse.json(
       {

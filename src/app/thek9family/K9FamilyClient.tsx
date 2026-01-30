@@ -23,6 +23,8 @@ interface AlumniMember {
   placeholderImage?: string;
   currentlyLivingInHouse: boolean;
   birthday?: Date | null;
+  involvementLevel?: string;
+  otherInvolvementText?: string;
 }
 
 interface FilterOptions {
@@ -179,7 +181,9 @@ export default function K9FamilyClient({
           interests: formData.interests,
           photo_url: formData.photoUrl || null,
           currentlyLivingInHouse: formData.currentlyLivingInHouse,
-          birthday: formData.birthday
+          birthday: formData.birthday,
+          involvementLevel: formData.involvementLevel,
+          otherInvolvementText: formData.otherInvolvementText
         }),
       });
 
@@ -455,7 +459,9 @@ export default function K9FamilyClient({
           interests: editingMember.interests,
           photoUrl: editingMember.photo?.url,
           currentlyLivingInHouse: editingMember.currentlyLivingInHouse,
-          birthday: editingMember.birthday
+          birthday: editingMember.birthday,
+          involvementLevel: editingMember.involvementLevel,
+          otherInvolvementText: editingMember.otherInvolvementText
         } : undefined}
       />
 

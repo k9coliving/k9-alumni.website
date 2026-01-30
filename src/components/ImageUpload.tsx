@@ -16,7 +16,7 @@ export default function ImageUpload({
   label,
   value,
   onChange,
-  placeholder = "Drag and drop an image here, or browse",
+  placeholder = "Drag and drop an image here, or",
   className = "",
   existingUrl
 }: ImageUploadProps) {
