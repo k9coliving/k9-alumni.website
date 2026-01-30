@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import AddProfileForm from '@/components/AddProfileForm';
+import ProfileForm, { type ProfileFormData, type InitialProfileData } from '@/components/ProfileForm';
 import JoinCallToAction from '@/components/JoinCallToAction';
 import BaseModal from '@/components/BaseModal';
 
@@ -22,6 +22,7 @@ interface AlumniMember {
   };
   placeholderImage?: string;
   currentlyLivingInHouse: boolean;
+  birthday?: Date | null;
 }
 
 interface FilterOptions {
@@ -30,27 +31,21 @@ interface FilterOptions {
   periods: string[];
 }
 
-interface FormData {
-  name: string;
-  email: string;
-  location: string;
-  profession: string;
-  yearsInK9: string;
-  description: string;
-  interests: string[];
-  photoUrl: string;
-  involvementLevel: string;
-  otherInvolvementText: string;
-  birthday: Date | null;
-  currentlyLivingInHouse: boolean;
-}
 
 interface K9FamilyClientProps {
   initialMembers: AlumniMember[];
   filterOptions: FilterOptions;
+  editingResident?: AlumniMember | null;
+  editTokenError?: string | null;
+  editToken?: string;
 }
 
-export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) {
+export default function K9FamilyClient({
+  initialMembers,
+  editingResident,
+  editTokenError,
+  editToken
+}: K9FamilyClientProps) {
   const searchParams = useSearchParams();
   const [members, setMembers] = useState<AlumniMember[]>(initialMembers);
   const [filteredMembers, setFilteredMembers] = useState<AlumniMember[]>(initialMembers);
@@ -60,6 +55,11 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
   const [editRequestMember, setEditRequestMember] = useState<AlumniMember | null>(null);
   const [editRequestStatus, setEditRequestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [editRequestError, setEditRequestError] = useState<string | null>(null);
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(!!editingResident);
+  const [editingMember, setEditingMember] = useState<AlumniMember | null>(editingResident || null);
+  const [currentEditToken, setCurrentEditToken] = useState<string | undefined>(editToken);
 
   // Initialize search query from URL parameter
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
     setFilteredMembers(filtered);
   }, [searchQuery, members]);
 
-  const handleAddProfile = async (formData: FormData) => {
+  const handleAddProfile = async (formData: ProfileFormData) => {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/residents', {
@@ -157,6 +157,75 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
     }
   };
 
+  const handleEditProfile = async (formData: ProfileFormData) => {
+    if (!editingMember || !currentEditToken) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/residents', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editingMember.id,
+          token: currentEditToken,
+          name: formData.name,
+          email: formData.email,
+          location: formData.location,
+          profession: formData.profession,
+          years_in_k9: formData.yearsInK9,
+          description: formData.description,
+          interests: formData.interests,
+          photo_url: formData.photoUrl || null,
+          currentlyLivingInHouse: formData.currentlyLivingInHouse,
+          birthday: formData.birthday
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      const result = await response.json();
+
+      // Update the member in the local list
+      const updatedMember: AlumniMember = {
+        id: result.resident.id,
+        name: result.resident.name,
+        location: result.resident.location,
+        profession: result.resident.profession,
+        interests: result.resident.interests,
+        yearsInK9: result.resident.years_in_k9,
+        description: result.resident.description,
+        email: result.resident.email,
+        photo: result.resident.photo_url ? {
+          url: result.resident.photo_url,
+          alt: result.resident.photo_alt || `${result.resident.name} profile photo`
+        } : undefined,
+        placeholderImage: result.resident.preferences?.placeholder_image,
+        currentlyLivingInHouse: result.resident.currently_living_in_house || false
+      };
+
+      setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+      setIsEditModalOpen(false);
+      setEditingMember(null);
+      setCurrentEditToken(undefined);
+
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/thek9family');
+
+      alert('Profile updated successfully!');
+
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen relative" style={{
@@ -166,6 +235,27 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
         backgroundColor: '#f9fafb',
         backgroundSize: '20px 20px'
       }}>
+        {/* Edit token error banner */}
+        {editTokenError && (
+          <div className="bg-red-50 border-b border-red-200">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🔒</span>
+                <div>
+                  <p className="text-red-800 font-medium">Edit link invalid</p>
+                  <p className="text-red-600 text-sm">
+                    {editTokenError === 'Token has expired'
+                      ? 'This edit link has expired. Please request a new one using the Edit button on your profile.'
+                      : editTokenError === 'Token has already been used'
+                      ? 'This edit link has already been used. Please request a new one if you need to make more changes.'
+                      : 'This edit link is not valid. Please request a new one using the Edit button on your profile.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="page-header !mb-4">
             <h1 className="page-header-title">
@@ -173,7 +263,7 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
             </h1>
             <div className="page-header-divider"></div>
             <p className="page-header-subtitle">
-              Connect with fellow K9 alumni around the world. Find roommates, get life advice, 
+              Connect with fellow K9 alumni around the world. Find roommates, get life advice,
               or simply catch up with old friends.
             </p>
           </div>
@@ -271,10 +361,12 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
                     </div>
 
                     {member.description && (
-                      <div>
-                        <p className="text-gray-700 text-lg leading-relaxed">
-                          {member.description}
-                        </p>
+                      <div className="space-y-2">
+                        {member.description.split('\n').filter(para => para.trim()).map((paragraph, idx) => (
+                          <p key={idx} className="text-gray-700 text-lg leading-relaxed">
+                            {paragraph}
+                          </p>
+                        ))}
                       </div>
                     )}
 
@@ -337,10 +429,34 @@ export default function K9FamilyClient({ initialMembers }: K9FamilyClientProps) 
         </div>
       </div>
 
-      <AddProfileForm
+      <ProfileForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleAddProfile}
+      />
+
+      {/* Edit Profile Modal */}
+      <ProfileForm
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingMember(null);
+          setCurrentEditToken(undefined);
+          window.history.replaceState({}, '', '/thek9family');
+        }}
+        onSubmit={handleEditProfile}
+        initialData={editingMember ? {
+          name: editingMember.name,
+          email: editingMember.email,
+          location: editingMember.location,
+          profession: editingMember.profession,
+          yearsInK9: editingMember.yearsInK9,
+          description: editingMember.description,
+          interests: editingMember.interests,
+          photoUrl: editingMember.photo?.url,
+          currentlyLivingInHouse: editingMember.currentlyLivingInHouse,
+          birthday: editingMember.birthday
+        } : undefined}
       />
 
       <BaseModal

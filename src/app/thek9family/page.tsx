@@ -1,5 +1,5 @@
 import Layout from '@/components/Layout';
-import { getResidentsData, type ResidentRecord } from '@/lib/supabase';
+import { getResidentsData, getResidentById, verifyEditToken, type ResidentRecord } from '@/lib/supabase';
 import K9FamilyClient from './K9FamilyClient';
 
 interface AlumniMember {
@@ -17,6 +17,7 @@ interface AlumniMember {
   };
   placeholderImage?: string;
   currentlyLivingInHouse: boolean;
+  birthday?: Date | null;
 }
 
 // Helper function to transform Supabase data to component format
@@ -35,13 +36,22 @@ function transformResidentRecord(record: ResidentRecord): AlumniMember {
       alt: record.photo_alt || `${record.name} profile photo`
     } : undefined,
     placeholderImage: record.preferences?.placeholder_image,
-    currentlyLivingInHouse: record.currently_living_in_house || false
+    currentlyLivingInHouse: record.currently_living_in_house || false,
+    birthday: record.birthday || null
   };
 }
 
-export default async function Database() {
+interface PageProps {
+  searchParams: Promise<{
+    edit?: string;
+    token?: string;
+  }>;
+}
+
+export default async function Database({ searchParams }: PageProps) {
+  const { edit: editId, token } = await searchParams;
   const supabaseData = await getResidentsData();
-  
+
   // Transform Supabase data to match component expectations
   const alumniMembers: AlumniMember[] = supabaseData.map(transformResidentRecord);
 
@@ -55,11 +65,30 @@ export default async function Database() {
     periods: [...new Set(alumniMembers.map(member => member.yearsInK9))].filter(Boolean).sort()
   };
 
+  // Check if we have edit parameters and validate the token
+  let editingResident: AlumniMember | null = null;
+  let editTokenError: string | null = null;
+
+  if (editId && token) {
+    const tokenResult = await verifyEditToken(editId, token);
+    if (tokenResult.valid) {
+      const resident = await getResidentById(editId);
+      if (resident) {
+        editingResident = transformResidentRecord(resident);
+      }
+    } else {
+      editTokenError = tokenResult.error || 'Invalid edit link';
+    }
+  }
+
   return (
     <Layout>
-      <K9FamilyClient 
+      <K9FamilyClient
         initialMembers={alumniMembers}
         filterOptions={filterOptions}
+        editingResident={editingResident}
+        editTokenError={editTokenError}
+        editToken={editingResident ? token : undefined}
       />
     </Layout>
   );

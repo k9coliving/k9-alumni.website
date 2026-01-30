@@ -1,18 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import FormButtons from './FormButtons';
 import ImageUpload from './ImageUpload';
 
-interface AddProfileFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (formData: FormData) => Promise<void>;
-  prefilledInvolvement?: string;
-}
-
-interface FormData {
+export interface ProfileFormData {
   name: string;
   email: string;
   location: string;
@@ -28,43 +21,84 @@ interface FormData {
   currentlyLivingInHouse: boolean;
 }
 
-export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInvolvement }: AddProfileFormProps) {
-  const getInitialInvolvementLevel = () => {
+export interface InitialProfileData {
+  name: string;
+  email: string;
+  location?: string;
+  profession?: string;
+  yearsInK9?: string;
+  description?: string;
+  interests?: string[];
+  photoUrl?: string;
+  involvementLevel?: string;
+  otherInvolvementText?: string;
+  birthday?: Date | null;
+  currentlyLivingInHouse?: boolean;
+}
+
+interface ProfileFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: ProfileFormData) => Promise<void>;
+  prefilledInvolvement?: string;
+  initialData?: InitialProfileData;
+}
+
+export default function ProfileForm({ isOpen, onClose, onSubmit, prefilledInvolvement, initialData }: ProfileFormProps) {
+  const isEditing = !!initialData;
+
+  const getInitialInvolvementLevel = useCallback(() => {
+    if (initialData?.involvementLevel) {
+      return initialData.involvementLevel;
+    }
     if (prefilledInvolvement === "Alumni Network Team") {
       return 'team-member';
     }
     return 'full-engagement';
-  };
+  }, [initialData?.involvementLevel, prefilledInvolvement]);
 
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    location: '',
-    profession: '',
-    yearsInK9: '',
-    description: '',
-    interests: [],
-    photoUrl: '',
+  const getInitialFormData = useCallback((): ProfileFormData => ({
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    location: initialData?.location || '',
+    profession: initialData?.profession || '',
+    yearsInK9: initialData?.yearsInK9 || '',
+    description: initialData?.description || '',
+    interests: initialData?.interests || [],
+    photoUrl: initialData?.photoUrl || '',
     photoFile: null,
     involvementLevel: getInitialInvolvementLevel(),
-    otherInvolvementText: '',
-    birthday: null,
-    currentlyLivingInHouse: false
-  });
+    otherInvolvementText: initialData?.otherInvolvementText || '',
+    birthday: initialData?.birthday || null,
+    currentlyLivingInHouse: initialData?.currentlyLivingInHouse || false
+  }), [initialData, getInitialInvolvementLevel]);
+
+  const [formData, setFormData] = useState<ProfileFormData>(getInitialFormData);
 
   // Local state for input values to prevent re-renders
-  const [localName, setLocalName] = useState('');
-  const [localEmail, setLocalEmail] = useState('');
-  const [localYearsInK9, setLocalYearsInK9] = useState('');
-  const [localInterests, setLocalInterests] = useState('');
+  const [localName, setLocalName] = useState(initialData?.name || '');
+  const [localEmail, setLocalEmail] = useState(initialData?.email || '');
+  const [localYearsInK9, setLocalYearsInK9] = useState(initialData?.yearsInK9 || '');
+  const [localInterests, setLocalInterests] = useState(initialData?.interests?.join(', ') || '');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
 
+  // Reset form when initialData changes (e.g., opening modal with different data)
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(getInitialFormData());
+      setLocalName(initialData?.name || '');
+      setLocalEmail(initialData?.email || '');
+      setLocalYearsInK9(initialData?.yearsInK9 || '');
+      setLocalInterests(initialData?.interests?.join(', ') || '');
+      setErrors({});
+    }
+  }, [isOpen, initialData, getInitialFormData]);
 
-  const validateField = useCallback((fieldName: keyof FormData, value: string) => {
+  const validateField = useCallback((fieldName: keyof ProfileFormData, value: string) => {
     let error = '';
-    
+
     switch (fieldName) {
       case 'name':
         if (!value.trim()) {
@@ -100,7 +134,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -108,7 +142,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
     setIsSubmitting(true);
     try {
       let finalPhotoUrl = formData.photoUrl;
-      
+
       // Upload image if a file was selected
       if (formData.photoFile) {
         finalPhotoUrl = await ImageUpload.uploadToSupabase(formData.photoFile);
@@ -120,25 +154,29 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
       };
 
       await onSubmit(submissionData);
-      setFormData({
-        name: '',
-        email: '',
-        location: '',
-        profession: '',
-        yearsInK9: '',
-        description: '',
-        interests: [],
-        photoUrl: '',
-        photoFile: null,
-        involvementLevel: 'full-engagement',
-        otherInvolvementText: '',
-        birthday: null,
-        currentlyLivingInHouse: false
-      });
-      setLocalName('');
-      setLocalEmail('');
-      setLocalYearsInK9('');
-      setLocalInterests('');
+
+      // Only reset form if adding (not editing)
+      if (!isEditing) {
+        setFormData({
+          name: '',
+          email: '',
+          location: '',
+          profession: '',
+          yearsInK9: '',
+          description: '',
+          interests: [],
+          photoUrl: '',
+          photoFile: null,
+          involvementLevel: 'full-engagement',
+          otherInvolvementText: '',
+          birthday: null,
+          currentlyLivingInHouse: false
+        });
+        setLocalName('');
+        setLocalEmail('');
+        setLocalYearsInK9('');
+        setLocalInterests('');
+      }
       onClose();
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -172,6 +210,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
               label="Profile Photo"
               value={formData.photoFile}
               onChange={(file) => setFormData(prev => ({ ...prev, photoFile: file, photoUrl: file ? '' : prev.photoUrl }))}
+              existingUrl={formData.photoUrl}
             />
 
             <div>
@@ -308,21 +347,21 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
                 <option value="team-member">Alumni Network Team</option>
                 <option value="other">Other</option>
               </select>
-              
+
               {/* Disclaimer based on selection */}
               {formData.involvementLevel && formData.involvementLevel !== 'other' && (
                 <p className="text-base text-gray-600 mt-2">
-                  {formData.involvementLevel === 'full-engagement' && 
+                  {formData.involvementLevel === 'full-engagement' &&
                     "🔊 I want to receive newsletters, be invited to events, be notified of everything"}
-                  {formData.involvementLevel === 'newsletter-only' && 
+                  {formData.involvementLevel === 'newsletter-only' &&
                     "📮 I just want the newsletter"}
-                  {formData.involvementLevel === 'database-only' && 
+                  {formData.involvementLevel === 'database-only' &&
                     "🫣 I'm happy to be in the database but I don't want to be contacted"}
-                  {formData.involvementLevel === 'team-member' && 
+                  {formData.involvementLevel === 'team-member' &&
                     "🚀 I want to join the Alumni Network team!"}
                 </p>
               )}
-              
+
               {/* Other input field when "Other" is selected */}
               {formData.involvementLevel === 'other' && (
                 <div className="mt-3">
@@ -346,10 +385,10 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
               </label>
               <input
                 type="date"
-                value={formData.birthday ? formData.birthday.toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  birthday: e.target.value ? new Date(e.target.value) : null 
+                value={formData.birthday ? (formData.birthday instanceof Date ? formData.birthday.toISOString().split('T')[0] : String(formData.birthday).split('T')[0]) : ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  birthday: e.target.value ? new Date(e.target.value) : null
                 }))}
                 className="form-input text-gray-500"
                 placeholder="Select your birthday"
@@ -390,7 +429,7 @@ export default function AddProfileForm({ isOpen, onClose, onSubmit, prefilledInv
         <FormButtons
           onCancel={onClose}
           isSubmitting={isSubmitting}
-          submitText="Add Profile"
+          submitText={isEditing ? "Save Changes" : "Add Profile"}
         />
       </form>
     </BaseModal>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import AddProfileForm from '@/components/AddProfileForm';
+import ProfileForm, { type ProfileFormData } from '@/components/ProfileForm';
 
 interface TeamMember {
   name: string;
@@ -11,22 +11,6 @@ interface TeamMember {
   image: string;
   hasUuid: boolean;
   actualName?: string;
-}
-
-interface ProfileFormData {
-  name: string;
-  email: string;
-  location: string;
-  profession: string;
-  yearsInK9: string;
-  description: string;
-  interests: string[];
-  photoUrl: string;
-  photoFile: File | null;
-  involvementLevel: string;
-  otherInvolvementText: string;
-  birthday: Date | null;
-  currentlyLivingInHouse: boolean;
 }
 
 interface TeamMembersClientProps {
@@ -163,7 +147,7 @@ export default function TeamMembersClient({ teamMembers }: TeamMembersClientProp
       </div>
 
       {/* Add Profile Form Modal */}
-      <AddProfileForm
+      <ProfileForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleAddProfile}

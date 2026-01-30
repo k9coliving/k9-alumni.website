@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { setEditToken } from '@/lib/supabase';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// TODO: Store tokens in database with expiration
-// For now, tokens are generated but not persisted
 function generateEditToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomUUID();
 }
 
 export async function POST(request: Request) {
@@ -23,9 +22,10 @@ export async function POST(request: Request) {
 
     const editToken = generateEditToken();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://alumni.k9coliving.com';
-    const editUrl = `${baseUrl}/thek9family/edit/${memberId}/${editToken}`;
+    const editUrl = `${baseUrl}/thek9family?edit=${memberId}&token=${editToken}`;
 
-    // TODO: Store token in database with member ID and expiration
+    // Store token in database (expires in 24 hours)
+    await setEditToken(memberId, editToken, 24);
 
     const { data, error } = await resend.emails.send({
       from: 'K9 Alumni <noreply@mail.k9coliving.com>',

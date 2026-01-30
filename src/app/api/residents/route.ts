@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addResident, getResidentsData } from '@/lib/supabase';
+import { addResident, getResidentsData, updateResident, verifyEditToken } from '@/lib/supabase';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
 import { logger, logApiRequest, logApiError } from '@/lib/logger';
@@ -285,6 +285,181 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 10));
     return NextResponse.json(
       { error: 'Failed to add profile. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const startTime = Date.now();
+
+  // Log incoming request
+  logApiRequest(request, {
+    endpoint: 'residents',
+    operation: 'update'
+  });
+
+  try {
+    const body = await request.json();
+
+    // Validate required fields for update
+    if (!body.id || !body.token) {
+      logger.warn('Resident update validation failed - missing id or token', {
+        endpoint: 'residents',
+        method: request.method,
+        hasId: !!body.id,
+        hasToken: !!body.token,
+        duration: Date.now() - startTime
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return NextResponse.json(
+        { error: 'Resident ID and edit token are required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the edit token
+    const tokenResult = await verifyEditToken(body.id, body.token);
+    if (!tokenResult.valid) {
+      logger.warn('Resident update blocked - invalid token', {
+        endpoint: 'residents',
+        method: request.method,
+        residentId: body.id,
+        tokenError: tokenResult.error,
+        duration: Date.now() - startTime
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return NextResponse.json(
+        { error: tokenResult.error || 'Invalid edit token' },
+        { status: 403 }
+      );
+    }
+
+    // Log profile update attempt
+    logger.info('Resident profile update attempt', {
+      endpoint: 'residents',
+      method: request.method,
+      residentId: body.id,
+      hasPhoto: !!body.photo_url,
+      currentlyLivingInHouse: body.currentlyLivingInHouse
+    });
+
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'years_in_k9'];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        logger.warn('Resident update validation failed - missing required field', {
+          endpoint: 'residents',
+          method: request.method,
+          validationError: `${field} is required`,
+          duration: Date.now() - startTime
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return NextResponse.json(
+          { error: `${field} is required` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      logger.warn('Resident update validation failed - invalid email format', {
+        endpoint: 'residents',
+        method: request.method,
+        validationError: 'Invalid email format',
+        duration: Date.now() - startTime
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: body.name.trim(),
+      email: body.email.trim().toLowerCase(),
+      location: body.location?.trim() || undefined,
+      profession: body.profession?.trim() || undefined,
+      years_in_k9: body.years_in_k9,
+      interests: body.interests || [],
+      description: body.description?.trim() || '',
+      photo_url: body.photo_url?.trim() || undefined,
+      photo_alt: body.photo_url ? `${body.name} profile photo` : undefined,
+      birthday: body.birthday ? new Date(body.birthday) : undefined,
+      currently_living_in_house: body.currentlyLivingInHouse || false
+    };
+
+    // Update preferences if involvement level is provided
+    if (body.involvementLevel) {
+      const preferences: Record<string, string> = {};
+      preferences.involvement_level = body.involvementLevel.trim();
+      preferences.involvement_level_full = body.involvementLevel === 'other'
+        ? body.otherInvolvementText?.trim() || ''
+        : getInvolvementLevelFull(body.involvementLevel);
+
+      if (body.involvementLevel === 'other' && body.otherInvolvementText) {
+        preferences.other_involvement_text = body.otherInvolvementText.trim();
+      }
+
+      Object.assign(updateData, { preferences });
+    }
+
+    // Update the resident in database
+    const result = await updateResident(body.id, updateData);
+
+    // Log successful update
+    logger.info('Resident profile updated successfully', {
+      endpoint: 'residents',
+      method: request.method,
+      duration: Date.now() - startTime,
+      residentId: result.id,
+      hasPhoto: !!result.photo_url,
+      currentlyLivingInHouse: result.currently_living_in_house || false
+    });
+
+    // Log audit event
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] :
+               request.headers.get('x-real-ip') ||
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await logAuditEvent({
+      event_type: 'user_modified',
+      ip_address: ip,
+      user_agent: userAgent,
+      details: {
+        resident_id: result.id,
+        resident_name: result.name,
+        resident_email: result.email
+      }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    return NextResponse.json({
+      success: true,
+      resident: result
+    });
+
+  } catch (error) {
+    logApiError(request, error as Error, {
+      endpoint: 'residents',
+      operation: 'update',
+      duration: Date.now() - startTime
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return NextResponse.json(
+      { error: 'Failed to update profile. Please try again.' },
       { status: 500 }
     );
   }

@@ -9,14 +9,16 @@ interface ImageUploadProps {
   onChange: (file: File | null) => void;
   placeholder?: string;
   className?: string;
+  existingUrl?: string;
 }
 
-export default function ImageUpload({ 
-  label, 
-  value, 
-  onChange, 
+export default function ImageUpload({
+  label,
+  value,
+  onChange,
   placeholder = "Drag and drop an image here, or browse",
-  className = ""
+  className = "",
+  existingUrl
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -138,6 +140,31 @@ export default function ImageUpload({
             >
               Remove
             </button>
+          </div>
+        ) : existingUrl ? (
+          <div className="space-y-2">
+            <div className="relative w-40 h-40 mx-auto">
+              <Image
+                src={existingUrl}
+                alt="Current photo"
+                width={160}
+                height={160}
+                className="w-full h-full object-cover rounded-md"
+              />
+            </div>
+            <p className="text-sm text-gray-600">Current photo</p>
+            <label className="text-blue-500 text-sm hover:text-blue-700 cursor-pointer">
+              Change photo
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+            </label>
           </div>
         ) : (
           <div>
