@@ -244,9 +244,15 @@ export async function POST(request: NextRequest) {
         resident_id: result.id,
         resident_name: result.name,
         resident_email: result.email,
+        location: result.location,
+        profession: result.profession,
         years_in_k9: result.years_in_k9,
-        involvement_level: result.preferences?.involvement_level || 'not_specified',
-        currently_living_in_house: result.currently_living_in_house || false
+        description: result.description,
+        interests: result.interests,
+        photo_url: result.photo_url,
+        birthday: result.birthday,
+        currently_living_in_house: result.currently_living_in_house || false,
+        preferences: result.preferences
       }
     });
 
