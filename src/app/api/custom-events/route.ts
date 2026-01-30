@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -9,9 +10,17 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   // Check authentication first
   const authResponse = await requireAuth(request);
-  if (authResponse) return authResponse;
+  if (authResponse) {
+    logger.warn('Events fetch blocked - authentication failed', {
+      endpoint: 'custom-events',
+      method: 'GET'
+    });
+    return authResponse;
+  }
 
   try {
     const { data: events, error } = await supabase
@@ -23,9 +32,21 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
+    logger.info('Events fetch completed successfully', {
+      endpoint: 'custom-events',
+      method: 'GET',
+      resultCount: events?.length || 0,
+      duration: Date.now() - startTime
+    });
+
     return NextResponse.json(events);
   } catch (error) {
-    console.error('Error fetching custom events:', error);
+    logger.error('Failed to fetch events', {
+      endpoint: 'custom-events',
+      method: 'GET',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration: Date.now() - startTime
+    });
     return NextResponse.json(
       { error: 'Failed to fetch events' },
       { status: 500 }
@@ -34,21 +55,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   // Check authentication first
   const authResponse = await requireAuth(request);
-  if (authResponse) return authResponse;
+  if (authResponse) {
+    logger.warn('Event creation blocked - authentication failed', {
+      endpoint: 'custom-events',
+      method: 'POST'
+    });
+    return authResponse;
+  }
 
   try {
     const body = await request.json();
-    
+
     // Validate required fields
     const requiredFields = [
       'organizerName', 'organizerEmail', 'eventTitle', 'eventDescription',
       'eventLocation', 'startDateTime', 'duration'
     ];
-    
+
     for (const field of requiredFields) {
       if (!body[field]) {
+        logger.warn('Event creation validation failed - missing required field', {
+          endpoint: 'custom-events',
+          method: 'POST',
+          missingField: field
+        });
         return NextResponse.json(
           { error: `${field} is required` },
           { status: 400 }
@@ -119,6 +153,14 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    logger.info('Event created successfully', {
+      endpoint: 'custom-events',
+      method: 'POST',
+      eventId: event?.id,
+      eventTitle: event?.title,
+      duration: Date.now() - startTime
+    });
+
     // Log successful event creation
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0] : 
@@ -148,8 +190,13 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error adding custom event:', error);
-    
+    logger.error('Event creation failed', {
+      endpoint: 'custom-events',
+      method: 'POST',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration: Date.now() - startTime
+    });
+
     return NextResponse.json(
       { error: 'Failed to create event. Please try again.' },
       { status: 500 }

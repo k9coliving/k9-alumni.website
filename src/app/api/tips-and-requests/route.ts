@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   // Check authentication first
   const authResponse = await requireAuth(request);
-  if (authResponse) return authResponse;
+  if (authResponse) {
+    logger.warn('Tips fetch blocked - authentication failed', {
+      endpoint: 'tips-and-requests',
+      method: 'GET'
+    });
+    return authResponse;
+  }
 
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
-    
+
     let query = supabase
       .from('tips_and_requests')
       .select('*');
@@ -29,27 +38,60 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching tips and requests:', error);
+      logger.error('Failed to fetch tips and requests', {
+        endpoint: 'tips-and-requests',
+        method: 'GET',
+        error: error.message,
+        duration: Date.now() - startTime
+      });
       return NextResponse.json({ error: 'Failed to fetch tips and requests' }, { status: 500 });
     }
 
+    logger.info('Tips fetch completed successfully', {
+      endpoint: 'tips-and-requests',
+      method: 'GET',
+      type: type || 'all',
+      resultCount: data?.length || 0,
+      duration: Date.now() - startTime
+    });
+
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Server error:', error);
+    logger.error('Tips fetch failed with exception', {
+      endpoint: 'tips-and-requests',
+      method: 'GET',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration: Date.now() - startTime
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   // Check authentication first
   const authResponse = await requireAuth(request);
-  if (authResponse) return authResponse;
+  if (authResponse) {
+    logger.warn('Tip creation blocked - authentication failed', {
+      endpoint: 'tips-and-requests',
+      method: 'POST'
+    });
+    return authResponse;
+  }
 
   try {
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.submitterName || !body.title || !body.description) {
+      logger.warn('Tip creation validation failed - missing required fields', {
+        endpoint: 'tips-and-requests',
+        method: 'POST',
+        hasSubmitterName: !!body.submitterName,
+        hasTitle: !!body.title,
+        hasDescription: !!body.description
+      });
       return NextResponse.json(
         { error: 'Missing required fields: submitterName, title, and description are required' },
         { status: 400 }
@@ -73,9 +115,22 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error creating tip/request:', error);
+      logger.error('Failed to create tip/request', {
+        endpoint: 'tips-and-requests',
+        method: 'POST',
+        error: error.message,
+        duration: Date.now() - startTime
+      });
       return NextResponse.json({ error: 'Failed to create tip/request' }, { status: 500 });
     }
+
+    logger.info('Tip/request created successfully', {
+      endpoint: 'tips-and-requests',
+      method: 'POST',
+      itemId: data[0]?.id,
+      isHoldMyHair: data[0]?.is_hold_my_hair,
+      duration: Date.now() - startTime
+    });
 
     // Log successful tip/request creation
     const forwarded = request.headers.get('x-forwarded-for');
@@ -102,7 +157,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data[0], { status: 201 });
   } catch (error) {
-    console.error('Server error:', error);
+    logger.error('Tip creation failed with exception', {
+      endpoint: 'tips-and-requests',
+      method: 'POST',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration: Date.now() - startTime
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
