@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+cami_notes.md
 
 # debug
 npm-debug.log*
