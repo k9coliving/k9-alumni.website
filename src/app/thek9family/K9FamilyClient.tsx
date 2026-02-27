@@ -65,28 +65,30 @@ export default function K9FamilyClient({
   const [editingMember, setEditingMember] = useState<AlumniMember | null>(editingResident || null);
   const [currentEditToken, setCurrentEditToken] = useState<string | undefined>(editToken);
 
-  // Initialize search query from URL parameter
+  // Initialize search query from URL parameter (only on mount)
   useEffect(() => {
     const searchParam = searchParams.get('search');
     if (searchParam) {
       setSearchQuery(searchParam);
     }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   // Update URL when search query changes
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const currentSearchParam = searchParams.get('search') || '';
 
-    if (searchQuery.trim()) {
-      params.set('search', searchQuery);
-    } else {
-      params.delete('search');
-    }
+    // Only update URL if the search query is different from what's in the URL
+    if (searchQuery.trim() !== currentSearchParam) {
+      const params = new URLSearchParams(searchParams.toString());
 
-    // Only update if the URL would actually change
-    const newSearch = params.toString();
-    const currentSearch = searchParams.toString();
-    if (newSearch !== currentSearch) {
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery);
+      } else {
+        params.delete('search');
+      }
+
+      const newSearch = params.toString();
       router.replace(`${pathname}?${newSearch}`, { scroll: false });
     }
   }, [searchQuery, pathname, router, searchParams]);
