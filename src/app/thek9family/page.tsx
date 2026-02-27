@@ -50,6 +50,7 @@ interface PageProps {
   searchParams: Promise<{
     edit?: string;
     token?: string;
+    search?: string;
   }>;
 }
 

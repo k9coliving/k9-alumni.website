@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import ProfileForm, { type ProfileFormData, type InitialProfileData } from '@/components/ProfileForm';
 import JoinCallToAction from '@/components/JoinCallToAction';
@@ -49,6 +49,8 @@ export default function K9FamilyClient({
   editToken
 }: K9FamilyClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [members, setMembers] = useState<AlumniMember[]>(initialMembers);
   const [filteredMembers, setFilteredMembers] = useState<AlumniMember[]>(initialMembers);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +73,24 @@ export default function K9FamilyClient({
     }
   }, [searchParams]);
 
+  // Update URL when search query changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery);
+    } else {
+      params.delete('search');
+    }
+
+    // Only update if the URL would actually change
+    const newSearch = params.toString();
+    const currentSearch = searchParams.toString();
+    if (newSearch !== currentSearch) {
+      router.replace(`${pathname}?${newSearch}`, { scroll: false });
+    }
+  }, [searchQuery, pathname, router, searchParams]);
+
   // Live search functionality
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -84,14 +104,14 @@ export default function K9FamilyClient({
       const matchesName = member.name.toLowerCase().includes(query);
       const matchesLocation = member.location?.toLowerCase().includes(query) || false;
       const matchesProfession = member.profession?.toLowerCase().includes(query) || false;
-      const matchesInterests = member.interests.some(interest => 
+      const matchesInterests = member.interests.some(interest =>
         interest.toLowerCase().includes(query)
       );
       const matchesYears = member.yearsInK9?.toLowerCase().includes(query) || false;
-      
+
       return matchesName || matchesLocation || matchesProfession || matchesInterests || matchesYears;
     });
-    
+
     setFilteredMembers(filtered);
   }, [searchQuery, members]);
 
