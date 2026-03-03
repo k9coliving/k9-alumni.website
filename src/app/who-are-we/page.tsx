@@ -18,6 +18,7 @@ const teamMemberIds = [
     image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/annelise.jpg`
   },
   "47749294-7c80-4b33-8157-b8e48659a0b9", // Camelia
+  "ff85edda-48ec-4614-bb76-182107e0ffb6", // Lynn
   {
     name: "You?",
     role: "Join our team!",
