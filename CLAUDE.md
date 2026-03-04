@@ -82,7 +82,7 @@ Website is fully functional with all core features implemented including authent
 
 
 ## Testing & Preview
-- **Dev Server**: ALWAYS RUNNING on port 3000 - DO NOT run `npm run dev`
+- **Dev Server**: Run `npm run dev` to start development server on port 3000 (check with `lsof -ti:3000`)
 - **Build Testing**: Use `npm run build` only when explicitly requested
 - **Preview**: Use playwright mcp server to view `http://localhost:3000`
 - **Dev Logs**: Check `dev.log` file or use `tail -n 50 dev.log` for recent entries
