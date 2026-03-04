@@ -64,6 +64,20 @@ export async function getResidentsData(): Promise<ResidentRecord[]> {
   return data || [];
 }
 
+export async function getTeamMembers(): Promise<ResidentRecord[]> {
+  const { data, error } = await supabase
+    .from('residents')
+    .select('*')
+    .eq('preferences->>is_team_member', true)
+    .order('name');
+
+  if (error) {
+    throw new Error(`Failed to fetch team members: ${error.message}`);
+  }
+
+  return data || [];
+}
+
 export async function getResidentById(id: string): Promise<ResidentRecord | null> {
   const { data, error } = await supabase
     .from('residents')
@@ -114,19 +128,6 @@ export async function searchResidents(filters: {
 
   if (error) {
     throw new Error(`Failed to search residents: ${error.message}`);
-  }
-
-  return data || [];
-}
-
-export async function getResidentsByIds(ids: string[]): Promise<ResidentRecord[]> {
-  const { data, error } = await supabase
-    .from('residents')
-    .select('*')
-    .in('id', ids);
-
-  if (error) {
-    throw new Error(`Failed to fetch residents: ${error.message}`);
   }
 
   return data || [];

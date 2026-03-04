@@ -7,8 +7,8 @@ import ProfileForm, { type ProfileFormData } from '@/components/ProfileForm';
 
 interface TeamMember {
   name: string;
-  role: string;
-  image: string;
+  role?: string;
+  image?: string;
   hasUuid: boolean;
   actualName?: string;
 }
@@ -89,23 +89,25 @@ export default function TeamMembersClient({ teamMembers }: TeamMembersClientProp
                 }
               }}
             >
-              <Image
-                src={member.image}
-                alt={`Portrait photo of ${member.name}, ${member.role} for the K9 Alumni team`}
-                width={120}
-                height={160}
-                className="object-cover rounded-lg"
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '120px',
-                  height: '160px',
-                  zIndex: 1,
-                  filter: member.name === 'Mo' ? 'none' : member.name === 'You?' ? 'sepia(25%) saturate(60%) contrast(75%) brightness(95%) hue-rotate(15deg) opacity(75%)' : 'sepia(15%) saturate(80%) contrast(90%) brightness(105%) hue-rotate(10deg)'
-                }}
-              />
+              {member.image && (
+                <Image
+                  src={member.image}
+                  alt={`Portrait photo of ${member.name}${member.role ? `, ${member.role}` : ''} for the K9 Alumni team`}
+                  width={120}
+                  height={160}
+                  className="object-cover rounded-lg"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '120px',
+                    height: '160px',
+                    zIndex: 1,
+                    filter: member.name === 'Mo' ? 'none' : member.name === 'You?' ? 'sepia(25%) saturate(60%) contrast(75%) brightness(95%) hue-rotate(15deg) opacity(75%)' : 'sepia(15%) saturate(80%) contrast(90%) brightness(105%) hue-rotate(10deg)'
+                  }}
+                />
+              )}
               <Image
                 src="/frame.png"
                 alt="Decorative ornate gold vintage picture frame"
@@ -124,24 +126,26 @@ export default function TeamMembersClient({ teamMembers }: TeamMembersClientProp
             <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1 font-parisienne">
               {member.name}
             </h3>
-            <p
-              className={`text-sm ${
-                member.name === 'You?'
-                  ? 'text-blue-600 hover:text-blue-800 cursor-pointer hover:underline transition-colors'
-                  : member.hasUuid
-                    ? 'text-gray-600 cursor-pointer hover:text-blue-600 transition-colors'
-                    : 'text-gray-600'
-              }`}
-              onClick={() => {
-                if (member.name === 'You?') {
-                  handleJoinTeamClick();
-                } else {
-                  handleTeamMemberClick(member);
-                }
-              }}
-            >
-              {member.role}
-            </p>
+            {member.role && (
+              <p
+                className={`text-sm ${
+                  member.name === 'You?'
+                    ? 'text-blue-600 hover:text-blue-800 cursor-pointer hover:underline transition-colors'
+                    : member.hasUuid
+                      ? 'text-gray-600 cursor-pointer hover:text-blue-600 transition-colors'
+                      : 'text-gray-600'
+                }`}
+                onClick={() => {
+                  if (member.name === 'You?') {
+                    handleJoinTeamClick();
+                  } else {
+                    handleTeamMemberClick(member);
+                  }
+                }}
+              >
+                {member.role}
+              </p>
+            )}
           </div>
         ))}
       </div>

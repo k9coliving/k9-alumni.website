@@ -1,24 +1,19 @@
 import Layout from '@/components/Layout';
 import TeamMembersClient from '@/components/TeamMembersClient';
-import { getResidentsByIds } from '@/lib/supabase';
+import { getTeamMembers } from '@/lib/supabase';
 
-const teamMemberIds = [
-  "6d06684d-5934-4e0e-95ca-79b187ff5d54", // Abhi
-  "3c533489-54f5-4db4-ae2a-a4badb05dc61", // Mo
-  "e8924b97-10b3-460c-9e85-4662979d8f6f", // Jho
+// Hardcoded team members (for people without database records or special entries)
+const hardcodedTeamMembers = [
   {
     name: "Flow",
     role: "Map Master",
     image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/flow.jpg`
   },
-  "69589ae9-f47e-4307-9166-d23f1ecb54bf", // Per
   {
     name: "Annelise",
     role: "Chief Event Officer",
     image: `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/annelise.jpg`
   },
-  "47749294-7c80-4b33-8157-b8e48659a0b9", // Camelia
-  "ff85edda-48ec-4614-bb76-182107e0ffb6", // Lynn
   {
     name: "You?",
     role: "Join our team!",
@@ -28,41 +23,25 @@ const teamMemberIds = [
 
 async function loadTeamMembers() {
   try {
-    // Extract UUIDs from teamMemberIds
-    const uuids = teamMemberIds.filter(item => typeof item === 'string');
+    // Fetch team members from the database (filtered at SQL level)
+    const teamMembers = await getTeamMembers();
 
-    // Fetch all residents with team member UUIDs in one query
-    const residents = await getResidentsByIds(uuids);
+    // Convert to team member format
+    const databaseMembers = teamMembers.map(resident => ({
+      name: resident.preferences?.nickname || resident.name,
+      role: resident.preferences?.team_role,
+      image: resident.preferences?.team_image_url || resident.photo_url,
+      hasUuid: true,
+      actualName: resident.name // Store the actual name for filtering
+    }));
 
-    // Create a lookup map for quick access
-    const residentMap = new Map();
-    residents.forEach(resident => {
-      if (resident.preferences?.is_team_member) {
-        residentMap.set(resident.id, resident);
-      }
-    });
+    // Combine database members with hardcoded members
+    const allMembers = [
+      ...databaseMembers,
+      ...hardcodedTeamMembers.map(member => ({ ...member, hasUuid: false }))
+    ];
 
-    // Build team members array
-    const members = teamMemberIds.map(memberConfig => {
-      // If it's a string (UUID), get from database
-      if (typeof memberConfig === 'string') {
-        const resident = residentMap.get(memberConfig);
-        if (resident) {
-          return {
-            name: resident.preferences?.nickname || resident.name,
-            role: resident.preferences?.team_role,
-            image: resident.preferences?.team_image_url || resident.photo_url,
-            hasUuid: true,
-            actualName: resident.name // Store the actual name for filtering
-          };
-        }
-        return null;
-      }
-      // If it's an object, use as-is (Flow, Annelise, You?)
-      return { ...memberConfig, hasUuid: false };
-    }).filter(member => member !== null);
-
-    return members;
+    return allMembers;
   } catch (error) {
     console.error('Error loading team members:', error);
     return [];
