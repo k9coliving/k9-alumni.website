@@ -4,9 +4,28 @@ const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+// DEPRECATED: Anon key client - not used in this application
+// All backend operations use supabaseAdmin (service role key) instead.
+//
+// Background: After the January 2026 security incident (see docs/security-incident-2026-01.md),
+// all RLS policies were removed from the database. This application uses a simpler security model:
+// - Site-level password protection (SITE_PASSWORD)
+// - Backend-only database access via service role key
+// - No client-side Supabase calls
+//
+// Given that we only have one password protecting the website, RLS doesn't really make sense. If you're in the website, then you're
+// allowed to make changes on all rows in the tables. There's a question of whether we want to keep this as it is for editing and 
+// deleting of residents, events and tips - since they basically login individually via access to the email, but I'll need to understand
+// RLS better and make some experiments before going that route. 
+// 
+// The incident occured because the RLS policies were overly permissive. 
+//
+// The anon key client is affected by RLS policies, so it cannot be used now that RLS is disabled.
+// Keeping this export for reference, but DO NOT USE in backend operations.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Admin client with service role key for server-side operations (bypasses RLS)
+// ALL backend operations should use this client.
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: {
     autoRefreshToken: false,
@@ -52,7 +71,7 @@ export interface ResidentRecord {
 
 // Database functions
 export async function getResidentsData(): Promise<ResidentRecord[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('residents')
     .select('*')
     .order('years_in_k9');
@@ -65,7 +84,7 @@ export async function getResidentsData(): Promise<ResidentRecord[]> {
 }
 
 export async function getTeamMembers(): Promise<ResidentRecord[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('residents')
     .select('*')
     .eq('preferences->>is_team_member', true)
@@ -79,7 +98,7 @@ export async function getTeamMembers(): Promise<ResidentRecord[]> {
 }
 
 export async function getResidentById(id: string): Promise<ResidentRecord | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('residents')
     .select('*')
     .eq('id', id)
@@ -101,7 +120,7 @@ export async function searchResidents(filters: {
   interests?: string;
   yearsInK9?: string;
 }): Promise<ResidentRecord[]> {
-  let query = supabase
+  let query = supabaseAdmin
     .from('residents')
     .select('*');
 
@@ -134,7 +153,7 @@ export async function searchResidents(filters: {
 }
 
 export async function addResident(newResident: Omit<ResidentRecord, 'id' | 'created_at' | 'updated_at'>): Promise<ResidentRecord> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('residents')
     .insert([newResident])
     .select()

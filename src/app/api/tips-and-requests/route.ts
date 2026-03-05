@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
 import { logger } from '@/lib/logger';
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('tips_and_requests')
       .select('*');
 
@@ -84,16 +84,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    if (!body.submitterName || !body.title || !body.description) {
+    const missingFields = [];
+    if (!body.submitterName) missingFields.push('submitterName');
+    if (!body.title) missingFields.push('title');
+    if (!body.description) missingFields.push('description');
+
+    if (missingFields.length > 0) {
       logger.warn('Tip creation validation failed - missing required fields', {
         endpoint: 'tips-and-requests',
         method: 'POST',
         hasSubmitterName: !!body.submitterName,
         hasTitle: !!body.title,
-        hasDescription: !!body.description
+        hasDescription: !!body.description,
+        missingFields
       });
       return NextResponse.json(
-        { error: 'Missing required fields: submitterName, title, and description are required' },
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       );
     }
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
       is_hold_my_hair: body.isHoldMyHair || false
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('tips_and_requests')
       .insert([insertData])
       .select();

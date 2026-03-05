@@ -37,8 +37,13 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
 
     try {
       // Validate required fields
-      if (!formData.name.trim() || !formData.tipOffer.trim()) {
-        alert('Please fill in your name and tip/offer description.');
+      const missingFields = [];
+      if (!formData.name.trim()) missingFields.push('name');
+      if (!formData.title.trim()) missingFields.push('title');
+      if (!formData.tipOffer.trim()) missingFields.push('tip/offer description');
+
+      if (missingFields.length > 0) {
+        alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
         return;
       }
 
@@ -146,9 +151,10 @@ export default function TipOfferForm({ isOpen, onClose, onSubmitted }: TipOfferF
           />
         </FormField>
 
-        <FormField label="Title">
+        <FormField label="Title" required>
           <input
             type="text"
+            required
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             className="form-input"
