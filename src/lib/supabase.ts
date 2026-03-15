@@ -14,9 +14,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 // - No client-side Supabase calls
 //
 // Given that we only have one password protecting the website, RLS doesn't really make sense. If you're in the website, then you're
-// allowed to make changes on all rows in the tables. There's a question of whether we want to keep this as it is for editing and 
-// deleting of residents, events and tips - since they basically login individually via access to the email, but I'll need to understand
-// RLS better and make some experiments before going that route. 
+// allowed to view and create all rows in the tables. There's a question of whether we want to keep this as it is for editing and 
+// deleting of residents, events and tips (or rather if we want to restore the RLS policies in a sane format) - since they basically 
+// login individually via access to the email, but I'll need to understand RLS better and make some experiments before going that route. 
 // 
 // The incident occured because the RLS policies were overly permissive. 
 //
