@@ -10,6 +10,43 @@ Add a real newsletter workflow to the alumni website:
 
 The form page and per-token newsletter pages are publicly accessible (no site password) — each newsletter is protected only by its token.
 
+## Build status — resume here (as of 2026-06-09)
+
+**Phases 1–3 done and committed. Next: Phase 4 (public pages).**
+
+| Phase | Status | Commit |
+|---|---|---|
+| 1 — DB migrations | ✅ Done — both tables live in **production** Supabase (no dev DB on this project) | (run manually in SQL editor) |
+| 2 — Shared lib | ✅ Done | `00709dd` |
+| 3 — Public API routes | ✅ Done — build green, Sharp EXIF-strip verified | `e0459d7` |
+| 4 — Public pages | ⏳ Next | — |
+| 5 — Admin | ⬜ Not started | — |
+| 6 — Existing code edits | ⬜ Not started | — |
+
+### What exists now
+- **Lib:** `admin-auth.ts` (new), `newsletter.ts` (new — data layer + `parseSubmissionInput` + `timingSafeEqualStr`), `rate-limit.ts` (new), `api-auth.ts` (+`requireAdminAuth`), `audit.ts` (+2 event types, +`getEmailsSentInLast24h`).
+- **API:** `POST /api/newsletter/submit`, `GET|PATCH /api/newsletter/submit/[id]`, `POST /api/newsletter/upload-image` (Sharp), `GET /api/newsletter/view/[token]`.
+- `sharp` added to `package.json`. `.env.local.example` updated with the 3 new vars.
+
+### Start of next session — Phase 4
+1. **First confirm the shared components exist and match patterns** before building against them: `Layout`, `FormField`, `FormButtons`, `ImageUpload` (grep `src/components`). The plan assumes these; verify names/props.
+2. Build, in order: `newsletter/submit/page.tsx` → `newsletter/edit/[id]/page.tsx` → `newsletter/n/[token]/page.tsx` → teaser edit at `newsletter/page.tsx:80`.
+3. Each public page exports `robots: { index: false, follow: false }`.
+
+### ⚠️ TODO / reminders before next session ends (Cami's notes)
+- [ ] **`git push`** — 3 newsletter commits (`2725623`, `00709dd`, `e0459d7`) are **local only, not pushed yet**.
+- [ ] **Verify Vercel deploy still works** after push — confirm the live site builds and existing pages still work (the new routes are inert until Phase 4 wires UI to them, but the `sharp` dep is new in the bundle).
+- [ ] **Investigate npm vulnerabilities** — `npm install sharp` reported 26 vulns (2 low, 11 moderate, 13 high). These appear **repo-wide / pre-existing**, not sharp-specific, but confirm with `npm audit` and triage.
+- [ ] Set real **`ADMIN_PASSWORD`** in `.env.local` (and Vercel) before testing any admin feature (Phase 5). `JWT_SECRET` already present.
+- [ ] **No live E2E test yet** — deliberately skipped, since hitting `submit` writes to the prod DB and there's no admin delete path until Phase 5. Do the submit→preview→send dry-run once Phase 5 exists (test sends to your own email only).
+
+### Gotchas to remember
+- **Single prod DB, no dev** — anything that writes (esp. test submissions, sends) hits production. Keep test sends to your own email.
+- **ESLint is broken in this repo** (flat-config + `eslint-config-next` compat crash; `next lint` removed in Next 16). Use `npx tsc --noEmit` + `npm run build` as the gates. Worth fixing separately.
+- **Next 16 dynamic route params are async** — handlers use `{ params }: { params: Promise<{...}> }` and must `await params`.
+
+---
+
 ## Decisions
 
 | Topic | Decision |
