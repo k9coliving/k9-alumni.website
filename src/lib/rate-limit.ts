@@ -17,6 +17,7 @@ export const RATE_LIMITS = {
   submit: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 / IP / hour
   uploadImage: { limit: 20, windowMs: 60 * 60 * 1000 }, // 20 / IP / hour
   viewNewsletter: { limit: 30, windowMs: 60 * 1000 }, // 30 / IP / minute
+  editSubmission: { limit: 30, windowMs: 60 * 1000 }, // 30 / IP / minute (edit token brute-force defence)
 } as const;
 
 export interface RateLimitResult {

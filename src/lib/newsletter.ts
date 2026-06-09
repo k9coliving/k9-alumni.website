@@ -65,6 +65,65 @@ export type SubmissionInput = Omit<
   'id' | 'created_at' | 'updated_at' | 'edit_token' | 'newsletter_id'
 >;
 
+// Generous soft limits — users should never hit them; they exist as a DoS guard
+// and are never surfaced in the UI.
+export const MAX_FIELD_LENGTH = 10_000;
+export const MAX_PHOTOS = 5;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Validates + normalises raw submission input (from the public form or the edit
+// PATCH). Trims, soft-caps field lengths, caps photos at MAX_PHOTOS, enforces
+// the three required fields, and checks email format when present. Does NOT set
+// server-managed fields (ip/user_agent are added by the route).
+export function parseSubmissionInput(
+  raw: Record<string, unknown>
+): { ok: true; value: SubmissionInput } | { ok: false; error: string } {
+  const str = (v: unknown): string | undefined => {
+    if (typeof v !== 'string') return undefined;
+    const trimmed = v.trim();
+    return trimmed ? trimmed.slice(0, MAX_FIELD_LENGTH) : undefined;
+  };
+
+  const name = str(raw.name);
+  const period_in_k9 = str(raw.period_in_k9);
+  const whats_up = str(raw.whats_up);
+
+  if (!name || !period_in_k9 || !whats_up) {
+    return { ok: false, error: 'Name, period in K9, and "What\'s up" are required.' };
+  }
+
+  const email = str(raw.email);
+  if (email && !EMAIL_RE.test(email)) {
+    return { ok: false, error: 'Please provide a valid email address.' };
+  }
+
+  let photo_urls: string[] = [];
+  if (Array.isArray(raw.photo_urls)) {
+    photo_urls = raw.photo_urls
+      .filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      .map((u) => u.trim())
+      .slice(0, MAX_PHOTOS);
+  }
+
+  return {
+    ok: true,
+    value: {
+      name,
+      period_in_k9,
+      whats_up,
+      where_now: str(raw.where_now) ?? null,
+      hold_my_hair: str(raw.hold_my_hair) ?? null,
+      email: email ?? null,
+      recommendation_link: str(raw.recommendation_link) ?? null,
+      recommendation_context: str(raw.recommendation_context) ?? null,
+      happy_story: str(raw.happy_story) ?? null,
+      photo_urls,
+      notify_for_next_newsletter: raw.notify_for_next_newsletter === true,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Submissions
 // ---------------------------------------------------------------------------
@@ -152,20 +211,23 @@ export async function setSubmissionEditToken(id: string, token: string): Promise
   }
 }
 
+// Constant-time string compare — avoids leaking secrets via response timing.
+export function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(ab, bb);
+}
+
 export async function verifySubmissionEditToken(id: string, token: string): Promise<boolean> {
   const submission = await getSubmissionById(id);
   const stored = submission?.edit_token?.token;
   if (!stored) {
     return false;
   }
-
-  // Constant-time compare to avoid leaking the token via response timing.
-  const a = Buffer.from(stored);
-  const b = Buffer.from(token);
-  if (a.length !== b.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(a, b);
+  return timingSafeEqualStr(stored, token);
 }
 
 export async function getUnassignedSubmissions(): Promise<NewsletterSubmissionRecord[]> {
