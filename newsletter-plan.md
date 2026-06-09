@@ -167,6 +167,8 @@ supabaseAdmin
 
 Clone of `src/lib/auth.ts`, keyed on `ADMIN_PASSWORD`, cookie `k9-admin-token`. Reuse `JWT_SECRET`. Export `isAdminAuthenticated()`.
 
+**Token claim distinction (security-critical):** the admin token payload carries `{ admin: true }` and `verifyAdminToken` requires `payload.admin === true` — *not* `authenticated === true`. The site token uses `{ authenticated: true }`. Both are signed with the same `JWT_SECRET`, so without distinct claims a valid site token (the shared alumni password is widely known) could be copied into the `k9-admin-token` cookie and pass admin checks. Distinct claims make the two credentials non-interchangeable. The two gates are independent: admin pages require only the admin cookie; an admin login grants no site access and vice-versa.
+
 ### `src/lib/api-auth.ts` (modify)
 
 Add `requireAdminAuth(request)` alongside the existing `requireAuth`.
@@ -241,7 +243,7 @@ Public but token-gated via `?token=...`. Constant-time compare.
 Public, rate-limited.
 
 - Stores under `newsletter/` prefix
-- Strips EXIF (add Sharp if missing — check `package.json` first)
+- Strips EXIF via Sharp (decode → `.rotate()` to bake in orientation → re-encode; re-encoding drops all metadata incl. GPS). Add `sharp` to `package.json` (not currently installed; ~17 MB native libvips binary per platform, Apache-2.0, also used by Next.js). Leave `limitInputPixels` at its safe default (~268 MP) to block decompression bombs — the 3 MB byte cap alone doesn't bound decoded pixel count
 - Max 3 MB per file
 - Validates image MIME
 - Returns `{ url }`

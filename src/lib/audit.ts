@@ -8,7 +8,9 @@ export type AuditEventType =
   | 'data_modified'
   | 'password_changed'
   | 'system_error'
-  | 'edit_request_sent';
+  | 'edit_request_sent'
+  | 'newsletter_email_sent'
+  | 'newsletter_reminder_sent';
 
 interface AuditLogEntry {
   event_type: AuditEventType;
@@ -66,6 +68,35 @@ export async function getFailedLoginAttempts(
     return count || 0;
   } catch (err) {
     console.error('Error checking failed attempts:', err);
+    return 0;
+  }
+}
+
+// Rolling 24h count of emails sent across every email-sending event type.
+// Used for the newsletter quota warning. NOTE: any future email-sending event
+// type MUST be added to this list or the quota will under-count.
+export async function getEmailsSentInLast24h(): Promise<number> {
+  try {
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { count, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('*', { count: 'exact', head: true })
+      .in('event_type', [
+        'edit_request_sent',
+        'newsletter_email_sent',
+        'newsletter_reminder_sent',
+      ])
+      .gte('timestamp', cutoffTime);
+
+    if (error) {
+      console.error('Failed to count emails sent in last 24h:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.error('Error counting emails sent in last 24h:', err);
     return 0;
   }
 }

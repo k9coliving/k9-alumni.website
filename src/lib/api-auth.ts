@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated } from './auth';
+import { isAdminAuthenticated } from './admin-auth';
 import { logAuditEvent } from './audit';
 
 export async function requireAuth(request: NextRequest): Promise<NextResponse | null> {
@@ -37,6 +38,48 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
     return null; // Authentication successful, continue with request
   } catch (error) {
     console.error('Auth middleware error:', error);
+    return NextResponse.json(
+      { error: 'Authentication error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function requireAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  try {
+    const authenticated = await isAdminAuthenticated();
+
+    if (!authenticated) {
+      // Log unauthorized admin API access attempt
+      const forwarded = request.headers.get('x-forwarded-for');
+      const ip = forwarded ? forwarded.split(',')[0] :
+                 request.headers.get('x-real-ip') ||
+                 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      await logAuditEvent({
+        event_type: 'failed_login',
+        ip_address: ip,
+        user_agent: userAgent,
+        details: {
+          reason: 'unauthorized_admin_access',
+          endpoint: request.url,
+          method: request.method
+        }
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Unauthorized',
+          message: 'Admin authentication required to access this endpoint'
+        },
+        { status: 401 }
+      );
+    }
+
+    return null; // Admin authentication successful, continue with request
+  } catch (error) {
+    console.error('Admin auth middleware error:', error);
     return NextResponse.json(
       { error: 'Authentication error' },
       { status: 500 }
