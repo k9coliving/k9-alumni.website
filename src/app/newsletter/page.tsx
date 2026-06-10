@@ -76,8 +76,8 @@ export default function Newsletter() {
             {quotesLoading ? (
               <div className="text-center py-12 space-y-6">
                 <p className="text-gray-500">Loading community updates...</p>
-                <a 
-                  href="mailto:cami@k9coliving.com?subject=Newsletter Update"
+                <a
+                  href="/newsletter/submit"
                   className="inline-block btn-primary px-8 py-3"
                 >
                   Write your news

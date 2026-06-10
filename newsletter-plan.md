@@ -10,28 +10,30 @@ Add a real newsletter workflow to the alumni website:
 
 The form page and per-token newsletter pages are publicly accessible (no site password) — each newsletter is protected only by its token.
 
-## Build status — resume here (as of 2026-06-09)
+## Build status — resume here (as of 2026-06-10)
 
-**Phases 1–3 done and committed. Next: Phase 4 (public pages).**
+**Phases 1–4 done. Next: Phase 5 (admin).**
 
 | Phase | Status | Commit |
 |---|---|---|
 | 1 — DB migrations | ✅ Done — both tables live in **production** Supabase (no dev DB on this project) | (run manually in SQL editor) |
 | 2 — Shared lib | ✅ Done | `00709dd` |
 | 3 — Public API routes | ✅ Done — build green, Sharp EXIF-strip verified | `e0459d7` |
-| 4 — Public pages | ⏳ Next | — |
-| 5 — Admin | ⬜ Not started | — |
+| 4 — Public pages | ✅ Done — build green, deployed + tested | (uncommitted at time of writing) |
+| 5 — Admin | ⬜ Next | — |
 | 6 — Existing code edits | ⬜ Not started | — |
 
 ### What exists now
 - **Lib:** `admin-auth.ts` (new), `newsletter.ts` (new — data layer + `parseSubmissionInput` + `timingSafeEqualStr`), `rate-limit.ts` (new), `api-auth.ts` (+`requireAdminAuth`), `audit.ts` (+2 event types, +`getEmailsSentInLast24h`).
-- **API:** `POST /api/newsletter/submit`, `GET|PATCH /api/newsletter/submit/[id]`, `POST /api/newsletter/upload-image` (Sharp), `GET /api/newsletter/view/[token]`.
+- **API:** `POST /api/newsletter/submit`, `GET|PATCH /api/newsletter/submit/[id]`, `POST /api/images/upload` (Sharp metadata-strip; renamed from `/api/newsletter/upload-image`), `GET /api/newsletter/view/[token]`.
+- **Pages (Phase 4):** `newsletter/submit/page.tsx` (full-page form + confirmation/edit-link screen), `newsletter/edit/[id]/page.tsx` (token-gated prefill/PATCH, friendly not-found/already-sent states), `newsletter/n/[token]/page.tsx` (server component, read-only render, noindex, `force-dynamic`, draft preview banner). Shared `src/components/NewsletterForm.tsx` drives submit + edit (uploads photos to `/api/images/upload`, honeypot field). Teaser CTA at `newsletter/page.tsx:80` now links to `/newsletter/submit`.
+- **Gate:** `src/components/AuthProvider.tsx` is now pathname-aware — `/newsletter/submit`, `/newsletter/edit/*`, `/newsletter/n/*` bypass `PasswordGate` (the only public routes; `/newsletter` teaser stays gated). This was the one piece the plan required but didn't spec.
 - `sharp` added to `package.json`. `.env.local.example` updated with the 3 new vars.
 
-### Start of next session — Phase 4
-1. **First confirm the shared components exist and match patterns** before building against them: `Layout`, `FormField`, `FormButtons`, `ImageUpload` (grep `src/components`). The plan assumes these; verify names/props.
-2. Build, in order: `newsletter/submit/page.tsx` → `newsletter/edit/[id]/page.tsx` → `newsletter/n/[token]/page.tsx` → teaser edit at `newsletter/page.tsx:80`.
-3. Each public page exports `robots: { index: false, follow: false }`.
+### Start of next session — Phase 5 (admin)
+1. Build admin login (`admin/login/page.tsx` + `api/admin/auth/route.ts`) gated by `ADMIN_PASSWORD`, distinct `{ admin: true }` JWT claim (see security note in Phase 5 below).
+2. Then `admin/newsletter/page.tsx`: unassigned submissions list (edit/delete), create-newsletter form, preview via the public token URL, send via Resend with the 24h quota guard.
+3. Set real `ADMIN_PASSWORD` before testing.
 
 ### ⚠️ TODO / reminders before next session ends (Cami's notes)
 - [ ] **`git push`** — 3 newsletter commits (`2725623`, `00709dd`, `e0459d7`) are **local only, not pushed yet**.
@@ -247,7 +249,7 @@ Counts `audit_logs` rows with `event_type IN ('edit_request_sent', 'newsletter_e
 In-memory per-IP limiter. Best-effort on Vercel (per-lambda-instance), still filters obvious bursts:
 
 - `/api/newsletter/submit`: 5 / IP / hour
-- `/api/newsletter/upload-image`: 20 / IP / hour
+- `/api/images/upload`: 20 / IP / hour
 - `/api/newsletter/view/[token]`: 30 / IP / minute (brute-force defence)
 
 ---
@@ -275,13 +277,13 @@ Public but token-gated via `?token=...`. Constant-time compare.
 - PATCH updates fields. GET returns current values for re-populating the form
 - No email on edit
 
-### `POST /api/newsletter/upload-image`
+### `POST /api/images/upload`
 
-Public, rate-limited.
+Canonical metadata-stripping image uploader (renamed from `/api/newsletter/upload-image` in Phase 4 to decouple the name from the use case — DB images can move onto it later). Public, rate-limited.
 
-- Stores under `newsletter/` prefix
-- Strips EXIF via Sharp (decode → `.rotate()` to bake in orientation → re-encode; re-encoding drops all metadata incl. GPS). Add `sharp` to `package.json` (not currently installed; ~17 MB native libvips binary per platform, Apache-2.0, also used by Next.js). Leave `limitInputPixels` at its safe default (~268 MP) to block decompression bombs — the 3 MB byte cap alone doesn't bound decoded pixel count
-- Max 3 MB per file
+- Stores under `newsletter/` prefix (hardcoded via `STORAGE_PREFIX` for now; TODO param when DB images move here)
+- Strips EXIF via Sharp (decode → `.rotate()` to bake in orientation → re-encode; re-encoding drops all metadata incl. GPS). Add `sharp` to `package.json` (not currently installed; ~17 MB native libvips binary per platform, Apache-2.0, also used by Next.js). Leave `limitInputPixels` at its safe default (~268 MP) to block decompression bombs — the byte cap alone doesn't bound decoded pixel count
+- Max 5 MB per file (consistent with `/api/upload-image`)
 - Validates image MIME
 - Returns `{ url }`
 
