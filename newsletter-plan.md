@@ -57,9 +57,9 @@ The send/reminder UI + backend. The hard part is the Resend send loop + quota ma
 6. Set a real `ADMIN_PASSWORD` (currently a throwaway `devadmin123` in local `.env.local`); test send to **your own email only** (prod DB + real Resend).
 
 ### Then Phase 6 (remaining)
-- `src/app/robots.ts` — disallow `/newsletter/submit` and `/newsletter/n/`.
-- `.env.local.example` — confirm `ADMIN_PASSWORD`, `ADMIN_DEFAULT_REPLY_TO`, `RESEND_DAILY_LIMIT` present (they are) and `NEXT_PUBLIC_BASE_URL` (added).
-- Vercel: set `ADMIN_PASSWORD`, `NEXT_PUBLIC_NEWSLETTER_FORM_URL=<domain>/newsletter/submit`, confirm `NEXT_PUBLIC_BASE_URL`.
+- ~~robots~~ ✅ **Already covered** — a pre-existing `public/robots.txt` blanket-disallows the whole site (`Disallow: /`), which is stricter than the per-path rule originally planned and covers the public newsletter + admin routes. No `robots.ts` needed (it would conflict with the static file and be weaker). 
+- `.env.local.example` — ✅ `ADMIN_PASSWORD`, `ADMIN_DEFAULT_REPLY_TO`, `RESEND_DAILY_LIMIT`, `NEXT_PUBLIC_BASE_URL` all present.
+- Vercel (your action): set `ADMIN_PASSWORD`, `NEXT_PUBLIC_NEWSLETTER_FORM_URL=<domain>/newsletter/submit`, confirm `NEXT_PUBLIC_BASE_URL`.
 
 ### ⚠️ TODO / reminders before next session ends (Cami's notes)
 - [ ] **`git push`** — 3 newsletter commits (`2725623`, `00709dd`, `e0459d7`) are **local only, not pushed yet**.
@@ -87,7 +87,7 @@ The send/reminder UI + backend. The hard part is the Resend send loop + quota ma
 | Admin composition | No composition step — just preview / send (the token URL is the preview) |
 | Send behaviour | Sending a newsletter scoops up all un-assigned submissions into it — atomic, at send time |
 | Field limits | Plain text, very generous soft limits (users should never hit them) |
-| Required fields | `name`, `period_in_k9`, `whats_up`. Everything else optional |
+| Required fields | `name`, `period_in_k9`, `whats_up`, **`email`** (made required in Phase 4 copy pass — it's the newsletter delivery + edit-link address; enforced client + server in `parseSubmissionInput`). Everything else optional |
 | SEO | No indexing for either page |
 | Admin access | Separate `ADMIN_PASSWORD`, distinct from the site password |
 | Email provider | Reuse Resend. Sender: `noreply@mail.k9coliving.com`. Reply-to filled in by admin per send |
@@ -418,7 +418,7 @@ Same pattern as `/send` but for reminders. Email body: "The next newsletter is g
 1. `src/app/newsletter/page.tsx:80` — replace `mailto:` anchor with `/newsletter/submit`.
 2. `.env.local.example` — add `ADMIN_PASSWORD`, `ADMIN_DEFAULT_REPLY_TO`, `RESEND_DAILY_LIMIT`.
 3. Vercel env — set `NEXT_PUBLIC_NEWSLETTER_FORM_URL=https://alumni.k9coliving.com/newsletter/submit`.
-4. `robots.txt` (or `src/app/robots.ts`) — disallow `/newsletter/submit` and `/newsletter/n/`.
+4. ~~`robots.txt` — disallow `/newsletter/submit` and `/newsletter/n/`.~~ ✅ Already covered by the pre-existing `public/robots.txt` (`Disallow: /` — whole site). No change needed; do NOT add `src/app/robots.ts` (conflicts with the static file).
 5. `src/lib/audit.ts` — extend `AuditEventType` and add `getEmailsSentInLast24h()`.
 
 Navigation link for `/newsletter/submit`: leave out by default to keep nav clean. Revisit if discoverability is a problem.
