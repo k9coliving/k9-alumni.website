@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import FormField from '@/components/FormField';
-import ImageUpload from '@/components/ImageUpload';
+import MultiImageDrop from '@/components/MultiImageDrop';
 
 const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB — matches the /api/images/upload cap
+
+const makeId = () => Math.random().toString(36).slice(2);
 
 export interface NewsletterFormValues {
   name: string;
@@ -27,8 +31,51 @@ export interface NewsletterFormPayload extends NewsletterFormValues {
 }
 
 interface PhotoSlot {
+  id: string;
   file: File | null;
   existingUrl?: string;
+}
+
+// A single thumbnail. Owns the object-URL lifecycle for newly-added files: the
+// URL is created inside the effect and stored in state, so the rendered src
+// always points at a live URL (creating it in render + revoking in cleanup
+// breaks under React Strict Mode's dev double-mount). Existing photos use their
+// stored URL directly.
+function PhotoThumb({ slot, onRemove }: { slot: PhotoSlot; onRemove: () => void }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(slot.existingUrl ?? null);
+
+  useEffect(() => {
+    if (!slot.file) return;
+    const url = URL.createObjectURL(slot.file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [slot.file]);
+
+  if (!previewUrl) return null;
+
+  return (
+    <div className="relative w-24 h-24">
+      <Image
+        src={previewUrl}
+        alt="Selected photo"
+        width={96}
+        height={96}
+        // Newly-added files are blob: object URLs the Next image optimizer can't
+        // fetch server-side; render them directly. Existing (https) photos can
+        // still go through the optimizer.
+        unoptimized={Boolean(slot.file)}
+        className="w-24 h-24 object-cover rounded-lg shadow"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remove photo"
+        className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-500 text-white text-sm shadow hover:bg-red-600"
+      >
+        ×
+      </button>
+    </div>
+  );
 }
 
 interface NewsletterFormProps {
@@ -55,8 +102,9 @@ const EMPTY: NewsletterFormValues = {
 export default function NewsletterForm({ initialValues, submitText, onSubmit }: NewsletterFormProps) {
   const [values, setValues] = useState<NewsletterFormValues>({ ...EMPTY, ...initialValues });
   const [photos, setPhotos] = useState<PhotoSlot[]>(
-    (initialValues?.photo_urls ?? []).map((url) => ({ file: null, existingUrl: url }))
+    (initialValues?.photo_urls ?? []).map((url) => ({ id: makeId(), file: null, existingUrl: url }))
   );
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,16 +112,51 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updatePhoto = (index: number, file: File | null) => {
-    setPhotos((prev) => prev.map((slot, i) => (i === index ? { ...slot, file } : slot)));
+  const removePhoto = (id: string) => {
+    setPhotoNotice(null);
+    setPhotos((prev) => prev.filter((slot) => slot.id !== id));
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
+  // Accepts a batch of dropped/selected files: validates type + size, fills the
+  // remaining slots up to MAX_PHOTOS, and reports anything skipped in one notice.
+  const addPhotos = (files: File[]) => {
+    setPhotoNotice(null);
+    setPhotos((prev) => {
+      const slotsLeft = MAX_PHOTOS - prev.length;
+      if (slotsLeft <= 0) {
+        setPhotoNotice(`You can add at most ${MAX_PHOTOS} photos.`);
+        return prev;
+      }
 
-  const addPhotoSlot = () => {
-    setPhotos((prev) => (prev.length < MAX_PHOTOS ? [...prev, { file: null }] : prev));
+      const accepted: PhotoSlot[] = [];
+      let badType = 0;
+      let tooLarge = 0;
+      let overflow = 0;
+
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          badType++;
+          continue;
+        }
+        if (file.size > MAX_PHOTO_BYTES) {
+          tooLarge++;
+          continue;
+        }
+        if (accepted.length >= slotsLeft) {
+          overflow++;
+          continue;
+        }
+        accepted.push({ id: makeId(), file });
+      }
+
+      const skipped: string[] = [];
+      if (badType) skipped.push(`${badType} not an image`);
+      if (tooLarge) skipped.push(`${tooLarge} over 5 MB`);
+      if (overflow) skipped.push(`${overflow} over the ${MAX_PHOTOS}-photo limit`);
+      if (skipped.length) setPhotoNotice(`Skipped: ${skipped.join(', ')}.`);
+
+      return accepted.length ? [...prev, ...accepted] : prev;
+    });
   };
 
   const uploadPhoto = async (file: File): Promise<string> => {
@@ -133,6 +216,22 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
         onChange={() => {}}
         readOnly
       />
+
+      <FormField label="Photos (up to 5)">
+        <div className="space-y-4">
+          <MultiImageDrop onAdd={addPhotos} remaining={MAX_PHOTOS - photos.length} />
+
+          {photos.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {photos.map((slot) => (
+                <PhotoThumb key={slot.id} slot={slot} onRemove={() => removePhoto(slot.id)} />
+              ))}
+            </div>
+          )}
+
+          {photoNotice && <p className="text-sm text-amber-600">{photoNotice}</p>}
+        </div>
+      </FormField>
 
       <FormField label="Your name" required>
         <input
@@ -225,37 +324,6 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
           className="form-input"
           placeholder="A memory that still makes you smile"
         />
-      </FormField>
-
-      <FormField label="Photos (up to 5)">
-        <div className="space-y-4">
-          {photos.map((slot, index) => (
-            <div key={index} className="space-y-1">
-              <ImageUpload
-                label=""
-                value={slot.file}
-                existingUrl={slot.existingUrl}
-                onChange={(file) => updatePhoto(index, file)}
-              />
-              <button
-                type="button"
-                onClick={() => removePhoto(index)}
-                className="text-sm text-red-500 hover:text-red-700"
-              >
-                Remove this photo
-              </button>
-            </div>
-          ))}
-          {photos.length < MAX_PHOTOS && (
-            <button
-              type="button"
-              onClick={addPhotoSlot}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              + Add a photo
-            </button>
-          )}
-        </div>
       </FormField>
 
       <FormField label="">
