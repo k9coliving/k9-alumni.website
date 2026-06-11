@@ -13,12 +13,15 @@ interface AuthProviderProps {
 // form and per-token newsletter/edit pages are protected by their own tokens
 // (or are deliberately open, in the case of /newsletter/submit), so they must
 // not sit behind the alumni password gate. The /newsletter teaser stays gated.
+// The /admin area has its OWN gate (ADMIN_PASSWORD / k9-admin-token), enforced
+// server-side per page, so it bypasses the site password too.
 function isPublicPath(pathname: string | null): boolean {
   if (!pathname) return false;
   return (
     pathname === '/newsletter/submit' ||
     pathname.startsWith('/newsletter/edit/') ||
-    pathname.startsWith('/newsletter/n/')
+    pathname.startsWith('/newsletter/n/') ||
+    pathname.startsWith('/admin')
   );
 }
 
