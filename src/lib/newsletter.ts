@@ -230,6 +230,14 @@ export async function verifySubmissionEditToken(id: string, token: string): Prom
   return timingSafeEqualStr(stored, token);
 }
 
+// Hard-delete a submission (spam / correction). Admin-only.
+export async function deleteSubmission(id: string): Promise<void> {
+  const { error } = await supabaseAdmin.from('newsletter_submissions').delete().eq('id', id);
+  if (error) {
+    throw new Error(`Failed to delete submission: ${error.message}`);
+  }
+}
+
 export async function getUnassignedSubmissions(): Promise<NewsletterSubmissionRecord[]> {
   const { data, error } = await supabaseAdmin
     .from('newsletter_submissions')
@@ -290,6 +298,43 @@ export async function createNewsletter(draft: {
   }
 
   return data;
+}
+
+// Edit a draft's editorial fields. Only meaningful while status='draft'; the
+// caller is responsible for not exposing this on a sent newsletter.
+export async function updateNewsletter(
+  id: string,
+  patch: { title?: string; intro_text?: string | null; outro_text?: string | null }
+): Promise<NewsletterRecord | null> {
+  const { data, error } = await supabaseAdmin
+    .from('newsletters')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    throw new Error(`Failed to update newsletter: ${error.message}`);
+  }
+
+  return data;
+}
+
+// All newsletters, newest first — for the admin "past newsletters" list.
+export async function getAllNewsletters(): Promise<NewsletterRecord[]> {
+  const { data, error } = await supabaseAdmin
+    .from('newsletters')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch newsletters: ${error.message}`);
+  }
+
+  return data || [];
 }
 
 export async function getNewsletterById(id: string): Promise<NewsletterRecord | null> {
