@@ -88,13 +88,13 @@ export function parseSubmissionInput(
   const name = str(raw.name);
   const period_in_k9 = str(raw.period_in_k9);
   const whats_up = str(raw.whats_up);
+  const email = str(raw.email);
 
-  if (!name || !period_in_k9 || !whats_up) {
-    return { ok: false, error: 'Name, period in K9, and "What\'s up" are required.' };
+  if (!name || !period_in_k9 || !whats_up || !email) {
+    return { ok: false, error: 'Name, period in K9, "What\'s up", and email are required.' };
   }
 
-  const email = str(raw.email);
-  if (email && !EMAIL_RE.test(email)) {
+  if (!EMAIL_RE.test(email)) {
     return { ok: false, error: 'Please provide a valid email address.' };
   }
 
