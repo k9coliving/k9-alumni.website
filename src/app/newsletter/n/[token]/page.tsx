@@ -49,7 +49,7 @@ function SubmissionCard({ s }: { s: NewsletterSubmissionRecord }) {
 
       <Field label="What's up" value={s.whats_up} />
       <Field label="Where now" value={s.where_now} />
-      <Field label="Hold my hair" value={s.hold_my_hair} />
+      <Field label="What do you need help with?" value={s.hold_my_hair} />
       {s.recommendation_link && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-1">Recommends</p>

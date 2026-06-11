@@ -10,30 +10,56 @@ Add a real newsletter workflow to the alumni website:
 
 The form page and per-token newsletter pages are publicly accessible (no site password) — each newsletter is protected only by its token.
 
-## Build status — resume here (as of 2026-06-10)
+## Build status — resume here (as of 2026-06-12)
 
-**Phases 1–4 done. Next: Phase 5 (admin).**
+**Phases 1–4 + 5a + 5b done. Next: Phase 5c (send + reminder), then Phase 6.**
 
 | Phase | Status | Commit |
 |---|---|---|
 | 1 — DB migrations | ✅ Done — both tables live in **production** Supabase (no dev DB on this project) | (run manually in SQL editor) |
 | 2 — Shared lib | ✅ Done | `00709dd` |
 | 3 — Public API routes | ✅ Done — build green, Sharp EXIF-strip verified | `e0459d7` |
-| 4 — Public pages | ✅ Done — build green, deployed + tested | (uncommitted at time of writing) |
-| 5 — Admin | ⬜ Next | — |
-| 6 — Existing code edits | ⬜ Not started | — |
+| 4 — Public pages | ✅ Done — deployed + tested | `c79555b` (+ copy polish `19fbe75`, `d141ef4`) |
+| 5a — Admin auth | ✅ Done — login flow verified (401/cookie/redirect) | `4707a43` |
+| 5b — Admin dashboard + submissions | ✅ Done — dashboard SSRs, build green | `f391731` |
+| 5c — Admin send + reminder | ⬜ **Next (resume here)** | — |
+| 6 — Existing code edits | 🟡 Partial (teaser link done; robots.ts + env-example pending) | — |
 
 ### What exists now
-- **Lib:** `admin-auth.ts` (new), `newsletter.ts` (new — data layer + `parseSubmissionInput` + `timingSafeEqualStr`), `rate-limit.ts` (new), `api-auth.ts` (+`requireAdminAuth`), `audit.ts` (+2 event types, +`getEmailsSentInLast24h`).
-- **API:** `POST /api/newsletter/submit`, `GET|PATCH /api/newsletter/submit/[id]`, `POST /api/images/upload` (Sharp metadata-strip; renamed from `/api/newsletter/upload-image`), `GET /api/newsletter/view/[token]`.
-- **Pages (Phase 4):** `newsletter/submit/page.tsx` (full-page form + confirmation/edit-link screen), `newsletter/edit/[id]/page.tsx` (token-gated prefill/PATCH, friendly not-found/already-sent states), `newsletter/n/[token]/page.tsx` (server component, read-only render, noindex, `force-dynamic`, draft preview banner). Shared `src/components/NewsletterForm.tsx` drives submit + edit (uploads photos to `/api/images/upload`, honeypot field). Teaser CTA at `newsletter/page.tsx:80` now links to `/newsletter/submit`.
-- **Gate:** `src/components/AuthProvider.tsx` is now pathname-aware — `/newsletter/submit`, `/newsletter/edit/*`, `/newsletter/n/*` bypass `PasswordGate` (the only public routes; `/newsletter` teaser stays gated). This was the one piece the plan required but didn't spec.
-- `sharp` added to `package.json`. `.env.local.example` updated with the 3 new vars.
+- **Lib:** `admin-auth.ts`, `newsletter.ts` (data layer + `parseSubmissionInput` + `timingSafeEqualStr`; **email now required** in `parseSubmissionInput`; + `updateNewsletter`, `getAllNewsletters`, `deleteSubmission`), `rate-limit.ts` (+ `adminLogin` limit), `api-auth.ts` (`requireAdminAuth`), `audit.ts` (`getEmailsSentInLast24h`).
+- **Public API:** `POST /api/newsletter/submit`, `GET|PATCH /api/newsletter/submit/[id]`, `POST /api/images/upload` (Sharp metadata-strip), `GET /api/newsletter/view/[token]`.
+- **Public pages:** submit / edit / `n/[token]` view. Shared `NewsletterForm.tsx` (multi-file `MultiImageDrop.tsx`, honeypot, email required). Copy in the K9er/"Coliving Girl" voice.
+- **Admin (5a/5b):**
+  - `POST|DELETE /api/admin/auth` — login (constant-time `ADMIN_PASSWORD`, `k9-admin-token` with `{admin:true}` claim) / logout.
+  - `admin/login/page.tsx`, server-gated `admin/newsletter/page.tsx` + `AdminNewsletterClient.tsx` — quota widget, create-draft form, unassigned-submissions list (delete + edit-via-public-token-page), newsletters list with preview + send links.
+  - Admin API (all `requireAdminAuth`): `POST /api/admin/newsletter`, `PATCH /api/admin/newsletter/[id]`, `GET /api/admin/newsletter/email-quota`, `GET /api/admin/submissions`, `PATCH|DELETE /api/admin/submissions/[id]`.
+- **Gate:** `AuthProvider.tsx` bypasses the site password for `/newsletter/submit`, `/newsletter/edit/*`, `/newsletter/n/*`, **and `/admin/*`** (admin has its own gate).
+- **Seed data note:** 3 test submissions (`*.test@example.com`) + a "K9 Newsletter — Test Draft" were inserted into **prod** for preview testing — Cami to delete by hand before the real send.
 
-### Start of next session — Phase 5 (admin)
-1. Build admin login (`admin/login/page.tsx` + `api/admin/auth/route.ts`) gated by `ADMIN_PASSWORD`, distinct `{ admin: true }` JWT claim (see security note in Phase 5 below).
-2. Then `admin/newsletter/page.tsx`: unassigned submissions list (edit/delete), create-newsletter form, preview via the public token URL, send via Resend with the 24h quota guard.
-3. Set real `ADMIN_PASSWORD` before testing.
+### Start of next session — Phase 5c (send + reminder)
+
+The send/reminder UI + backend. The hard part is the Resend send loop + quota math; everything it depends on already exists.
+
+**Already available to build on:**
+- `finalizeAndSendNewsletter(id)` in `newsletter.ts` — atomic scoop (assign all unassigned → `newsletter_id`, set `status='sent'`, `sent_at`); idempotent no-op if already sent (supports re-send / retry-failed).
+- `resolveRecipients(manualEmails)` in `newsletter.ts` — unions opted-in residents + reminder-wanting past submitters + manual, deduped by lowercased email, tagged by source.
+- `getEmailsSentInLast24h()` + the quota math already in `admin/newsletter/email-quota` route (`resendDailyLimit()` helper duplicated in the dashboard page — consider lifting to lib).
+- `audit.ts` event types `newsletter_email_sent` / `newsletter_reminder_sent` already exist and are already counted by `getEmailsSentInLast24h()`.
+- Resend client pattern: see `src/app/api/newsletter/submit/route.ts` (`new Resend(process.env.RESEND_API_KEY)`, `from: 'K9 Alumni <noreply@mail.k9coliving.com>'`).
+
+**To build (full spec in "Phase 5 — Admin" → send/reminder sections below):**
+1. `GET /api/admin/newsletter/[id]/recipients` — recipient preview grouped by source.
+2. `POST /api/admin/newsletter/[id]/send` — `finalizeAndSendNewsletter` first (freeze), then Resend calls sequentially ~100 ms apart, **log every recipient** to `audit_logs` (success or failure) as `newsletter_email_sent` with `details.newsletter_id`. Reply-to from request (required). Supports "retry failed only" (re-send skips the scoop, mails only chosen recipients).
+3. `POST /api/admin/newsletter/reminder/send` — same pattern, body "next newsletter coming, add your news at /newsletter/submit", logged `newsletter_reminder_sent` with `details.newsletter_id = null`.
+4. `admin/newsletter/[id]/send/page.tsx` — reply-to input (prefill `ADMIN_DEFAULT_REPLY_TO`), recipient preview by source, quota strip (green/yellow/red, warning-only never blocks), Send button, audit-log table below with retry-failed.
+5. `admin/newsletter/reminder/page.tsx` — same shape for reminders.
+   - **Note:** the dashboard already links to `/admin/newsletter/[id]/send` and `/admin/newsletter/reminder` — these 404 until built.
+6. Set a real `ADMIN_PASSWORD` (currently a throwaway `devadmin123` in local `.env.local`); test send to **your own email only** (prod DB + real Resend).
+
+### Then Phase 6 (remaining)
+- `src/app/robots.ts` — disallow `/newsletter/submit` and `/newsletter/n/`.
+- `.env.local.example` — confirm `ADMIN_PASSWORD`, `ADMIN_DEFAULT_REPLY_TO`, `RESEND_DAILY_LIMIT` present (they are) and `NEXT_PUBLIC_BASE_URL` (added).
+- Vercel: set `ADMIN_PASSWORD`, `NEXT_PUBLIC_NEWSLETTER_FORM_URL=<domain>/newsletter/submit`, confirm `NEXT_PUBLIC_BASE_URL`.
 
 ### ⚠️ TODO / reminders before next session ends (Cami's notes)
 - [ ] **`git push`** — 3 newsletter commits (`2725623`, `00709dd`, `e0459d7`) are **local only, not pushed yet**.
