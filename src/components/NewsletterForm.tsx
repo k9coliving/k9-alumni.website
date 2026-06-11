@@ -175,8 +175,13 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
     e.preventDefault();
     setError(null);
 
-    if (!values.name.trim() || !values.period_in_k9.trim() || !values.whats_up.trim()) {
-      setError('Please fill in your name, your period in K9, and "What\'s up".');
+    if (
+      !values.name.trim() ||
+      !values.period_in_k9.trim() ||
+      !values.whats_up.trim() ||
+      !values.email.trim()
+    ) {
+      setError('Please fill in your name, K9 lifespan, what you\'re up to, and your email.');
       return;
     }
 
@@ -217,7 +222,7 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
         readOnly
       />
 
-      <FormField label="Photos (up to 5)">
+      <FormField label="A picture (or more) is worth a 1000 words they say. Show us the world through your eyes">
         <div className="space-y-4">
           <MultiImageDrop onAdd={addPhotos} remaining={MAX_PHOTOS - photos.length} />
 
@@ -233,29 +238,29 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
         </div>
       </FormField>
 
-      <FormField label="Your name" required>
+      <FormField label="What should we call you?" required>
         <input
           type="text"
           required
           value={values.name}
           onChange={(e) => set('name', e.target.value)}
           className="form-input"
-          placeholder="What should we call you?"
+          placeholder="Your name"
         />
       </FormField>
 
-      <FormField label="When were you at K9?" required>
+      <FormField label="Your K9 Lifespan" required>
         <input
           type="text"
           required
           value={values.period_in_k9}
           onChange={(e) => set('period_in_k9', e.target.value)}
           className="form-input"
-          placeholder="e.g. Summer 2021 – Spring 2023"
+          placeholder={'e.g. Summer 2021 – Spring 2023 — or "still here!"'}
         />
       </FormField>
 
-      <FormField label="What's up?" required>
+      <FormField label="What are you up to?" required>
         <textarea
           required
           rows={4}
@@ -263,6 +268,17 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
           onChange={(e) => set('whats_up', e.target.value)}
           className="form-input"
           placeholder="What's new with you? Big news, small wins, everyday moments…"
+        />
+      </FormField>
+
+      <FormField label="How to get in touch" required>
+        <input
+          type="email"
+          required
+          value={values.email}
+          onChange={(e) => set('email', e.target.value)}
+          className="form-input"
+          placeholder="you@awesomemail.com — for the newsletter & your edit link"
         />
       </FormField>
 
@@ -276,53 +292,42 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
         />
       </FormField>
 
-      <FormField label="Hold my hair">
+      <FormField label="What do you need help with?">
         <textarea
-          rows={3}
+          rows={2}
           value={values.hold_my_hair}
           onChange={(e) => set('hold_my_hair', e.target.value)}
           className="form-input"
-          placeholder="Need a hand with something? Tell the community what you're after."
+          placeholder="Anything we could support you with?"
         />
       </FormField>
 
-      <FormField label="Get in touch — your email">
-        <input
-          type="email"
-          value={values.email}
-          onChange={(e) => set('email', e.target.value)}
-          className="form-input"
-          placeholder="you@example.com — we'll also email you an edit link"
-        />
+      <FormField label="Something nice you'd like to recommend">
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={values.recommendation_link}
+            onChange={(e) => set('recommendation_link', e.target.value)}
+            className="form-input"
+            placeholder="A book, song, place, something that inspired you"
+          />
+          <textarea
+            rows={2}
+            value={values.recommendation_context}
+            onChange={(e) => set('recommendation_context', e.target.value)}
+            className="form-input"
+            placeholder="Add a description, and why it's worth checking out"
+          />
+        </div>
       </FormField>
 
-      <FormField label="A recommendation — link">
-        <input
-          type="text"
-          value={values.recommendation_link}
-          onChange={(e) => set('recommendation_link', e.target.value)}
-          className="form-input"
-          placeholder="A book, song, place, anything worth sharing"
-        />
-      </FormField>
-
-      <FormField label="Why do you recommend it?">
-        <textarea
-          rows={2}
-          value={values.recommendation_context}
-          onChange={(e) => set('recommendation_context', e.target.value)}
-          className="form-input"
-          placeholder="A line or two of context"
-        />
-      </FormField>
-
-      <FormField label="A K9 happy story">
+      <FormField label="Share a Newsletter success story?">
         <textarea
           rows={3}
           value={values.happy_story}
           onChange={(e) => set('happy_story', e.target.value)}
           className="form-input"
-          placeholder="A memory that still makes you smile"
+          placeholder="e.g. someone reached out or you did after reading the news, say thanks for a tip"
         />
       </FormField>
 
@@ -335,7 +340,7 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm text-gray-700">
-            Notify me when the next newsletter is coming
+            Let me know about future newsletters
           </span>
         </label>
       </FormField>

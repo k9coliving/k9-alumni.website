@@ -55,12 +55,23 @@ export default function NewsletterSubmit() {
       >
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="page-header">
-            <h1 className="page-header-title">Share your news</h1>
+            <h1 className="page-header-title">Once a K9er, Always a K9er</h1>
             <div className="page-header-divider"></div>
-            <p className="page-header-subtitle">
-              Tell the K9 family what you&apos;ve been up to. Your update goes into the next
-              newsletter. ❤️
-            </p>
+            <div className="page-header-subtitle space-y-4">
+              <p>K9 is hard to explain. But we know you know.</p>
+              <p>And that&apos;s a feeling we do not want to lose, even if we have left the house.</p>
+              <p>Let&apos;s keep track of each other and make sure our paths keep crossing.</p>
+              <p>
+                XoXo,
+                <br />
+                Coliving Girl, your one and only source into the fabulous life of Alumni.
+              </p>
+              <p>
+                K9 newsletter by and for K9ers, mostly aimed at alumni but current residents are
+                very welcome to join! Share with us what you&apos;ve been up to, and find out where
+                other current and past K9ers&apos; lives are taking them.
+              </p>
+            </div>
           </div>
 
           {result ? (
