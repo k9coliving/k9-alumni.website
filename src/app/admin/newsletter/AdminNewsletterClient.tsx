@@ -35,38 +35,51 @@ function QuotaWidget({ quota }: { quota: Quota }) {
   );
 }
 
-function CreateDraft() {
+// One active draft at a time: when a draft already exists we edit it (PATCH)
+// rather than offering to create another. Multiple drafts would be confusing —
+// every draft's preview renders the same unassigned-submissions pool, and
+// sending any one scoops all of them. A new draft becomes available again only
+// once the current one is sent.
+function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [intro, setIntro] = useState('');
-  const [outro, setOutro] = useState('');
+  const isEdit = !!draft;
+
+  const [title, setTitle] = useState(draft?.title ?? '');
+  const [intro, setIntro] = useState(draft?.intro_text ?? '');
+  const [outro, setOutro] = useState(draft?.outro_text ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSaved(false);
     if (!title.trim()) {
       setError('A title is required.');
       return;
     }
     setBusy(true);
     try {
-      const res = await fetch('/api/admin/newsletter', {
-        method: 'POST',
+      const res = await fetch(isEdit ? `/api/admin/newsletter/${draft.id}` : '/api/admin/newsletter', {
+        method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, intro_text: intro, outro_text: outro }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to create draft.');
+        throw new Error(data.error || 'Failed to save.');
       }
-      setTitle('');
-      setIntro('');
-      setOutro('');
+      if (isEdit) {
+        setSaved(true);
+      } else {
+        setTitle('');
+        setIntro('');
+        setOutro('');
+      }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create draft.');
+      setError(err instanceof Error ? err.message : 'Failed to save.');
     } finally {
       setBusy(false);
     }
@@ -74,7 +87,26 @@ function CreateDraft() {
 
   return (
     <form onSubmit={submit} className="bg-white rounded-xl shadow p-6 space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Create next newsletter</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {isEdit ? 'Current draft' : 'Create next newsletter'}
+        </h2>
+        {isEdit && (
+          <a
+            href={`/newsletter/n/${draft.token}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            Preview →
+          </a>
+        )}
+      </div>
+      {isEdit && (
+        <p className="text-sm text-gray-500">
+          A draft already exists, so you&apos;re editing it. Send it to start a fresh one.
+        </p>
+      )}
       <input
         type="text"
         value={title}
@@ -97,9 +129,10 @@ function CreateDraft() {
         placeholder="Outro text (optional)"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {saved && <p className="text-sm text-green-600">Saved.</p>}
       <div className="flex justify-end">
         <button type="submit" disabled={busy} className="btn-primary px-5 py-2 disabled:opacity-50">
-          {busy ? 'Saving…' : 'Save draft'}
+          {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Save draft'}
         </button>
       </div>
     </form>
@@ -239,6 +272,10 @@ function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
 export default function AdminNewsletterClient({ submissions, newsletters, quota }: Props) {
   const router = useRouter();
 
+  // At most one draft should be active. If several exist (legacy/test data),
+  // edit the most recent — getAllNewsletters returns newest first.
+  const activeDraft = newsletters.find((n) => n.status === 'draft') ?? null;
+
   const logout = async () => {
     await fetch('/api/admin/auth', { method: 'DELETE' });
     router.push('/admin/login');
@@ -260,7 +297,7 @@ export default function AdminNewsletterClient({ submissions, newsletters, quota 
         </div>
 
         <QuotaWidget quota={quota} />
-        <CreateDraft />
+        <DraftEditor key={activeDraft?.id ?? 'new'} draft={activeDraft} />
         <Submissions submissions={submissions} />
         <PastNewsletters newsletters={newsletters} />
       </div>
