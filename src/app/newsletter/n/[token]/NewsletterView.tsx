@@ -94,12 +94,14 @@ function MemberPhotos({
           position: 'relative',
           borderRadius: '18px',
           overflow: 'hidden',
-          aspectRatio: '16 / 10',
           background: palette.soft,
           boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
         }}
       >
-        <Image src={lead.url} alt={`Photo from ${name}`} fill sizes="(max-width: 680px) 100vw, 446px" style={{ objectFit: 'cover', objectPosition: lead.focus ?? 'center' }} />
+        {/* The lead photo is shown in full at its natural aspect — never
+            cropped — so a portrait stays tall and a landscape stays wide. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={lead.url} alt={`Photo from ${name}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
         {cameraOn === 0 && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />

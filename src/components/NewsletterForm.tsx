@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import FormField from '@/components/FormField';
 import MultiImageDrop from '@/components/MultiImageDrop';
@@ -97,45 +97,55 @@ function PhotoThumb({
     <div className="w-40 space-y-1.5">
       <div
         className="relative w-full overflow-hidden rounded-lg shadow bg-gray-100"
-        style={{ aspectRatio: isPrimary ? '16 / 10' : '94 / 78' }}
+        style={isPrimary ? undefined : { aspectRatio: '94 / 78' }}
       >
-        <Image
-          src={previewUrl}
-          alt="Selected photo"
-          fill
-          sizes="160px"
-          // Newly-added files are blob: object URLs the Next image optimizer
-          // can't fetch server-side; render them directly. Existing (https)
-          // photos can still go through the optimizer.
-          unoptimized={Boolean(slot.file)}
-          style={{ objectFit: 'cover', objectPosition: focus }}
-        />
+        {isPrimary ? (
+          // The primary photo is shown in full (natural aspect) in the
+          // newsletter, never cropped — so preview it uncropped and offer no
+          // focus picker.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={previewUrl} alt="Selected photo" style={{ display: 'block', width: '100%', height: 'auto' }} />
+        ) : (
+          <>
+            <Image
+              src={previewUrl}
+              alt="Selected photo"
+              fill
+              sizes="160px"
+              // Newly-added files are blob: object URLs the Next image optimizer
+              // can't fetch server-side; render them directly. Existing (https)
+              // photos can still go through the optimizer.
+              unoptimized={Boolean(slot.file)}
+              style={{ objectFit: 'cover', objectPosition: focus }}
+            />
 
-        {/* Focus picker overlaid on the image — click where the subject is. */}
-        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
-          {FOCUS_GRID.map((pos) => (
-            <button
-              key={pos}
-              type="button"
-              onClick={() => onSetFocus(pos)}
-              aria-label={`Focus crop on ${FOCUS_LABELS[pos]}`}
-              aria-pressed={focus === pos}
-              className="group flex items-center justify-center hover:bg-black/10"
-            >
-              <span
-                className={
-                  focus === pos
-                    ? 'block w-3 h-3 rounded-full bg-blue-600 ring-2 ring-white shadow'
-                    : 'block w-1.5 h-1.5 rounded-full bg-white/70 ring-1 ring-black/10 opacity-60 group-hover:opacity-100'
-                }
-              />
-            </button>
-          ))}
-        </div>
+            {/* Focus picker overlaid on the image — click where the subject is. */}
+            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+              {FOCUS_GRID.map((pos) => (
+                <button
+                  key={pos}
+                  type="button"
+                  onClick={() => onSetFocus(pos)}
+                  aria-label={`Focus crop on ${FOCUS_LABELS[pos]}`}
+                  aria-pressed={focus === pos}
+                  className="group flex items-center justify-center hover:bg-black/10"
+                >
+                  <span
+                    className={
+                      focus === pos
+                        ? 'block w-3 h-3 rounded-full bg-blue-600 ring-2 ring-white shadow'
+                        : 'block w-1.5 h-1.5 rounded-full bg-white/70 ring-1 ring-black/10 opacity-60 group-hover:opacity-100'
+                    }
+                  />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         {isPrimary && (
           <span className="absolute top-1 left-1 z-10 rounded-full bg-blue-600 text-white text-[10px] font-semibold px-2 py-0.5 shadow">
-            Lead
+            Primary
           </span>
         )}
         <button
@@ -149,14 +159,14 @@ function PhotoThumb({
       </div>
 
       {isPrimary ? (
-        <p className="text-[11px] text-gray-400 text-center">Lead photo · click to set crop</p>
+        <p className="text-[11px] text-gray-400 text-center">Primary · shown in full</p>
       ) : (
         <button
           type="button"
           onClick={onMakePrimary}
           className="w-full text-[11px] font-medium text-blue-600 hover:text-blue-700"
         >
-          ★ Make lead
+          ★ Make primary
         </button>
       )}
     </div>
@@ -168,6 +178,30 @@ interface NewsletterFormProps {
   submitText: string;
   // Throws an Error (its message is shown to the user) on failure.
   onSubmit: (payload: NewsletterFormPayload) => Promise<void>;
+  // Sets the id on the <form> element so a submit button rendered outside the
+  // form (e.g. in a sticky save bar) can target it via the `form` attribute.
+  formId?: string;
+  // Notified whenever the form's edited/pristine state changes — lets a parent
+  // (e.g. the edit page) show an "unsaved changes" reminder.
+  onDirtyChange?: (dirty: boolean) => void;
+  // Notified while a submit is in flight, so an external save button can show a
+  // loading state and disable itself.
+  onSubmittingChange?: (submitting: boolean) => void;
+}
+
+// Serialises the editable fields (text + photos) so the current state can be
+// compared against the pristine snapshot to detect unsaved changes. Photo slots
+// are reduced to url + focus + a marker for newly-added files (which are always
+// a change, since the pristine set never has files).
+function valuesSignature(values: NewsletterFormValues): string {
+  // Photos are tracked separately (see photosSignature); drop the field here.
+  return JSON.stringify({ ...values, photos: undefined });
+}
+
+function photosSignature(slots: PhotoSlot[]): string {
+  return JSON.stringify(
+    slots.map((s) => ({ u: s.existingUrl ?? null, f: s.focus ?? null, n: s.file ? s.id : null }))
+  );
 }
 
 const EMPTY: NewsletterFormValues = {
@@ -184,7 +218,7 @@ const EMPTY: NewsletterFormValues = {
   photos: [],
 };
 
-export default function NewsletterForm({ initialValues, submitText, onSubmit }: NewsletterFormProps) {
+export default function NewsletterForm({ initialValues, submitText, onSubmit, formId, onDirtyChange, onSubmittingChange }: NewsletterFormProps) {
   const [values, setValues] = useState<NewsletterFormValues>({ ...EMPTY, ...initialValues });
   const [photos, setPhotos] = useState<PhotoSlot[]>(
     (initialValues?.photos ?? []).map((p) => ({ id: makeId(), file: null, existingUrl: p.url, focus: p.focus }))
@@ -192,6 +226,18 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Compare the current state against the pristine snapshot (captured on first
+  // render) and report dirtiness to the parent.
+  const currentSig = { v: valuesSignature(values), p: photosSignature(photos) };
+  const pristineSig = useRef(currentSig);
+  const dirty = currentSig.v !== pristineSig.current.v || currentSig.p !== pristineSig.current.p;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => {
+    onSubmittingChange?.(isSubmitting);
+  }, [isSubmitting, onSubmittingChange]);
 
   const set = <K extends keyof NewsletterFormValues>(field: K, value: NewsletterFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -308,7 +354,7 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
       {/* Honeypot: hidden from real users, tempting to bots. Never populated by
           humans, so a non-empty value gets the submission silently dropped. */}
       <input
@@ -330,10 +376,10 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
           {photos.length > 0 && (
             <>
               <p className="text-xs text-gray-500">
-                The <span className="font-medium text-gray-700">lead</span> photo shows big at the top of your
-                entry; the rest appear as small snapshots. Use <span className="font-medium text-gray-700">★ Make
-                lead</span> to choose it, and click a photo where the important part is (like a face) so it isn&apos;t
-                cropped out.
+                The <span className="font-medium text-gray-700">primary</span> photo shows big at the top of your
+                entry, in full — never cropped. The rest appear as small snapshots. Use{' '}
+                <span className="font-medium text-gray-700">★ Make primary</span> to choose it, and click a small
+                photo where the important part is (like a face) so it isn&apos;t cropped out.
               </p>
               <div className="flex flex-wrap gap-4 items-start">
                 {photos.map((slot, i) => (

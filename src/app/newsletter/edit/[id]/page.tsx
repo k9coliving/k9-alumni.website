@@ -26,7 +26,9 @@ interface PublicSubmission {
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'editable'; values: NewsletterFormValues }
-  | { kind: 'saved' }
+  // Carries the freshly-saved values so "Continue editing" can re-open the form
+  // pristine with the latest content.
+  | { kind: 'saved'; values: NewsletterFormValues }
   | { kind: 'already_sent'; viewUrl: string | null }
   | { kind: 'not_found' }
   | { kind: 'error'; message: string };
@@ -55,6 +57,8 @@ function EditContent() {
   const token = searchParams.get('token') ?? '';
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  const [dirty, setDirty] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +119,12 @@ function EditContent() {
         throw new Error(data.error || 'Failed to save changes. Please try again.');
       }
 
-      setState({ kind: 'saved' });
+      // Keep the saved values so the user can continue editing from where they
+      // left off, falling back to what they just submitted if the response is
+      // missing the echoed submission for any reason.
+      const data = await res.json().catch(() => ({}));
+      const savedValues = data.submission ? toFormValues(data.submission) : payload;
+      setState({ kind: 'saved', values: savedValues });
     },
     [id, token]
   );
@@ -170,19 +179,56 @@ function EditContent() {
   }
 
   if (state.kind === 'saved') {
+    const savedValues = state.values;
     return (
       <div className={card}>
         <div className="text-5xl">✅</div>
         <h2 className="text-2xl font-bold text-gray-900">Changes saved</h2>
         <p className="text-gray-600">Your submission has been updated. Thanks!</p>
-        <a href="/newsletter" className="inline-block text-blue-600 hover:text-blue-700 font-medium">
-          ← Back to the newsletter page
-        </a>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setDirty(false);
+              setState({ kind: 'editable', values: savedValues });
+            }}
+            className="btn-primary px-5 py-2"
+          >
+            ← Back to editing
+          </button>
+        </div>
       </div>
     );
   }
 
-  return <NewsletterForm initialValues={state.values} submitText="Save changes" onSubmit={handleSave} />;
+  return (
+    <>
+      {dirty && (
+        <div className="sticky top-0 z-40 mb-6 animate-fadeInUp">
+          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-md">
+            <span aria-hidden className="text-lg leading-none">💡</span>
+            <p className="flex-1 text-sm font-medium text-blue-900">You have unsaved changes.</p>
+            <button
+              type="submit"
+              form="newsletter-edit-form"
+              disabled={submitting}
+              className="btn-primary shrink-0 px-4 py-1.5 text-sm disabled:opacity-50"
+            >
+              {submitting ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
+      <NewsletterForm
+        formId="newsletter-edit-form"
+        initialValues={state.values}
+        submitText="Save changes"
+        onSubmit={handleSave}
+        onDirtyChange={setDirty}
+        onSubmittingChange={setSubmitting}
+      />
+    </>
+  );
 }
 
 export default function NewsletterEdit() {
