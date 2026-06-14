@@ -65,7 +65,23 @@ function SectionHead({ kicker, title, color }: { kicker: string; title: string; 
 
 const POLAROID_ROTATIONS = ['-5deg', '4deg', '-3deg', '5deg'];
 
-function MemberPhotos({ photos, name, palette }: { photos: string[]; name: string; palette: Palette }) {
+// Which photo (if any) gets the little camera badge, keyed by card position.
+// Kept deliberately sparse — not every member, not every photo — and repeats
+// every 6 cards. Mirrors the original design's camera placement.
+const CAMERA_FOR: Record<number, number> = { 0: 0, 1: 3, 3: 2, 5: 1 };
+const cameraPhotoFor = (cardIndex: number): number | undefined => CAMERA_FOR[cardIndex % 6];
+
+function MemberPhotos({
+  photos,
+  name,
+  palette,
+  cameraOn,
+}: {
+  photos: string[];
+  name: string;
+  palette: Palette;
+  cameraOn?: number;
+}) {
   if (photos.length === 0) return null;
   const lead = photos[0];
   const rest = photos.slice(1, 5);
@@ -83,6 +99,10 @@ function MemberPhotos({ photos, name, palette }: { photos: string[]; name: strin
         }}
       >
         <Image src={lead} alt={`Photo from ${name}`} fill sizes="(max-width: 680px) 100vw, 446px" style={{ objectFit: 'cover' }} />
+        {cameraOn === 0 && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
+        )}
       </div>
 
       {rest.length > 0 && (
@@ -100,6 +120,10 @@ function MemberPhotos({ photos, name, palette }: { photos: string[]; name: strin
             >
               <div style={{ position: 'relative', width: '94px', height: '78px', borderRadius: '3px', overflow: 'hidden', background: palette.soft }}>
                 <Image src={url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" style={{ objectFit: 'cover' }} />
+                {cameraOn === i + 1 && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '6px', right: '6px', width: '25px', height: 'auto', filter: 'drop-shadow(0 2px 4px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
+                )}
               </div>
             </div>
           ))}
@@ -124,9 +148,10 @@ function MemberBlurb({ label, value, palette }: { label: string; value: string; 
   );
 }
 
-function LifeUpdateCard({ s, palette }: { s: NewsletterSubmissionRecord; palette: Palette }) {
+function LifeUpdateCard({ s, palette, index }: { s: NewsletterSubmissionRecord; palette: Palette; index: number }) {
   const photos = s.photo_urls ?? [];
   const first = firstNameOf(s.name);
+  const cameraOn = cameraPhotoFor(index);
 
   return (
     <div
@@ -142,7 +167,7 @@ function LifeUpdateCard({ s, palette }: { s: NewsletterSubmissionRecord; palette
       <div style={{ padding: '26px 28px 28px' }}>
         {/* Story flows around the floated photos, then reclaims full width below. */}
         <div>
-          <MemberPhotos photos={photos} name={s.name} palette={palette} />
+          <MemberPhotos photos={photos} name={s.name} palette={palette} cameraOn={cameraOn} />
 
           <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: 0, lineHeight: 1.04 }}>
             {s.name}
@@ -164,7 +189,19 @@ function LifeUpdateCard({ s, palette }: { s: NewsletterSubmissionRecord; palette
             </div>
           )}
           {s.period_in_k9 && (
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#8390a6', marginTop: '6px' }}>{s.period_in_k9}</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#6b7890', marginTop: '7px' }}>
+              In K9: {s.period_in_k9}
+            </div>
+          )}
+          {s.email && (
+            <a
+              href={`mailto:${s.email}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', marginTop: '9px', fontSize: '14px', fontWeight: 700, color: palette.deep, textDecoration: 'none', wordBreak: 'break-all' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`${ASSETS}/envelope.png`} alt="" style={{ width: '18px', height: 'auto', flex: 'none' }} />
+              {s.email}
+            </a>
           )}
 
           <p style={{ fontSize: '16px', lineHeight: 1.68, color: '#3a4a66', margin: '18px 0 0', whiteSpace: 'pre-line' }}>
@@ -333,9 +370,9 @@ export default function NewsletterView({
         ) : (
           <>
             {/* life updates */}
-            <SectionHead kicker="The whole table, catching up" title="Life updates" color="#5B7FD4" />
+            <SectionHead kicker="Around the kitchen table" title="Life updates" color="#5B7FD4" />
             {submissions.map((s, i) => (
-              <LifeUpdateCard key={s.id} s={s} palette={PALETTE[i % PALETTE.length]} />
+              <LifeUpdateCard key={s.id} s={s} palette={PALETTE[i % PALETTE.length]} index={i} />
             ))}
 
             {/* recommendations board */}
@@ -411,6 +448,10 @@ export default function NewsletterView({
           <path d="M0,40 C160,5 330,5 490,30 C650,55 820,55 980,22 L980,0 L0,0 Z" fill="#FAF4E4" />
         </svg>
         <div style={{ maxWidth: '760px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${ASSETS}/mountains.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '32px', bottom: '8px', width: '150px', height: 'auto', opacity: 0.85 }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${ASSETS}/camera.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', right: '40px', bottom: '10px', width: '74px', height: 'auto', opacity: 0.9, transform: 'rotate(-6deg)' }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${ASSETS}/heart-pink.png`} alt="" className="nl-floaty" style={{ width: '46px', height: 'auto', display: 'inline-block' }} />
           {newsletter.outro_text && (

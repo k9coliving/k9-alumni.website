@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     const submission = await createSubmission({
       ...parsed.value,
-      submission_ip: ip,
       user_agent: userAgent,
     });
 

@@ -103,4 +103,8 @@ body {
     width: 100%;
     margin: 0 0 20px;
   }
+  /* Footer corner decorations would crowd the CTA on small screens. */
+  .nl-footer-deco {
+    display: none;
+  }
 }

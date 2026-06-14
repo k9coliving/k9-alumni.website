@@ -32,7 +32,6 @@ export interface NewsletterSubmissionRecord {
   edit_token?: NewsletterEditTokenData | null;
   newsletter_id?: string | null;
 
-  submission_ip?: string | null;
   user_agent?: string | null;
 }
 
