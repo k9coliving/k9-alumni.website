@@ -3,6 +3,7 @@ import type {
   NewsletterRecord,
   NewsletterSubmissionRecord,
   NewsletterEventRecord,
+  NewsletterPhoto,
 } from '@/lib/newsletter';
 
 // ---------------------------------------------------------------------------
@@ -77,7 +78,7 @@ function MemberPhotos({
   palette,
   cameraOn,
 }: {
-  photos: string[];
+  photos: NewsletterPhoto[];
   name: string;
   palette: Palette;
   cameraOn?: number;
@@ -98,7 +99,7 @@ function MemberPhotos({
           boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
         }}
       >
-        <Image src={lead} alt={`Photo from ${name}`} fill sizes="(max-width: 680px) 100vw, 446px" style={{ objectFit: 'cover' }} />
+        <Image src={lead.url} alt={`Photo from ${name}`} fill sizes="(max-width: 680px) 100vw, 446px" style={{ objectFit: 'cover', objectPosition: lead.focus ?? 'center' }} />
         {cameraOn === 0 && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
@@ -107,7 +108,7 @@ function MemberPhotos({
 
       {rest.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '18px', paddingLeft: '6px' }}>
-          {rest.map((url, i) => (
+          {rest.map((photo, i) => (
             <div
               key={i}
               style={{
@@ -119,7 +120,7 @@ function MemberPhotos({
               }}
             >
               <div style={{ position: 'relative', width: '94px', height: '78px', borderRadius: '3px', overflow: 'hidden', background: palette.soft }}>
-                <Image src={url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" style={{ objectFit: 'cover' }} />
+                <Image src={photo.url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" style={{ objectFit: 'cover', objectPosition: photo.focus ?? 'center' }} />
                 {cameraOn === i + 1 && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '6px', right: '6px', width: '25px', height: 'auto', filter: 'drop-shadow(0 2px 4px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
@@ -209,7 +210,7 @@ function RecommendIcon({ id }: { id: string }) {
 }
 
 function LifeUpdateCard({ s, palette, index }: { s: NewsletterSubmissionRecord; palette: Palette; index: number }) {
-  const photos = s.photo_urls ?? [];
+  const photos = s.photos ?? [];
   const first = firstNameOf(s.name);
   const cameraOn = cameraPhotoFor(index);
 

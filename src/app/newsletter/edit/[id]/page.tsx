@@ -7,6 +7,7 @@ import NewsletterForm, {
   type NewsletterFormPayload,
   type NewsletterFormValues,
 } from '@/components/NewsletterForm';
+import type { NewsletterPhoto } from '@/lib/newsletter';
 
 interface PublicSubmission {
   name: string;
@@ -18,7 +19,7 @@ interface PublicSubmission {
   recommendation_link: string | null;
   recommendation_context: string | null;
   happy_story: string | null;
-  photo_urls: string[];
+  photos: NewsletterPhoto[];
   notify_for_next_newsletter: boolean;
 }
 
@@ -43,7 +44,7 @@ function toFormValues(s: PublicSubmission): NewsletterFormValues {
     recommendation_context: s.recommendation_context ?? '',
     happy_story: s.happy_story ?? '',
     notify_for_next_newsletter: s.notify_for_next_newsletter,
-    photo_urls: s.photo_urls ?? [],
+    photos: s.photos ?? [],
   };
 }
 

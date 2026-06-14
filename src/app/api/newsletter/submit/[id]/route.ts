@@ -27,7 +27,7 @@ function publicSubmissionFields(s: NewsletterSubmissionRecord) {
     recommendation_link: s.recommendation_link ?? null,
     recommendation_context: s.recommendation_context ?? null,
     happy_story: s.happy_story ?? null,
-    photo_urls: s.photo_urls ?? [],
+    photos: s.photos ?? [],
     notify_for_next_newsletter: s.notify_for_next_newsletter ?? false,
   };
 }

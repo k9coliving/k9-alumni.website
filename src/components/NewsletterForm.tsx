@@ -4,11 +4,30 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import FormField from '@/components/FormField';
 import MultiImageDrop from '@/components/MultiImageDrop';
+// Type-only import: erased at build time, so the server-only lib/newsletter
+// module (supabase admin client) is never pulled into this client bundle.
+import type { NewsletterPhoto, PhotoFocus } from '@/lib/newsletter';
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB — matches the /api/images/upload cap
 
 const makeId = () => Math.random().toString(36).slice(2);
+
+// The 3x3 crop-focus grid, laid out row by row (top-left → bottom-right). Each
+// value is a CSS object-position keyword; picking one decides which part of the
+// photo survives the newsletter's fixed-aspect crops. Mirrors PHOTO_FOCUSES in
+// lib/newsletter (kept local to avoid importing server code into the client).
+const FOCUS_GRID: PhotoFocus[] = [
+  'left top', 'center top', 'right top',
+  'left center', 'center', 'right center',
+  'left bottom', 'center bottom', 'right bottom',
+];
+
+const FOCUS_LABELS: Record<PhotoFocus, string> = {
+  'left top': 'top left', 'center top': 'top', 'right top': 'top right',
+  'left center': 'left', 'center': 'center', 'right center': 'right',
+  'left bottom': 'bottom left', 'center bottom': 'bottom', 'right bottom': 'bottom right',
+};
 
 export interface NewsletterFormValues {
   name: string;
@@ -21,7 +40,7 @@ export interface NewsletterFormValues {
   recommendation_context: string;
   happy_story: string;
   notify_for_next_newsletter: boolean;
-  photo_urls: string[];
+  photos: NewsletterPhoto[];
 }
 
 // What the form hands back on submit — the validated/normalised values plus the
@@ -34,14 +53,33 @@ interface PhotoSlot {
   id: string;
   file: File | null;
   existingUrl?: string;
+  focus?: PhotoFocus;
 }
 
-// A single thumbnail. Owns the object-URL lifecycle for newly-added files: the
+// A single photo card. Owns the object-URL lifecycle for newly-added files: the
 // URL is created inside the effect and stored in state, so the rendered src
 // always points at a live URL (creating it in render + revoking in cleanup
 // breaks under React Strict Mode's dev double-mount). Existing photos use their
 // stored URL directly.
-function PhotoThumb({ slot, onRemove }: { slot: PhotoSlot; onRemove: () => void }) {
+//
+// The preview box matches the aspect the photo will actually use in the
+// newsletter — 16:10 for the lead, the small polaroid ratio otherwise — and
+// applies the chosen focus as object-position, so what you see here is the real
+// crop. A 3x3 grid is overlaid on the image: click the region holding the
+// subject (e.g. a face) to keep it from being cropped out.
+function PhotoThumb({
+  slot,
+  isPrimary,
+  onRemove,
+  onSetFocus,
+  onMakePrimary,
+}: {
+  slot: PhotoSlot;
+  isPrimary: boolean;
+  onRemove: () => void;
+  onSetFocus: (focus: PhotoFocus) => void;
+  onMakePrimary: () => void;
+}) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(slot.existingUrl ?? null);
 
   useEffect(() => {
@@ -53,27 +91,74 @@ function PhotoThumb({ slot, onRemove }: { slot: PhotoSlot; onRemove: () => void 
 
   if (!previewUrl) return null;
 
+  const focus = slot.focus ?? 'center';
+
   return (
-    <div className="relative w-24 h-24">
-      <Image
-        src={previewUrl}
-        alt="Selected photo"
-        width={96}
-        height={96}
-        // Newly-added files are blob: object URLs the Next image optimizer can't
-        // fetch server-side; render them directly. Existing (https) photos can
-        // still go through the optimizer.
-        unoptimized={Boolean(slot.file)}
-        className="w-24 h-24 object-cover rounded-lg shadow"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label="Remove photo"
-        className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-500 text-white text-sm shadow hover:bg-red-600"
+    <div className="w-40 space-y-1.5">
+      <div
+        className="relative w-full overflow-hidden rounded-lg shadow bg-gray-100"
+        style={{ aspectRatio: isPrimary ? '16 / 10' : '94 / 78' }}
       >
-        ×
-      </button>
+        <Image
+          src={previewUrl}
+          alt="Selected photo"
+          fill
+          sizes="160px"
+          // Newly-added files are blob: object URLs the Next image optimizer
+          // can't fetch server-side; render them directly. Existing (https)
+          // photos can still go through the optimizer.
+          unoptimized={Boolean(slot.file)}
+          style={{ objectFit: 'cover', objectPosition: focus }}
+        />
+
+        {/* Focus picker overlaid on the image — click where the subject is. */}
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+          {FOCUS_GRID.map((pos) => (
+            <button
+              key={pos}
+              type="button"
+              onClick={() => onSetFocus(pos)}
+              aria-label={`Focus crop on ${FOCUS_LABELS[pos]}`}
+              aria-pressed={focus === pos}
+              className="group flex items-center justify-center hover:bg-black/10"
+            >
+              <span
+                className={
+                  focus === pos
+                    ? 'block w-3 h-3 rounded-full bg-blue-600 ring-2 ring-white shadow'
+                    : 'block w-1.5 h-1.5 rounded-full bg-white/70 ring-1 ring-black/10 opacity-60 group-hover:opacity-100'
+                }
+              />
+            </button>
+          ))}
+        </div>
+
+        {isPrimary && (
+          <span className="absolute top-1 left-1 z-10 rounded-full bg-blue-600 text-white text-[10px] font-semibold px-2 py-0.5 shadow">
+            Lead
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Remove photo"
+          className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-red-500 text-white text-sm shadow hover:bg-red-600"
+        >
+          ×
+        </button>
+      </div>
+
+      {isPrimary ? (
+        <p className="text-[11px] text-gray-400 text-center">Lead photo · click to set crop</p>
+      ) : (
+        <button
+          type="button"
+          onClick={onMakePrimary}
+          className="w-full text-[11px] font-medium text-blue-600 hover:text-blue-700"
+        >
+          ★ Make lead
+        </button>
+      )}
     </div>
   );
 }
@@ -96,13 +181,13 @@ const EMPTY: NewsletterFormValues = {
   recommendation_context: '',
   happy_story: '',
   notify_for_next_newsletter: false,
-  photo_urls: [],
+  photos: [],
 };
 
 export default function NewsletterForm({ initialValues, submitText, onSubmit }: NewsletterFormProps) {
   const [values, setValues] = useState<NewsletterFormValues>({ ...EMPTY, ...initialValues });
   const [photos, setPhotos] = useState<PhotoSlot[]>(
-    (initialValues?.photo_urls ?? []).map((url) => ({ id: makeId(), file: null, existingUrl: url }))
+    (initialValues?.photos ?? []).map((p) => ({ id: makeId(), file: null, existingUrl: p.url, focus: p.focus }))
   );
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,6 +200,23 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
   const removePhoto = (id: string) => {
     setPhotoNotice(null);
     setPhotos((prev) => prev.filter((slot) => slot.id !== id));
+  };
+
+  const setPhotoFocus = (id: string, focus: PhotoFocus) => {
+    setPhotos((prev) => prev.map((slot) => (slot.id === id ? { ...slot, focus } : slot)));
+  };
+
+  // Promote a photo to the lead slot (index 0). Order is the only thing that
+  // marks the lead, both here and in the rendered newsletter.
+  const makePrimary = (id: string) => {
+    setPhotos((prev) => {
+      const idx = prev.findIndex((slot) => slot.id === id);
+      if (idx <= 0) return prev;
+      const next = [...prev];
+      const [picked] = next.splice(idx, 1);
+      next.unshift(picked);
+      return next;
+    });
   };
 
   // Accepts a batch of dropped/selected files: validates type + size, fills the
@@ -187,18 +289,17 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
 
     setIsSubmitting(true);
     try {
-      // Resolve each photo slot to a URL: upload new files, keep existing URLs,
-      // drop empty slots.
-      const photoUrls: string[] = [];
+      // Resolve each photo slot to { url, focus }: upload new files, keep
+      // existing URLs, drop empty slots. Order is preserved, so slot 0 (the
+      // lead) stays the lead. Only carry a focus when it differs from centre.
+      const resolvedPhotos: NewsletterPhoto[] = [];
       for (const slot of photos) {
-        if (slot.file) {
-          photoUrls.push(await uploadPhoto(slot.file));
-        } else if (slot.existingUrl) {
-          photoUrls.push(slot.existingUrl);
-        }
+        const url = slot.file ? await uploadPhoto(slot.file) : slot.existingUrl;
+        if (!url) continue;
+        resolvedPhotos.push(slot.focus && slot.focus !== 'center' ? { url, focus: slot.focus } : { url });
       }
 
-      await onSubmit({ ...values, photo_urls: photoUrls.slice(0, MAX_PHOTOS), website: '' });
+      await onSubmit({ ...values, photos: resolvedPhotos.slice(0, MAX_PHOTOS), website: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -227,11 +328,26 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit }: 
           <MultiImageDrop onAdd={addPhotos} remaining={MAX_PHOTOS - photos.length} />
 
           {photos.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {photos.map((slot) => (
-                <PhotoThumb key={slot.id} slot={slot} onRemove={() => removePhoto(slot.id)} />
-              ))}
-            </div>
+            <>
+              <p className="text-xs text-gray-500">
+                The <span className="font-medium text-gray-700">lead</span> photo shows big at the top of your
+                entry; the rest appear as small snapshots. Use <span className="font-medium text-gray-700">★ Make
+                lead</span> to choose it, and click a photo where the important part is (like a face) so it isn&apos;t
+                cropped out.
+              </p>
+              <div className="flex flex-wrap gap-4 items-start">
+                {photos.map((slot, i) => (
+                  <PhotoThumb
+                    key={slot.id}
+                    slot={slot}
+                    isPrimary={i === 0}
+                    onRemove={() => removePhoto(slot.id)}
+                    onSetFocus={(focus) => setPhotoFocus(slot.id, focus)}
+                    onMakePrimary={() => makePrimary(slot.id)}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           {photoNotice && <p className="text-sm text-amber-600">{photoNotice}</p>}

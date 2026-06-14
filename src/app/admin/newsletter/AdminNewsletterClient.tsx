@@ -238,7 +238,7 @@ function SubmissionRow({ s, onDeleted }: { s: NewsletterSubmissionRecord; onDele
           <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{s.whats_up}</p>
           <p className="text-xs text-gray-400 mt-2">
             {s.email || 'no email'}
-            {s.photo_urls && s.photo_urls.length > 0 ? ` · ${s.photo_urls.length} photo(s)` : ''}
+            {s.photos && s.photos.length > 0 ? ` · ${s.photos.length} photo(s)` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-sm">

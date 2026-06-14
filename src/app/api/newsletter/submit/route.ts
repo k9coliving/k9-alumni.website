@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       submissionId: submission.id,
       hasEmail: !!parsed.value.email,
       emailed,
-      photoCount: parsed.value.photo_urls?.length ?? 0,
+      photoCount: parsed.value.photos?.length ?? 0,
     });
 
     return NextResponse.json({ id: submission.id, editUrl, emailed });

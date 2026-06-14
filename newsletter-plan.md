@@ -167,7 +167,10 @@ CREATE TABLE newsletter_submissions (
   recommendation_link text,
   recommendation_context text,
   happy_story text,
-  photo_urls text[] DEFAULT '{}',
+  -- Array of { url, focus? } objects. `focus` is a CSS object-position keyword
+  -- (3x3 preset grid) controlling the crop; absent means centred. The lead
+  -- photo is simply index 0.
+  photos jsonb NOT NULL DEFAULT '[]',
 
   notify_for_next_newsletter boolean DEFAULT false,
 
@@ -288,7 +291,7 @@ Public (no `requireAuth`). Rate-limited. Honeypot field (reject if `website` is 
 
 - Validate required: `name`, `period_in_k9`, `whats_up`
 - Soft cap field lengths at 10,000 chars (DoS guard, never surfaced to the user)
-- Cap `photo_urls.length <= 5`
+- Cap `photos.length <= 5`
 - Generate `edit_token` with `crypto.randomUUID()`
 - Insert row
 - If `email` provided, send Resend email with edit link `${BASE_URL}/newsletter/edit/${id}?token=${editToken}`

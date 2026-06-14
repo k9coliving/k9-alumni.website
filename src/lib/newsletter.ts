@@ -10,6 +10,26 @@ export interface NewsletterEditTokenData {
   created_at: string;
 }
 
+// A photo attached to a submission. `focus` is a CSS object-position keyword
+// controlling how the image is cropped inside the newsletter's fixed-aspect
+// frames (16:10 lead + small polaroids); absent means centred. Restricted to a
+// 3x3 grid of presets, validated in parseSubmissionInput.
+export type PhotoFocus =
+  | 'left top' | 'center top' | 'right top'
+  | 'left center' | 'center' | 'right center'
+  | 'left bottom' | 'center bottom' | 'right bottom';
+
+export const PHOTO_FOCUSES: PhotoFocus[] = [
+  'left top', 'center top', 'right top',
+  'left center', 'center', 'right center',
+  'left bottom', 'center bottom', 'right bottom',
+];
+
+export interface NewsletterPhoto {
+  url: string;
+  focus?: PhotoFocus;
+}
+
 export interface NewsletterSubmissionRecord {
   id: string;
   created_at?: string;
@@ -25,7 +45,7 @@ export interface NewsletterSubmissionRecord {
   recommendation_link?: string | null;
   recommendation_context?: string | null;
   happy_story?: string | null;
-  photo_urls?: string[];
+  photos?: NewsletterPhoto[];
 
   notify_for_next_newsletter?: boolean;
 
@@ -101,11 +121,20 @@ export function parseSubmissionInput(
     return { ok: false, error: 'Please provide a valid email address.' };
   }
 
-  let photo_urls: string[] = [];
-  if (Array.isArray(raw.photo_urls)) {
-    photo_urls = raw.photo_urls
-      .filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
-      .map((u) => u.trim())
+  // Photos arrive as { url, focus? }. Keep only items with a non-empty url, and
+  // only carry a focus when it's a known preset other than the default 'center'.
+  let photos: NewsletterPhoto[] = [];
+  if (Array.isArray(raw.photos)) {
+    photos = raw.photos
+      .map((p): NewsletterPhoto | null => {
+        if (!p || typeof p !== 'object') return null;
+        const rec = p as Record<string, unknown>;
+        const url = typeof rec.url === 'string' ? rec.url.trim() : '';
+        if (!url) return null;
+        const focus = PHOTO_FOCUSES.find((f) => f === rec.focus);
+        return focus && focus !== 'center' ? { url, focus } : { url };
+      })
+      .filter((p): p is NewsletterPhoto => p !== null)
       .slice(0, MAX_PHOTOS);
   }
 
@@ -121,7 +150,7 @@ export function parseSubmissionInput(
       recommendation_link: str(raw.recommendation_link) ?? null,
       recommendation_context: str(raw.recommendation_context) ?? null,
       happy_story: str(raw.happy_story) ?? null,
-      photo_urls,
+      photos,
       notify_for_next_newsletter: raw.notify_for_next_newsletter === true,
     },
   };
