@@ -90,6 +90,27 @@ body {
 .nl-drift { animation: nl-drift 5s ease-in-out infinite; }
 .nl-bob { animation: nl-bob 6s ease-in-out infinite; }
 
+/* Smooth scrolling for the newsletter's in-page jump links (pins / board names). */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Clickable "jump to member" affordances in the newsletter. */
+.nl-pin {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.nl-pin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -18px rgba(22, 41, 76, 0.55);
+}
+.nl-reclink {
+  transition: color 0.15s ease;
+}
+.nl-reclink:hover {
+  color: #16294c;
+  text-decoration: underline;
+}
+
 /* Life-update photos: float beside the story on wide screens, stack above it on
    narrow ones. */
 .nl-member-photos {

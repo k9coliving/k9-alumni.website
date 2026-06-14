@@ -148,6 +148,66 @@ function MemberBlurb({ label, value, palette }: { label: string; value: string; 
   );
 }
 
+const isUrl = (v: string) => /^https?:\/\//i.test(v.trim());
+const prettyUrl = (v: string) => v.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+
+// Renders a recommendation: the recommendation itself (recommendation_link —
+// often a URL, sometimes just a title) as a smart link, with the description
+// (recommendation_context) shown beneath it. Either field may be missing.
+function RecommendationBody({ link, context }: { link?: string | null; context?: string | null }) {
+  const primary = link || context; // if no link, the description stands alone
+  const description = link ? context : null;
+  if (!primary) return null;
+
+  const asLink = (v: string, color: string) =>
+    isUrl(v) ? (
+      <a href={v} target="_blank" rel="noopener noreferrer" style={{ color }}>
+        {prettyUrl(v)}
+      </a>
+    ) : (
+      v
+    );
+
+  return (
+    <>
+      {asLink(primary, INK)}
+      {description && (
+        <div style={{ fontSize: '14px', fontWeight: 600, color: '#5b6b85', marginTop: '5px', lineHeight: 1.5, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+          {asLink(description, '#4a6fae')}
+        </div>
+      )}
+    </>
+  );
+}
+
+// Little decorative icon that peeks out of the top-right of a recommendation
+// box. Both whether it shows (~40% of entries) and which icon are derived
+// deterministically from the submission id, so the same result appears on both
+// the member card's "Recommends" band and the recommendations board.
+const RECOMMEND_ICONS = ['heart-pink', 'heart-blue', 'mug', 'plant', 'mountains', 'airplane', 'camera', 'envelope'];
+const RECOMMEND_ICON_CHANCE = 40; // percent
+
+function recommendIcon(id: string): string | null {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  if (h % 100 >= RECOMMEND_ICON_CHANCE) return null;
+  return RECOMMEND_ICONS[Math.floor(h / 100) % RECOMMEND_ICONS.length];
+}
+
+function RecommendIcon({ id }: { id: string }) {
+  const icon = recommendIcon(id);
+  if (!icon) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`${ASSETS}/${icon}.png`}
+      alt=""
+      aria-hidden="true"
+      style={{ position: 'absolute', top: '-14px', right: '-10px', width: '38px', height: 'auto', transform: 'rotate(-8deg)', filter: 'drop-shadow(0 4px 6px rgba(22,41,76,0.18))', zIndex: 1, pointerEvents: 'none' }}
+    />
+  );
+}
+
 function LifeUpdateCard({ s, palette, index }: { s: NewsletterSubmissionRecord; palette: Palette; index: number }) {
   const photos = s.photo_urls ?? [];
   const first = firstNameOf(s.name);
@@ -155,12 +215,14 @@ function LifeUpdateCard({ s, palette, index }: { s: NewsletterSubmissionRecord; 
 
   return (
     <div
+      id={`member-${s.id}`}
       style={{
         background: '#fff',
         borderRadius: '24px',
         overflow: 'hidden',
         boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)',
         marginBottom: '26px',
+        scrollMarginTop: '24px',
       }}
     >
       <div style={{ height: '7px', background: palette.accent }} />
@@ -219,18 +281,13 @@ function LifeUpdateCard({ s, palette, index }: { s: NewsletterSubmissionRecord; 
         {s.hold_my_hair && <MemberBlurb label="Could use a hand with" value={s.hold_my_hair} palette={palette} />}
 
         {(s.recommendation_link || s.recommendation_context) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '24px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '24px' }}>
+            <RecommendIcon id={s.id} />
             <div style={{ flex: 'none', fontFamily: FONT_DISPLAY, fontSize: '11px', fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff', background: palette.accent, padding: '6px 11px', borderRadius: '9px' }}>
               Recommends
             </div>
             <div style={{ fontSize: '15px', color: INK, fontWeight: 800, lineHeight: 1.35, minWidth: 0, wordBreak: 'break-word' }}>
-              {s.recommendation_link ? (
-                <a href={s.recommendation_link} target="_blank" rel="noopener noreferrer" style={{ color: INK }}>
-                  {s.recommendation_context || s.recommendation_link}
-                </a>
-              ) : (
-                s.recommendation_context
-              )}
+              <RecommendationBody link={s.recommendation_link} context={s.recommendation_context} />
             </div>
           </div>
         )}
@@ -383,25 +440,15 @@ export default function NewsletterView({
                   {recs.map((s, i) => {
                     const p = PALETTE[i % PALETTE.length];
                     return (
-                      <div key={s.id} style={{ background: '#fff', borderRadius: '18px', padding: '18px 20px', boxShadow: '0 14px 32px -26px rgba(22,41,76,0.4)', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 'none', fontFamily: FONT_DISPLAY, fontSize: '11px', fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: p.deep, background: p.soft, padding: '6px 10px', borderRadius: '9px' }}>
-                          Pick
+                      <div key={s.id} style={{ position: 'relative', background: '#fff', borderRadius: '18px', padding: '18px 20px', boxShadow: '0 14px 32px -26px rgba(22,41,76,0.4)', borderLeft: `4px solid ${p.accent}` }}>
+                        <RecommendIcon id={s.id} />
+                        <div style={{ fontSize: '15.5px', fontWeight: 800, color: INK, lineHeight: 1.32, wordBreak: 'break-word' }}>
+                          <RecommendationBody link={s.recommendation_link} context={s.recommendation_context} />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '15.5px', fontWeight: 800, color: INK, lineHeight: 1.32, wordBreak: 'break-word' }}>
-                            {s.recommendation_link ? (
-                              <a href={s.recommendation_link} target="_blank" rel="noopener noreferrer" style={{ color: INK }}>
-                                {s.recommendation_context || s.recommendation_link}
-                              </a>
-                            ) : (
-                              s.recommendation_context
-                            )}
-                          </div>
-                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#8390a6', marginTop: '3px' }}>
-                            — {firstNameOf(s.name)}
-                            {s.where_now ? `, ${s.where_now}` : ''}
-                          </div>
-                        </div>
+                        <a href={`#member-${s.id}`} className="nl-reclink" style={{ display: 'inline-block', fontSize: '13.5px', fontWeight: 700, color: '#8390a6', marginTop: '8px', textDecoration: 'none', cursor: 'pointer' }}>
+                          — {firstNameOf(s.name)}
+                          {s.where_now ? `, ${s.where_now}` : ''}
+                        </a>
                       </div>
                     );
                   })}
@@ -417,10 +464,10 @@ export default function NewsletterView({
                   {landed.map((s, i) => {
                     const p = PALETTE[i % PALETTE.length];
                     return (
-                      <div key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#fff', borderRadius: '999px', padding: '9px 17px 9px 13px', boxShadow: '0 10px 24px -20px rgba(22,41,76,0.5)', fontWeight: 800, fontSize: '14.5px', color: INK }}>
+                      <a key={s.id} href={`#member-${s.id}`} className="nl-pin" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#fff', borderRadius: '999px', padding: '9px 17px 9px 13px', boxShadow: '0 10px 24px -20px rgba(22,41,76,0.5)', fontWeight: 800, fontSize: '14.5px', color: INK, textDecoration: 'none', cursor: 'pointer' }}>
                         <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: p.accent, boxShadow: `0 0 0 3px ${p.soft}` }} />
                         {s.where_now}
-                      </div>
+                      </a>
                     );
                   })}
                 </div>
