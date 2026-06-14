@@ -36,6 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(title !== undefined ? { title } : {}),
       ...(raw.intro_text !== undefined ? { intro_text: clean(raw.intro_text) ?? null } : {}),
       ...(raw.outro_text !== undefined ? { outro_text: clean(raw.outro_text) ?? null } : {}),
+      ...(raw.header_image_url !== undefined ? { header_image_url: clean(raw.header_image_url) ?? null } : {}),
     });
 
     logger.info('Newsletter draft updated', { endpoint: 'admin/newsletter/[id]', newsletterId: id });

@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       title,
       intro_text: clean(raw.intro_text) ?? null,
       outro_text: clean(raw.outro_text) ?? null,
+      ...(raw.header_image_url !== undefined ? { header_image_url: clean(raw.header_image_url) ?? null } : {}),
     });
 
     logger.info('Newsletter draft created', { endpoint: 'admin/newsletter', newsletterId: newsletter.id });

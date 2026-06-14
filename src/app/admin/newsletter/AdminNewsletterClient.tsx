@@ -47,9 +47,39 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
   const [title, setTitle] = useState(draft?.title ?? '');
   const [intro, setIntro] = useState(draft?.intro_text ?? '');
   const [outro, setOutro] = useState(draft?.outro_text ?? '');
+  const [headerImageUrl, setHeaderImageUrl] = useState(draft?.header_image_url ?? '');
+  // Only send header_image_url when the admin actually changes it, so issues
+  // that don't use a custom header never write the (optional) DB column.
+  const [headerTouched, setHeaderTouched] = useState(false);
+  const [uploadingHeader, setUploadingHeader] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const onHeaderFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingHeader(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/images/upload', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      setHeaderImageUrl(data.url);
+      setHeaderTouched(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setUploadingHeader(false);
+    }
+  };
+
+  const removeHeader = () => {
+    setHeaderImageUrl('');
+    setHeaderTouched(true);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +94,12 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
       const res = await fetch(isEdit ? `/api/admin/newsletter/${draft.id}` : '/api/admin/newsletter', {
         method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, intro_text: intro, outro_text: outro }),
+        body: JSON.stringify({
+          title,
+          intro_text: intro,
+          outro_text: outro,
+          ...(headerTouched ? { header_image_url: headerImageUrl || null } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -72,10 +107,13 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
       }
       if (isEdit) {
         setSaved(true);
+        setHeaderTouched(false);
       } else {
         setTitle('');
         setIntro('');
         setOutro('');
+        setHeaderImageUrl('');
+        setHeaderTouched(false);
       }
       router.refresh();
     } catch (err) {
@@ -128,6 +166,22 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         className="form-input"
         placeholder="Outro text (optional)"
       />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Header image (optional)</label>
+        {headerImageUrl ? (
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={headerImageUrl} alt="Header preview" className="h-16 w-28 object-cover rounded-md border border-gray-200" />
+            <button type="button" onClick={removeHeader} className="text-sm text-red-500 hover:text-red-700">
+              Remove
+            </button>
+          </div>
+        ) : (
+          <input type="file" accept="image/*" onChange={onHeaderFile} disabled={uploadingHeader} className="text-sm" />
+        )}
+        {uploadingHeader && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
+        <p className="text-xs text-gray-400 mt-1">Overrides the default masthead photo for this issue.</p>
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-600">Saved.</p>}
       <div className="flex justify-end">

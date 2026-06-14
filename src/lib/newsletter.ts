@@ -47,6 +47,10 @@ export interface NewsletterRecord {
   intro_text?: string | null;
   outro_text?: string | null;
 
+  // Optional per-issue masthead image (Supabase public URL). When unset the view
+  // falls back to the default newsletter-header.jpg in Supabase storage.
+  header_image_url?: string | null;
+
   status: 'draft' | 'sent';
 }
 
@@ -274,22 +278,28 @@ export async function createNewsletter(draft: {
   title: string;
   intro_text?: string | null;
   outro_text?: string | null;
+  header_image_url?: string | null;
 }): Promise<NewsletterRecord> {
   // 192-bit url-safe token. This is the only thing gating access to the
   // newsletter, so it needs real entropy.
   const token = crypto.randomBytes(24).toString('base64url');
 
+  // header_image_url is only included when explicitly provided, so newsletter
+  // creation keeps working even before the (optional) DB column is added.
+  const row: Record<string, unknown> = {
+    title: draft.title,
+    intro_text: draft.intro_text ?? null,
+    outro_text: draft.outro_text ?? null,
+    token,
+    status: 'draft',
+  };
+  if (draft.header_image_url !== undefined) {
+    row.header_image_url = draft.header_image_url;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('newsletters')
-    .insert([
-      {
-        title: draft.title,
-        intro_text: draft.intro_text ?? null,
-        outro_text: draft.outro_text ?? null,
-        token,
-        status: 'draft',
-      },
-    ])
+    .insert([row])
     .select()
     .single();
 
@@ -304,7 +314,7 @@ export async function createNewsletter(draft: {
 // caller is responsible for not exposing this on a sent newsletter.
 export async function updateNewsletter(
   id: string,
-  patch: { title?: string; intro_text?: string | null; outro_text?: string | null }
+  patch: { title?: string; intro_text?: string | null; outro_text?: string | null; header_image_url?: string | null }
 ): Promise<NewsletterRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('newsletters')
@@ -421,6 +431,41 @@ export async function finalizeAndSendNewsletter(id: string): Promise<NewsletterR
   }
 
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// Events (Save the dates)
+// ---------------------------------------------------------------------------
+
+export interface NewsletterEventRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_datetime: string;
+  duration: string | null;
+}
+
+// Events from the `events` table starting between now and `months` months out,
+// soonest first — populates the newsletter "Save the dates" section. Birthdays
+// (derived from residents on the Events page) are intentionally excluded.
+export async function getUpcomingEvents(months = 3): Promise<NewsletterEventRecord[]> {
+  const now = new Date();
+  const until = new Date(now);
+  until.setMonth(until.getMonth() + months);
+
+  const { data, error } = await supabaseAdmin
+    .from('events')
+    .select('id, title, description, location, start_datetime, duration')
+    .gte('start_datetime', now.toISOString())
+    .lte('start_datetime', until.toISOString())
+    .order('start_datetime', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch upcoming events: ${error.message}`);
+  }
+
+  return data || [];
 }
 
 // ---------------------------------------------------------------------------

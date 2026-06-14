@@ -11,6 +11,9 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-parisienne: var(--font-parisienne);
+  --font-baloo2: var(--font-baloo2);
+  --font-nunito: var(--font-nunito);
+  --font-caveat: var(--font-caveat);
 }
 
 body {
@@ -69,3 +72,20 @@ body {
 .animate-fadeInUp {
   animation: fadeInUp 0.8s ease-out;
 }
+
+/* Newsletter ("The Nest") floating decorations */
+@keyframes nl-floaty {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-7px) rotate(-4deg); }
+}
+@keyframes nl-drift {
+  0%, 100% { transform: translateY(0) rotate(3deg); }
+  50% { transform: translateY(-10px) rotate(-2deg); }
+}
+@keyframes nl-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.nl-floaty { animation: nl-floaty 4s ease-in-out infinite; }
+.nl-drift { animation: nl-drift 5s ease-in-out infinite; }
+.nl-bob { animation: nl-bob 6s ease-in-out infinite; }
