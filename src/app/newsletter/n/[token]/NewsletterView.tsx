@@ -374,12 +374,10 @@ export default function NewsletterView({
             <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(40px,6vw,60px)', lineHeight: 0.98, color: INK, margin: '0 0 22px', letterSpacing: '-0.012em', textWrap: 'balance' }}>
               {newsletter.title}
             </h1>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#F6C44C', borderRadius: '14px', padding: '9px 18px', boxShadow: '0 12px 24px -14px rgba(231,169,47,0.95)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#F6C44C', borderRadius: '38px 30px 40px 28px / 26px 38px 24px 36px', padding: '9px 26px', boxShadow: '0 12px 24px -14px rgba(231,169,47,0.95)' }}>
               <span style={{ fontFamily: FONT_BODY, fontStyle: 'italic', fontWeight: 800, fontSize: '18px', color: '#1c2f54', lineHeight: 1.2 }}>
                 Together, we make our community thrive.
               </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`${ASSETS}/heart-pink.png`} alt="" style={{ width: '25px', height: 'auto', display: 'block', flex: 'none' }} />
             </div>
             <p style={{ fontSize: '19px', lineHeight: 1.5, color: '#3a4a66', fontWeight: 600, margin: '20px 0 0', maxWidth: '30ch', textWrap: 'pretty' }}>
               Updates, stories, and highlights from around the K9 family.
@@ -398,7 +396,7 @@ export default function NewsletterView({
               )}
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/mug.png`} alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '150px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+            <img src={`${ASSETS}/mug.png`} alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '113px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`${ASSETS}/plant.png`} alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
           </div>
@@ -496,11 +494,11 @@ export default function NewsletterView({
         </svg>
         <div style={{ maxWidth: '760px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/mountains.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '32px', bottom: '8px', width: '150px', height: 'auto', opacity: 0.85 }} />
+          <img src={`${ASSETS}/mountains.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '17px', bottom: '8px', width: '120px', height: 'auto', opacity: 0.85 }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${ASSETS}/camera.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', right: '40px', bottom: '10px', width: '74px', height: 'auto', opacity: 0.9, transform: 'rotate(-6deg)' }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/heart-pink.png`} alt="" className="nl-floaty" style={{ width: '46px', height: 'auto', display: 'inline-block' }} />
+          <img src={`${ASSETS}/envelope.png`} alt="" className="nl-floaty" style={{ width: '76px', height: 'auto', display: 'inline-block' }} />
           {newsletter.outro_text && (
             <p style={{ fontSize: '17px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '14px auto 0', maxWidth: '60ch', whiteSpace: 'pre-line', textWrap: 'pretty' }}>
               {newsletter.outro_text}
@@ -513,7 +511,19 @@ export default function NewsletterView({
           <a href="/newsletter/submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: INK, color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '16px', padding: '14px 26px', borderRadius: '999px', textDecoration: 'none', boxShadow: '0 16px 30px -16px rgba(22,41,76,0.7)' }}>
             Share your update <span style={{ fontSize: '18px' }}>→</span>
           </a>
-          <div style={{ marginTop: '30px', fontSize: '13px', fontWeight: 700, color: '#7FA968', letterSpacing: '.06em' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${ASSETS}/heart-pink.png`} alt="" style={{ width: '46px', height: 'auto', display: 'block', margin: '40px auto 0' }} />
+          <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '8px auto 0', maxWidth: '52ch', textWrap: 'pretty' }}>
+            Stay connected at{' '}
+            <a href="https://alumni.k9coliving.com/" style={{ color: INK, fontWeight: 800, textDecoration: 'underline' }}>
+              alumni.k9coliving.com
+            </a>
+            {' '}— alumni directory, tips &amp; help, and a calendar for events.
+            <span style={{ display: 'block', marginTop: '2px', fontSize: '13px', fontWeight: 600, color: '#7FA968' }}>
+              password for access on Slack, in the #alumni channel description
+            </span>
+          </p>
+          <div style={{ marginTop: '18px', fontSize: '13px', fontWeight: 700, color: '#7FA968', letterSpacing: '.06em' }}>
             K9 Newsletter · {issueLabel}
           </div>
         </div>
