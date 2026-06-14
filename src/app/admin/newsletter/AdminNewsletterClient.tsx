@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import MultiImageDrop from '@/components/MultiImageDrop';
 import type { NewsletterRecord, NewsletterSubmissionRecord } from '@/lib/newsletter';
 
 interface Quota {
@@ -56,9 +57,19 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const onHeaderFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Same drag-and-drop component the public submission form uses. It can hand up
+  // several files; we only keep the first since the header is a single image.
+  const addHeaderImage = async (files: File[]) => {
+    const file = files[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be smaller than 5 MB.');
+      return;
+    }
     setUploadingHeader(true);
     setError(null);
     try {
@@ -177,7 +188,7 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
             </button>
           </div>
         ) : (
-          <input type="file" accept="image/*" onChange={onHeaderFile} disabled={uploadingHeader} className="text-sm" />
+          <MultiImageDrop onAdd={addHeaderImage} remaining={1} />
         )}
         {uploadingHeader && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
         <p className="text-xs text-gray-400 mt-1">Overrides the default masthead photo for this issue.</p>

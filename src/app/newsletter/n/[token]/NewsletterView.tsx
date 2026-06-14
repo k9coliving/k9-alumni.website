@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import type {
   NewsletterRecord,
@@ -59,106 +58,53 @@ function SectionHead({ kicker, title, color }: { kicker: string; title: string; 
 }
 
 // ---------------------------------------------------------------------------
-// Photo gallery for a life-update card
+// Floated photos for a life-update card: a big 16:10 lead photo plus a strip of
+// rotated "polaroids". Floats right so the member's story flows beside, then
+// under, it. Stacks above the text on narrow screens (see .nl-member-photos).
 // ---------------------------------------------------------------------------
 
-function Gallery({
-  photos,
-  name,
-  location,
-  palette,
-}: {
-  photos: string[];
-  name: string;
-  location?: string | null;
-  palette: Palette;
-}) {
-  const feature = photos[0];
-  const rest = photos.slice(1, 5);
-  const hasRest = rest.length > 0;
+const POLAROID_ROTATIONS = ['-5deg', '4deg', '-3deg', '5deg'];
 
-  const featureStyle: CSSProperties = {
-    gridRow: '1 / span 2',
-    gridColumn: 1,
-    position: 'relative',
-    borderRadius: '18px',
-    overflow: 'hidden',
-    background: feature ? palette.soft : palette.accent,
-    boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
-  };
+function MemberPhotos({ photos, name, palette }: { photos: string[]; name: string; palette: Palette }) {
+  if (photos.length === 0) return null;
+  const lead = photos[0];
+  const rest = photos.slice(1, 5);
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: hasRest ? '2.2fr 1fr 1fr' : '1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: '10px',
-        height: '320px',
-      }}
-    >
-      <div style={featureStyle}>
-        {feature && (
-          <Image
-            src={feature}
-            alt={`Photo from ${name}`}
-            fill
-            sizes="(max-width: 640px) 100vw, 540px"
-            style={{ objectFit: 'cover' }}
-          />
-        )}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: '38px 18px 16px',
-            background:
-              'linear-gradient(to top, rgba(18,30,56,0.72), rgba(18,30,56,0.18) 58%, rgba(18,30,56,0))',
-          }}
-        >
-          <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '27px', color: '#fff', margin: 0, lineHeight: 1.06 }}>
-            {name}
-          </h3>
-          {location && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', marginTop: '5px', fontSize: '14.5px', fontWeight: 800, color: '#fff' }}>
-              <span
-                style={{
-                  width: '9px',
-                  height: '9px',
-                  borderRadius: '50% 50% 50% 0',
-                  transform: 'rotate(45deg)',
-                  background: palette.accent,
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.55)',
-                }}
-              />
-              {location}
-            </div>
-          )}
-        </div>
+    <div className="nl-member-photos">
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: '18px',
+          overflow: 'hidden',
+          aspectRatio: '16 / 10',
+          background: palette.soft,
+          boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
+        }}
+      >
+        <Image src={lead} alt={`Photo from ${name}`} fill sizes="(max-width: 680px) 100vw, 446px" style={{ objectFit: 'cover' }} />
       </div>
 
-      {rest.map((url, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'relative',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            background: palette.soft,
-            boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
-          }}
-        >
-          <Image
-            src={url}
-            alt={`Photo ${i + 2} from ${name}`}
-            fill
-            sizes="(max-width: 640px) 50vw, 220px"
-            style={{ objectFit: 'cover' }}
-          />
+      {rest.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '18px', paddingLeft: '6px' }}>
+          {rest.map((url, i) => (
+            <div
+              key={i}
+              style={{
+                background: '#fff',
+                padding: '7px',
+                borderRadius: '5px',
+                boxShadow: '0 9px 18px -10px rgba(22,41,76,0.42)',
+                transform: `rotate(${POLAROID_ROTATIONS[i % POLAROID_ROTATIONS.length]})`,
+              }}
+            >
+              <div style={{ position: 'relative', width: '94px', height: '78px', borderRadius: '3px', overflow: 'hidden', background: palette.soft }}>
+                <Image src={url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" style={{ objectFit: 'cover' }} />
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -166,6 +112,17 @@ function Gallery({
 // ---------------------------------------------------------------------------
 // A single member's life update
 // ---------------------------------------------------------------------------
+
+function MemberBlurb({ label, value, palette }: { label: string; value: string; palette: Palette }) {
+  return (
+    <div style={{ marginTop: '16px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '5px' }}>
+        {label}
+      </div>
+      <p style={{ fontSize: '15.5px', lineHeight: 1.62, color: '#3a4a66', margin: 0, whiteSpace: 'pre-line' }}>{value}</p>
+    </div>
+  );
+}
 
 function LifeUpdateCard({ s, palette }: { s: NewsletterSubmissionRecord; palette: Palette }) {
   const photos = s.photo_urls ?? [];
@@ -183,38 +140,49 @@ function LifeUpdateCard({ s, palette }: { s: NewsletterSubmissionRecord; palette
     >
       <div style={{ height: '7px', background: palette.accent }} />
       <div style={{ padding: '26px 28px 28px' }}>
-        <Gallery photos={photos} name={s.name} location={s.where_now} palette={palette} />
+        {/* Story flows around the floated photos, then reclaims full width below. */}
+        <div>
+          <MemberPhotos photos={photos} name={s.name} palette={palette} />
 
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#8390a6', marginTop: '18px' }}>{s.period_in_k9}</div>
+          <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: 0, lineHeight: 1.04 }}>
+            {s.name}
+          </h3>
+          {s.where_now && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '9px', fontSize: '15px', fontWeight: 800, color: palette.deep }}>
+              <span
+                style={{
+                  flex: 'none',
+                  width: '11px',
+                  height: '11px',
+                  borderRadius: '50% 50% 50% 0',
+                  transform: 'rotate(45deg)',
+                  background: palette.accent,
+                  boxShadow: `0 0 0 3px ${palette.soft}`,
+                }}
+              />
+              <span>{s.where_now}</span>
+            </div>
+          )}
+          {s.period_in_k9 && (
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#8390a6', marginTop: '6px' }}>{s.period_in_k9}</div>
+          )}
 
-        <p style={{ fontSize: '16px', lineHeight: 1.68, color: '#3a4a66', margin: '8px 0 0', whiteSpace: 'pre-line' }}>
-          {s.whats_up}
-        </p>
+          <p style={{ fontSize: '16px', lineHeight: 1.68, color: '#3a4a66', margin: '18px 0 0', whiteSpace: 'pre-line' }}>
+            {s.whats_up}
+          </p>
 
-        <div style={{ textAlign: 'right', fontFamily: FONT_HAND, fontWeight: 700, fontSize: '31px', color: palette.deep, lineHeight: 1, marginTop: '8px' }}>
-          — {first}
+          <div style={{ fontFamily: FONT_HAND, fontWeight: 700, fontSize: '30px', color: palette.deep, lineHeight: 1, marginTop: '14px' }}>
+            — {first}
+          </div>
+
+          <div style={{ clear: 'both' }} />
         </div>
 
-        {s.happy_story && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '5px' }}>
-              A K9 happy story
-            </div>
-            <p style={{ fontSize: '15.5px', lineHeight: 1.62, color: '#3a4a66', margin: 0, whiteSpace: 'pre-line' }}>{s.happy_story}</p>
-          </div>
-        )}
-
-        {s.hold_my_hair && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '5px' }}>
-              Could use a hand with
-            </div>
-            <p style={{ fontSize: '15.5px', lineHeight: 1.62, color: '#3a4a66', margin: 0, whiteSpace: 'pre-line' }}>{s.hold_my_hair}</p>
-          </div>
-        )}
+        {s.happy_story && <MemberBlurb label="A K9 happy story" value={s.happy_story} palette={palette} />}
+        {s.hold_my_hair && <MemberBlurb label="Could use a hand with" value={s.hold_my_hair} palette={palette} />}
 
         {(s.recommendation_link || s.recommendation_context) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '24px' }}>
             <div style={{ flex: 'none', fontFamily: FONT_DISPLAY, fontSize: '11px', fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff', background: palette.accent, padding: '6px 11px', borderRadius: '9px' }}>
               Recommends
             </div>
@@ -328,7 +296,7 @@ export default function NewsletterView({
           <div style={{ flex: '1 1 360px', minWidth: '290px', position: 'relative', height: '380px' }}>
             <div style={{ position: 'absolute', top: '40px', left: '50%', transform: 'translateX(-47%)', width: '320px', height: '290px', background: '#DCE6F7', opacity: 0.65, borderRadius: '46% 54% 57% 43% / 49% 44% 56% 51%' }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/airplane.png`} alt="" className="nl-drift" style={{ position: 'absolute', top: '8px', right: '6px', width: '120px', height: 'auto' }} />
+            <img src={`${ASSETS}/airplane.png`} alt="" className="nl-drift" style={{ position: 'absolute', top: '-18px', right: '6px', width: '120px', height: 'auto', zIndex: 4 }} />
             <div style={{ position: 'absolute', top: '34px', left: '50%', transform: 'translateX(-50%)', width: 'min(420px, 90%)', height: '300px', borderRadius: '26px', overflow: 'hidden', border: '6px solid #fff', boxShadow: '0 18px 30px -6px rgba(22,41,76,0.28)', zIndex: 2, background: 'linear-gradient(135deg, #EAF0FB, #DCE6F7)' }}>
               {headerImage && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -336,9 +304,9 @@ export default function NewsletterView({
               )}
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/mug.png`} alt="" className="nl-bob" style={{ position: 'absolute', bottom: '6px', left: '2px', width: '150px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+            <img src={`${ASSETS}/mug.png`} alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '150px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/plant.png`} alt="" style={{ position: 'absolute', bottom: '0', right: '14px', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+            <img src={`${ASSETS}/plant.png`} alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
           </div>
         </div>
 
@@ -364,24 +332,6 @@ export default function NewsletterView({
           <p style={{ textAlign: 'center', color: '#7a879e', padding: '48px 0', fontSize: '17px', fontWeight: 600 }}>No contributions yet.</p>
         ) : (
           <>
-            {/* where we landed */}
-            {landed.length > 0 && (
-              <>
-                <SectionHead kicker="Pins on the map" title="Where we all landed" color="#7FA968" />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '11px' }}>
-                  {landed.map((s, i) => {
-                    const p = PALETTE[i % PALETTE.length];
-                    return (
-                      <div key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#fff', borderRadius: '999px', padding: '9px 17px 9px 13px', boxShadow: '0 10px 24px -20px rgba(22,41,76,0.5)', fontWeight: 800, fontSize: '14.5px', color: INK }}>
-                        <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: p.accent, boxShadow: `0 0 0 3px ${p.soft}` }} />
-                        {s.where_now}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
             {/* life updates */}
             <SectionHead kicker="The whole table, catching up" title="Life updates" color="#5B7FD4" />
             {submissions.map((s, i) => (
@@ -415,6 +365,24 @@ export default function NewsletterView({
                             {s.where_now ? `, ${s.where_now}` : ''}
                           </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* where we landed */}
+            {landed.length > 0 && (
+              <>
+                <SectionHead kicker="Pins on the map" title="Where we all landed" color="#7FA968" />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '11px' }}>
+                  {landed.map((s, i) => {
+                    const p = PALETTE[i % PALETTE.length];
+                    return (
+                      <div key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#fff', borderRadius: '999px', padding: '9px 17px 9px 13px', boxShadow: '0 10px 24px -20px rgba(22,41,76,0.5)', fontWeight: 800, fontSize: '14.5px', color: INK }}>
+                        <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: p.accent, boxShadow: `0 0 0 3px ${p.soft}` }} />
+                        {s.where_now}
                       </div>
                     );
                   })}

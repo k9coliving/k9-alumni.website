@@ -89,3 +89,18 @@ body {
 .nl-floaty { animation: nl-floaty 4s ease-in-out infinite; }
 .nl-drift { animation: nl-drift 5s ease-in-out infinite; }
 .nl-bob { animation: nl-bob 6s ease-in-out infinite; }
+
+/* Life-update photos: float beside the story on wide screens, stack above it on
+   narrow ones. */
+.nl-member-photos {
+  float: right;
+  width: min(446px, 44%);
+  margin: 4px 0 18px 34px;
+}
+@media (max-width: 680px) {
+  .nl-member-photos {
+    float: none;
+    width: 100%;
+    margin: 0 0 20px;
+  }
+}
