@@ -129,7 +129,7 @@ function EditContent() {
     [id, token]
   );
 
-  const card = 'bg-white rounded-2xl shadow-lg p-8 text-center space-y-4';
+  const card = 'max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8 text-center space-y-4';
 
   if (state.kind === 'loading') {
     return <div className={card}><p className="text-gray-500">Loading your submission…</p></div>;
@@ -243,8 +243,8 @@ export default function NewsletterEdit() {
           backgroundSize: '20px 20px',
         }}
       >
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="page-header">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="page-header max-w-2xl mx-auto">
             <h1 className="page-header-title">Edit your news</h1>
             <div className="page-header-divider"></div>
             <p className="page-header-subtitle">

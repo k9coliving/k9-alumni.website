@@ -118,6 +118,13 @@ html {
   width: min(446px, 44%);
   margin: 4px 0 18px 34px;
 }
+/* Forced stacked layout for the form's narrow live-preview column, where the
+   viewport-based media query below wouldn't kick in. */
+.nl-member-photos-stacked {
+  float: none;
+  width: 100%;
+  margin: 0 0 20px;
+}
 @media (max-width: 680px) {
   .nl-member-photos {
     float: none;

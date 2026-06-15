@@ -53,8 +53,8 @@ export default function NewsletterSubmit() {
           backgroundSize: '20px 20px',
         }}
       >
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="page-header">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="page-header max-w-2xl mx-auto">
             <h1 className="page-header-title">Once a K9er, Always a K9er</h1>
             <div className="page-header-divider"></div>
             <div className="page-header-subtitle space-y-4">
@@ -75,7 +75,7 @@ export default function NewsletterSubmit() {
           </div>
 
           {result ? (
-            <div className="bg-white rounded-2xl shadow-lg p-8 text-center space-y-6">
+            <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8 text-center space-y-6">
               <div className="text-5xl">🎉</div>
               <h2 className="text-2xl font-bold text-gray-900">Thank you for sharing!</h2>
               <p className="text-gray-600">

@@ -6,7 +6,9 @@ import FormField from '@/components/FormField';
 import MultiImageDrop from '@/components/MultiImageDrop';
 // Type-only import: erased at build time, so the server-only lib/newsletter
 // module (supabase admin client) is never pulled into this client bundle.
-import type { NewsletterPhoto, PhotoFocus } from '@/lib/newsletter';
+import type { NewsletterPhoto, PhotoFocus, NewsletterSubmissionRecord } from '@/lib/newsletter';
+import MemberCard from '@/components/newsletter/MemberCard';
+import { PALETTE } from '@/components/newsletter/theme';
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB — matches the /api/images/upload cap
@@ -53,20 +55,24 @@ interface PhotoSlot {
   id: string;
   file: File | null;
   existingUrl?: string;
+  // Object URL for a newly-added file, created once when the file is added so
+  // the thumbnail and the live preview share a single live URL. Revoked on
+  // remove/unmount.
+  previewUrl?: string;
   focus?: PhotoFocus;
 }
 
-// A single photo card. Owns the object-URL lifecycle for newly-added files: the
-// URL is created inside the effect and stored in state, so the rendered src
-// always points at a live URL (creating it in render + revoking in cleanup
-// breaks under React Strict Mode's dev double-mount). Existing photos use their
-// stored URL directly.
+// The display URL for a slot: the blob preview for new files, else the stored URL.
+const slotUrl = (slot: PhotoSlot): string | undefined => slot.previewUrl ?? slot.existingUrl;
+
+// A single photo card. The blob/stored URL lives on the slot (managed by the
+// form) so the thumbnail and the live preview stay in sync.
 //
 // The preview box matches the aspect the photo will actually use in the
-// newsletter — 16:10 for the lead, the small polaroid ratio otherwise — and
-// applies the chosen focus as object-position, so what you see here is the real
-// crop. A 3x3 grid is overlaid on the image: click the region holding the
-// subject (e.g. a face) to keep it from being cropped out.
+// newsletter — full/natural for the primary, the small polaroid ratio
+// otherwise — and applies the chosen focus as object-position, so what you see
+// here is the real crop. A 3x3 grid is overlaid on the small photos: click the
+// region holding the subject (e.g. a face) to keep it from being cropped out.
 function PhotoThumb({
   slot,
   isPrimary,
@@ -80,15 +86,7 @@ function PhotoThumb({
   onSetFocus: (focus: PhotoFocus) => void;
   onMakePrimary: () => void;
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(slot.existingUrl ?? null);
-
-  useEffect(() => {
-    if (!slot.file) return;
-    const url = URL.createObjectURL(slot.file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [slot.file]);
-
+  const previewUrl = slotUrl(slot);
   if (!previewUrl) return null;
 
   const focus = slot.focus ?? 'center';
@@ -239,13 +237,25 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
     onSubmittingChange?.(isSubmitting);
   }, [isSubmitting, onSubmittingChange]);
 
+  // Revoke any outstanding blob URLs when the form unmounts.
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  useEffect(
+    () => () => photosRef.current.forEach((s) => s.previewUrl && URL.revokeObjectURL(s.previewUrl)),
+    []
+  );
+
   const set = <K extends keyof NewsletterFormValues>(field: K, value: NewsletterFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
   const removePhoto = (id: string) => {
     setPhotoNotice(null);
-    setPhotos((prev) => prev.filter((slot) => slot.id !== id));
+    setPhotos((prev) => {
+      const gone = prev.find((slot) => slot.id === id);
+      if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl);
+      return prev.filter((slot) => slot.id !== id);
+    });
   };
 
   const setPhotoFocus = (id: string, focus: PhotoFocus) => {
@@ -294,7 +304,7 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
           overflow++;
           continue;
         }
-        accepted.push({ id: makeId(), file });
+        accepted.push({ id: makeId(), file, previewUrl: URL.createObjectURL(file) });
       }
 
       const skipped: string[] = [];
@@ -353,8 +363,33 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
     }
   };
 
+  // A submission-shaped object built from the live form state, fed to the shared
+  // MemberCard so the preview matches the real newsletter exactly. Empty
+  // required fields get gentle placeholders so the preview reads as a real post.
+  const previewPhotos: NewsletterPhoto[] = [];
+  for (const slot of photos) {
+    const url = slotUrl(slot);
+    if (!url) continue;
+    previewPhotos.push(slot.focus ? { url, focus: slot.focus } : { url });
+  }
+
+  const previewSubmission: NewsletterSubmissionRecord = {
+    id: 'preview',
+    name: values.name.trim() || 'Your name',
+    period_in_k9: values.period_in_k9.trim(),
+    whats_up: values.whats_up.trim() || 'Share what you’re up to — your words will appear here as you type.',
+    where_now: values.where_now.trim() || null,
+    hold_my_hair: values.hold_my_hair.trim() || null,
+    email: values.email.trim() || null,
+    recommendation_link: values.recommendation_link.trim() || null,
+    recommendation_context: values.recommendation_context.trim() || null,
+    happy_story: values.happy_story.trim() || null,
+    photos: previewPhotos,
+  };
+
   return (
-    <form id={formId} onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+      <form id={formId} onSubmit={handleSubmit} className="flex-1 min-w-0 space-y-6 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
       {/* Honeypot: hidden from real users, tempting to bots. Never populated by
           humans, so a non-empty value gets the submission silently dropped. */}
       <input
@@ -518,6 +553,18 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
           {isSubmitting ? 'Submitting…' : submitText}
         </button>
       </div>
-    </form>
+      </form>
+
+      {/* Live preview — the real MemberCard, fed by the current form state. On
+          mobile it stacks below the form; on desktop it sticks beside it. */}
+      <aside className="lg:w-[480px] lg:shrink-0">
+        <div className="space-y-2 lg:sticky lg:top-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Live preview</p>
+          <div className="rounded-2xl p-4 sm:p-5" style={{ background: '#FAF4E4' }}>
+            <MemberCard s={previewSubmission} palette={PALETTE[0]} preview />
+          </div>
+        </div>
+      </aside>
+    </div>
   );
 }
