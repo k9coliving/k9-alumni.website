@@ -409,26 +409,18 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
           <MultiImageDrop onAdd={addPhotos} remaining={MAX_PHOTOS - photos.length} />
 
           {photos.length > 0 && (
-            <>
-              <p className="text-xs text-gray-500">
-                The <span className="font-medium text-gray-700">primary</span> photo shows big at the top of your
-                entry, in full — never cropped. The rest appear as small snapshots. Use{' '}
-                <span className="font-medium text-gray-700">★ Make primary</span> to choose it, and click a small
-                photo where the important part is (like a face) so it isn&apos;t cropped out.
-              </p>
-              <div className="flex flex-wrap gap-4 items-start">
-                {photos.map((slot, i) => (
-                  <PhotoThumb
-                    key={slot.id}
-                    slot={slot}
-                    isPrimary={i === 0}
-                    onRemove={() => removePhoto(slot.id)}
-                    onSetFocus={(focus) => setPhotoFocus(slot.id, focus)}
-                    onMakePrimary={() => makePrimary(slot.id)}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="flex flex-wrap gap-4 items-start">
+              {photos.map((slot, i) => (
+                <PhotoThumb
+                  key={slot.id}
+                  slot={slot}
+                  isPrimary={i === 0}
+                  onRemove={() => removePhoto(slot.id)}
+                  onSetFocus={(focus) => setPhotoFocus(slot.id, focus)}
+                  onMakePrimary={() => makePrimary(slot.id)}
+                />
+              ))}
+            </div>
           )}
 
           {photoNotice && <p className="text-sm text-amber-600">{photoNotice}</p>}

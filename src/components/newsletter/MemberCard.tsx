@@ -1,94 +1,20 @@
-import Image from 'next/image';
-import type { NewsletterSubmissionRecord, NewsletterPhoto } from '@/lib/newsletter';
+import type { NewsletterSubmissionRecord } from '@/lib/newsletter';
 import { FONT_DISPLAY, FONT_HAND, INK, ASSETS, firstNameOf, type Palette } from './theme';
+import MemberPhotos from './MemberPhotos';
 
 // ---------------------------------------------------------------------------
 // A single member's life-update card. Shared by the public newsletter view and
 // the submission form's live preview. In `preview` mode it renders without the
-// camera badges and without a DOM id (no jump-to-member anchor), and images go
-// through next/image unoptimized so freshly-picked blob: URLs render.
+// camera badges and without a DOM id (no jump-to-member anchor), images go
+// through next/image unoptimized so freshly-picked blob: URLs render, and the
+// click-to-enlarge lightbox is disabled.
 // ---------------------------------------------------------------------------
-
-const POLAROID_ROTATIONS = ['-5deg', '4deg', '-3deg', '5deg'];
 
 // Which photo (if any) gets the little camera badge, keyed by card position.
 // Kept deliberately sparse — not every member, not every photo — and repeats
 // every 6 cards. Mirrors the original design's camera placement.
 const CAMERA_FOR: Record<number, number> = { 0: 0, 1: 3, 3: 2, 5: 1 };
 const cameraPhotoFor = (cardIndex: number): number | undefined => CAMERA_FOR[cardIndex % 6];
-
-// Floated photos: a big full-width lead photo (shown in full, never cropped)
-// plus a strip of rotated "polaroids". Floats right so the story flows beside,
-// then under, it. Stacks above the text on narrow screens (see .nl-member-photos).
-function MemberPhotos({
-  photos,
-  name,
-  palette,
-  cameraOn,
-  unoptimized,
-  stacked,
-}: {
-  photos: NewsletterPhoto[];
-  name: string;
-  palette: Palette;
-  cameraOn?: number;
-  unoptimized?: boolean;
-  // Force the photos to stack above the text (instead of floating beside it),
-  // regardless of viewport — used by the narrow live-preview column.
-  stacked?: boolean;
-}) {
-  if (photos.length === 0) return null;
-  const lead = photos[0];
-  const rest = photos.slice(1, 5);
-
-  return (
-    <div className={stacked ? 'nl-member-photos nl-member-photos-stacked' : 'nl-member-photos'}>
-      <div
-        style={{
-          position: 'relative',
-          borderRadius: '18px',
-          overflow: 'hidden',
-          background: palette.soft,
-          boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)',
-        }}
-      >
-        {/* The lead photo is shown in full at its natural aspect — never
-            cropped — so a portrait stays tall and a landscape stays wide. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={lead.url} alt={`Photo from ${name}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
-        {cameraOn === 0 && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
-        )}
-      </div>
-
-      {rest.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '18px', paddingLeft: '6px' }}>
-          {rest.map((photo, i) => (
-            <div
-              key={i}
-              style={{
-                background: '#fff',
-                padding: '7px',
-                borderRadius: '5px',
-                boxShadow: '0 9px 18px -10px rgba(22,41,76,0.42)',
-                transform: `rotate(${POLAROID_ROTATIONS[i % POLAROID_ROTATIONS.length]})`,
-              }}
-            >
-              <div style={{ position: 'relative', width: '94px', height: '78px', borderRadius: '3px', overflow: 'hidden', background: palette.soft }}>
-                <Image src={photo.url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" unoptimized={unoptimized} style={{ objectFit: 'cover', objectPosition: photo.focus ?? 'center' }} />
-                {cameraOn === i + 1 && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '6px', right: '6px', width: '25px', height: 'auto', filter: 'drop-shadow(0 2px 4px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function MemberBlurb({ label, value, palette }: { label: string; value: string; palette: Palette }) {
   return (
@@ -192,7 +118,7 @@ export default function MemberCard({ s, palette, index = 0, preview = false }: M
       <div style={{ padding: '26px 28px 28px' }}>
         {/* Story flows around the floated photos, then reclaims full width below. */}
         <div>
-          <MemberPhotos photos={photos} name={s.name} palette={palette} cameraOn={cameraOn} unoptimized={preview} stacked={preview} />
+          <MemberPhotos photos={photos} name={s.name} palette={palette} cameraOn={cameraOn} unoptimized={preview} stacked={preview} zoomable={!preview} />
 
           <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: 0, lineHeight: 1.04 }}>
             {s.name}

@@ -58,14 +58,6 @@ export default function NewsletterSubmit() {
             <h1 className="page-header-title">Once a K9er, Always a K9er</h1>
             <div className="page-header-divider"></div>
             <div className="page-header-subtitle space-y-4">
-              <p>K9 is hard to explain. But we know you know.</p>
-              <p>And that&apos;s a feeling we do not want to lose, even if we have left the house.</p>
-              <p>Let&apos;s keep track of each other and make sure our paths keep crossing.</p>
-              <p>
-                XoXo,
-                <br />
-                Coliving Girl, your one and only source into the fabulous life of Alumni.
-              </p>
               <p>
                 K9 newsletter by and for K9ers, mostly aimed at alumni but current residents are
                 very welcome to join! Share with us what you&apos;ve been up to, and find out where
