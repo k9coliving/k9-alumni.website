@@ -20,7 +20,7 @@ interface PublicSubmission {
   recommendation_context: string | null;
   happy_story: string | null;
   photos: NewsletterPhoto[];
-  notify_for_next_newsletter: boolean;
+  notify_for_future_newsletters: boolean;
 }
 
 type LoadState =
@@ -45,7 +45,7 @@ function toFormValues(s: PublicSubmission): NewsletterFormValues {
     recommendation_link: s.recommendation_link ?? '',
     recommendation_context: s.recommendation_context ?? '',
     happy_story: s.happy_story ?? '',
-    notify_for_next_newsletter: s.notify_for_next_newsletter,
+    notify_for_future_newsletters: s.notify_for_future_newsletters,
     photos: s.photos ?? [],
   };
 }

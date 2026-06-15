@@ -172,7 +172,7 @@ CREATE TABLE newsletter_submissions (
   -- photo is simply index 0.
   photos jsonb NOT NULL DEFAULT '[]',
 
-  notify_for_next_newsletter boolean DEFAULT false,
+  notify_for_future_newsletters boolean DEFAULT false,
 
   edit_token jsonb,
   newsletter_id uuid REFERENCES newsletters(id) ON DELETE SET NULL,
@@ -213,7 +213,7 @@ Data-access layer, style matching `src/lib/supabase.ts`:
 - `createNewsletter(draft)`
 - `finalizeAndSendNewsletter(id)` — scoop transaction run at send time: sets `status='sent'`, `sent_at=now()`, and `UPDATE newsletter_submissions SET newsletter_id=$1 WHERE newsletter_id IS NULL`. Runs **before** the email loop so content is frozen; email failures are handled by retry, not by rolling this back. No-op on the scoop if the newsletter is already `sent`
 - `getNewsletterSubscribedResidents()` — the recipient query below
-- `getPastSubmittersWantingReminders()` — distinct emails from submissions where `notify_for_next_newsletter = true`
+- `getPastSubmittersWantingReminders()` — distinct emails from submissions where `notify_for_future_newsletters = true`
 - `resolveRecipients(manualEmails)` — unions the two sources with manual additions, dedupes by lowercased email
 
 Recipient query:
