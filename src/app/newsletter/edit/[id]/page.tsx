@@ -7,6 +7,7 @@ import NewsletterForm, {
   type NewsletterFormPayload,
   type NewsletterFormValues,
 } from '@/components/NewsletterForm';
+import ResubscribePrompt from '@/components/newsletter/ResubscribePrompt';
 import type { NewsletterPhoto } from '@/lib/newsletter';
 
 interface PublicSubmission {
@@ -20,15 +21,16 @@ interface PublicSubmission {
   recommendation_context: string | null;
   happy_story: string | null;
   photos: NewsletterPhoto[];
-  notify_for_future_newsletters: boolean;
+  subscribed: boolean;
 }
 
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'editable'; values: NewsletterFormValues }
   // Carries the freshly-saved values so "Continue editing" can re-open the form
-  // pristine with the latest content.
-  | { kind: 'saved'; values: NewsletterFormValues }
+  // pristine with the latest content. needsResubscribeConfirm asks whether to
+  // revive a previously-unsubscribed email.
+  | { kind: 'saved'; values: NewsletterFormValues; needsResubscribeConfirm: boolean }
   | { kind: 'already_sent'; viewUrl: string | null }
   | { kind: 'not_found' }
   | { kind: 'error'; message: string };
@@ -45,7 +47,7 @@ function toFormValues(s: PublicSubmission): NewsletterFormValues {
     recommendation_link: s.recommendation_link ?? '',
     recommendation_context: s.recommendation_context ?? '',
     happy_story: s.happy_story ?? '',
-    notify_for_future_newsletters: s.notify_for_future_newsletters,
+    subscribe: s.subscribed,
     photos: s.photos ?? [],
   };
 }
@@ -124,7 +126,7 @@ function EditContent() {
       // missing the echoed submission for any reason.
       const data = await res.json().catch(() => ({}));
       const savedValues = data.submission ? toFormValues(data.submission) : payload;
-      setState({ kind: 'saved', values: savedValues });
+      setState({ kind: 'saved', values: savedValues, needsResubscribeConfirm: !!data.needsResubscribeConfirm });
     },
     [id, token]
   );
@@ -185,6 +187,9 @@ function EditContent() {
         <div className="text-5xl">✅</div>
         <h2 className="text-2xl font-bold text-gray-900">Changes saved</h2>
         <p className="text-gray-600">Your submission has been updated. Thanks!</p>
+        {state.needsResubscribeConfirm && savedValues.email && (
+          <ResubscribePrompt email={savedValues.email} />
+        )}
         <div className="pt-2">
           <button
             type="button"

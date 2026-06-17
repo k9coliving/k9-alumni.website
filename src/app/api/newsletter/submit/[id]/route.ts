@@ -7,6 +7,7 @@ import {
   timingSafeEqualStr,
   type NewsletterSubmissionRecord,
 } from '@/lib/newsletter';
+import { upsertSubscriber, unsubscribeByEmail, getSubscriberStatus } from '@/lib/subscribers';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
@@ -28,8 +29,14 @@ function publicSubmissionFields(s: NewsletterSubmissionRecord) {
     recommendation_context: s.recommendation_context ?? null,
     happy_story: s.happy_story ?? null,
     photos: s.photos ?? [],
-    notify_for_future_newsletters: s.notify_for_future_newsletters ?? false,
   };
+}
+
+// Whether the submission's email is currently subscribed — prefills the form's
+// subscribe checkbox.
+async function isEmailSubscribed(email: string | null | undefined): Promise<boolean> {
+  if (!email) return false;
+  return (await getSubscriberStatus(email)) === 'subscribed';
 }
 
 // Resolves the submission only if the token matches. Returns null for both
@@ -78,7 +85,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return alreadySentResponse(submission.newsletter_id);
     }
 
-    return NextResponse.json({ editable: true, submission: publicSubmissionFields(submission) });
+    const subscribed = await isEmailSubscribed(submission.email);
+    return NextResponse.json({
+      editable: true,
+      submission: { ...publicSubmissionFields(submission), subscribed },
+    });
   } catch (error) {
     logger.error('Newsletter submission fetch failed', {
       endpoint: 'newsletter/submit/[id]',
@@ -124,12 +135,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ editable: false, reason: 'already_sent' }, { status: 409 });
     }
 
+    // Subscription, driven by the form's checkbox (the submission's email). On
+    // edit BOTH directions are explicit: checking subscribes (resubscribe-confirm
+    // if it had previously unsubscribed — we never silently revive), unchecking
+    // unsubscribes the person's own entry.
+    let subscribed = raw.subscribe === true;
+    let needsResubscribeConfirm = false;
+    const email = result.updated.email;
+    if (email) {
+      try {
+        if (raw.subscribe === true) {
+          const { result: r } = await upsertSubscriber({ email, name: result.updated.name, source: 'submission', submission_id: id });
+          needsResubscribeConfirm = r === 'needs_resubscribe_confirm';
+          subscribed = !needsResubscribeConfirm; // stays unsubscribed until they confirm
+        } else {
+          await unsubscribeByEmail(email, { actor: 'self', source: 'submission', submission_id: id });
+          subscribed = false;
+        }
+      } catch (err) {
+        logger.error('Newsletter submission subscribe update failed', {
+          endpoint: 'newsletter/submit/[id]',
+          submissionId: id,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
     logger.info('Newsletter submission edited', {
       endpoint: 'newsletter/submit/[id]',
       submissionId: id,
     });
 
-    return NextResponse.json({ editable: true, submission: publicSubmissionFields(result.updated) });
+    return NextResponse.json({
+      editable: true,
+      submission: { ...publicSubmissionFields(result.updated), subscribed },
+      needsResubscribeConfirm,
+    });
   } catch (error) {
     logger.error('Newsletter submission edit failed', {
       endpoint: 'newsletter/submit/[id]',

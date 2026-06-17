@@ -6,6 +6,7 @@ import {
   setSubmissionEditToken,
   parseSubmissionInput,
 } from '@/lib/newsletter';
+import { upsertSubscriber } from '@/lib/subscribers';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
@@ -58,6 +59,31 @@ export async function POST(request: NextRequest) {
 
     const editUrl = `${baseUrl()}/newsletter/edit/${submission.id}?token=${editToken}`;
 
+    // Newsletter subscription. A checked box subscribes the entered email; an
+    // unchecked box is a NO-OP (never an unsubscribe — the person may already be
+    // subscribed via residents, and the box defaults off). If the email had
+    // previously unsubscribed we don't silently revive it; the success screen
+    // prompts them to resubscribe instead.
+    let needsResubscribeConfirm = false;
+    if (raw.subscribe === true && parsed.value.email) {
+      try {
+        const { result } = await upsertSubscriber({
+          email: parsed.value.email,
+          name: parsed.value.name,
+          source: 'submission',
+          submission_id: submission.id,
+        });
+        needsResubscribeConfirm = result === 'needs_resubscribe_confirm';
+      } catch (err) {
+        // A subscription hiccup must not fail the submission itself.
+        logger.error('Newsletter submission subscribe failed', {
+          endpoint: 'newsletter/submit',
+          submissionId: submission.id,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
     let emailed = false;
     if (parsed.value.email) {
       try {
@@ -104,7 +130,13 @@ export async function POST(request: NextRequest) {
       photoCount: parsed.value.photos?.length ?? 0,
     });
 
-    return NextResponse.json({ id: submission.id, editUrl, emailed });
+    return NextResponse.json({
+      id: submission.id,
+      editUrl,
+      emailed,
+      email: parsed.value.email,
+      needsResubscribeConfirm,
+    });
   } catch (error) {
     logger.error('Newsletter submission failed', {
       endpoint: 'newsletter/submit',

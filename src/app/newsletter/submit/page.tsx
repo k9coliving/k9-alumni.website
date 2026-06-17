@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import Layout from '@/components/Layout';
 import NewsletterForm, { type NewsletterFormPayload } from '@/components/NewsletterForm';
+import ResubscribePrompt from '@/components/newsletter/ResubscribePrompt';
 
 interface SubmitResult {
   editUrl: string;
   emailed: boolean;
+  email: string;
+  needsResubscribeConfirm: boolean;
 }
 
 export default function NewsletterSubmit() {
@@ -28,7 +31,12 @@ export default function NewsletterSubmit() {
     const data = await res.json();
     // Honeypot-tripped submissions return { success: true } with no editUrl —
     // show the same friendly confirmation so bots learn nothing.
-    setResult({ editUrl: data.editUrl ?? '', emailed: !!data.emailed });
+    setResult({
+      editUrl: data.editUrl ?? '',
+      emailed: !!data.emailed,
+      email: data.email ?? '',
+      needsResubscribeConfirm: !!data.needsResubscribeConfirm,
+    });
   };
 
   const copyEditLink = async () => {
@@ -79,6 +87,10 @@ export default function NewsletterSubmit() {
                   We&apos;ve emailed you a link so you can edit it any time before the newsletter
                   goes out.
                 </p>
+              )}
+
+              {result.needsResubscribeConfirm && result.email && (
+                <ResubscribePrompt email={result.email} />
               )}
 
               {result.editUrl && (

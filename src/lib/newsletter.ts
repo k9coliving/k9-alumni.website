@@ -48,8 +48,6 @@ export interface NewsletterSubmissionRecord {
   happy_story?: string | null;
   photos?: NewsletterPhoto[];
 
-  notify_for_future_newsletters?: boolean;
-
   edit_token?: NewsletterEditTokenData | null;
   newsletter_id?: string | null;
 
@@ -152,7 +150,6 @@ export function parseSubmissionInput(
       recommendation_context: str(raw.recommendation_context) ?? null,
       happy_story: str(raw.happy_story) ?? null,
       photos,
-      notify_for_future_newsletters: raw.notify_for_future_newsletters === true,
     },
   };
 }

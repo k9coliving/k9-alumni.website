@@ -51,6 +51,13 @@ function auditDetails(email: string, ctx: AuditContext): Record<string, unknown>
   return details;
 }
 
+// Current status of an email, or null if it's never been a subscriber. Used to
+// prefill the newsletter edit form's subscribe checkbox.
+export async function getSubscriberStatus(email: string): Promise<SubscriberStatus | null> {
+  const row = await getSubscriberByEmail(email);
+  return row ? row.status : null;
+}
+
 async function getSubscriberByEmail(email: string): Promise<SubscriberRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('newsletter_subscribers')

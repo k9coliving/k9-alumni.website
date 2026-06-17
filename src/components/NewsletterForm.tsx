@@ -41,7 +41,9 @@ export interface NewsletterFormValues {
   recommendation_link: string;
   recommendation_context: string;
   happy_story: string;
-  notify_for_future_newsletters: boolean;
+  // Newsletter subscription intent for the entered email. Drives
+  // newsletter_subscribers via the submit/edit API (not stored on the submission).
+  subscribe: boolean;
   photos: NewsletterPhoto[];
 }
 
@@ -212,7 +214,7 @@ const EMPTY: NewsletterFormValues = {
   recommendation_link: '',
   recommendation_context: '',
   happy_story: '',
-  notify_for_future_newsletters: false,
+  subscribe: false,
   photos: [],
 };
 
@@ -524,8 +526,8 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={values.notify_for_future_newsletters}
-            onChange={(e) => set('notify_for_future_newsletters', e.target.checked)}
+            checked={values.subscribe}
+            onChange={(e) => set('subscribe', e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm text-gray-700">
