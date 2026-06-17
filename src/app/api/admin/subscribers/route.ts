@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/api-auth';
 import {
   listSubscribers,
+  upsertSubscriber,
   unsubscribeByEmail,
   resubscribe,
   type SubscriberStatus,
 } from '@/lib/subscribers';
 import { logger } from '@/lib/logger';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // List subscribers, optionally filtered by ?status=subscribed|unsubscribed.
 export async function GET(request: NextRequest) {
@@ -28,6 +31,43 @@ export async function GET(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     return NextResponse.json({ error: 'Failed to load subscribers.' }, { status: 500 });
+  }
+}
+
+// Admin manually subscribes an email (source 'manual'). Returns the upsert
+// result so the client can prompt: 'needs_resubscribe_confirm' means the email
+// previously unsubscribed — the client confirms, then re-POSTs with
+// confirmResubscribe:true (the explicit, audited resubscribe path).
+export async function POST(request: NextRequest) {
+  const denied = await requireAdminAuth(request);
+  if (denied) return denied;
+
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      email?: string;
+      name?: string;
+      confirmResubscribe?: boolean;
+    };
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+
+    if (!email || !EMAIL_RE.test(email)) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
+    if (body.confirmResubscribe) {
+      const r = await resubscribe(email, { actor: 'admin', source: 'manual' });
+      return NextResponse.json({ result: r.resubscribed ? 'resubscribed' : 'already_subscribed' });
+    }
+
+    const { result } = await upsertSubscriber({ email, name: name || null, source: 'manual' });
+    return NextResponse.json({ result });
+  } catch (error) {
+    logger.error('Admin subscriber add failed', {
+      endpoint: 'admin/subscribers',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return NextResponse.json({ error: 'Failed to add subscriber.' }, { status: 500 });
   }
 }
 
