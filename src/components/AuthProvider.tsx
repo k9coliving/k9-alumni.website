@@ -19,6 +19,7 @@ function isPublicPath(pathname: string | null): boolean {
   if (!pathname) return false;
   return (
     pathname === '/newsletter/submit' ||
+    pathname === '/newsletter/unsubscribe' ||
     pathname.startsWith('/newsletter/edit/') ||
     pathname.startsWith('/newsletter/n/') ||
     pathname.startsWith('/admin')

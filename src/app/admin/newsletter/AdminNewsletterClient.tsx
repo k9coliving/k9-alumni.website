@@ -352,6 +352,9 @@ export default function AdminNewsletterClient({ submissions, newsletters, quota 
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Newsletter admin</h1>
           <div className="flex items-center gap-4">
+            <a href="/admin/newsletter/subscribers" className="text-sm text-blue-600 hover:text-blue-700">
+              Subscribers
+            </a>
             <a href="/admin/newsletter/reminder" className="text-sm text-blue-600 hover:text-blue-700">
               Send reminder
             </a>
