@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resubscribe } from '@/lib/subscribers';
+import { resubscribe, type SubscriberSource } from '@/lib/subscribers';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PUBLIC_SOURCES: SubscriberSource[] = ['submission', 'resident'];
 
 // Public, email-keyed resubscribe — backs the "you unsubscribed before,
 // resubscribe?" prompt on the submit/edit success screens. Confirming by raw
@@ -18,13 +19,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    const body = (await request.json().catch(() => ({}))) as { email?: string; source?: string };
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     if (!email || !EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
     }
 
-    const { resubscribed } = await resubscribe(email, { actor: 'self', source: 'submission' });
+    const source = PUBLIC_SOURCES.includes(body.source as SubscriberSource)
+      ? (body.source as SubscriberSource)
+      : 'submission';
+    const { resubscribed } = await resubscribe(email, { actor: 'self', source });
     return NextResponse.json({ ok: true, resubscribed });
   } catch (error) {
     logger.error('Newsletter resubscribe failed', {

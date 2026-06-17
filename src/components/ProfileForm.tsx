@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import FormButtons from './FormButtons';
 import ImageUpload from './ImageUpload';
+import { isSubscribableInvolvement } from '@/lib/newsletterEligibility';
 
 export interface ProfileFormData {
   name: string;
@@ -359,6 +360,15 @@ export default function ProfileForm({ isOpen, onClose, onSubmit, prefilledInvolv
                     "🫣 I'm happy to be in the database but I don't want to be contacted"}
                   {formData.involvementLevel === 'team-member' &&
                     "🚀 I want to join the Alumni Network team!"}
+                </p>
+              )}
+
+              {/* Heads-up when the chosen involvement won't receive the newsletter,
+                  so unsubscribing-on-save is an informed choice, not a surprise. */}
+              {formData.involvementLevel && !isSubscribableInvolvement(formData.involvementLevel) && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mt-2">
+                  📭 With this setting you won&apos;t receive the K9 newsletter. If you&apos;re currently
+                  subscribed, saving will unsubscribe you.
                 </p>
               )}
 

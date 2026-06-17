@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addResident, getResidentsData, getResidentById, updateResident, verifyEditToken } from '@/lib/supabase';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditEvent } from '@/lib/audit';
+import { upsertSubscriber, unsubscribeByEmail } from '@/lib/subscribers';
+import { isSubscribableInvolvement } from '@/lib/newsletterEligibility';
 import { logger, logApiRequest, logApiError } from '@/lib/logger';
+
+// preferences.is_team_member may be stored as a boolean or the string "true".
+function prefsTeamMember(preferences: Record<string, unknown> | undefined | null): boolean {
+  const v = preferences?.is_team_member;
+  return v === true || v === 'true';
+}
 
 // Helper function to get the full involvement level text
 function getInvolvementLevelFull(level: string): string {
@@ -256,12 +264,36 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Newsletter subscription: a subscribable involvement level opts the new
+    // resident in. Never silently revives a previously-unsubscribed email — the
+    // client gets needsResubscribeConfirm and asks the person.
+    let needsResubscribeConfirm = false;
+    try {
+      if (result.email && isSubscribableInvolvement(result.preferences?.involvement_level, prefsTeamMember(result.preferences))) {
+        const { result: subResult } = await upsertSubscriber({
+          email: result.email,
+          name: result.name,
+          source: 'resident',
+          resident_id: result.id,
+        });
+        needsResubscribeConfirm = subResult === 'needs_resubscribe_confirm';
+      }
+    } catch (err) {
+      // A subscription hiccup must not fail resident creation.
+      logger.error('Resident create subscribe failed', {
+        endpoint: 'residents',
+        residentId: result.id,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
     // Add delay before response (per CLAUDE.md guidelines)
     await new Promise(resolve => setTimeout(resolve, 10));
 
     return NextResponse.json({
       success: true,
-      resident: result
+      resident: result,
+      needsResubscribeConfirm
     }, { status: 201 });
 
   } catch (error) {
@@ -496,11 +528,40 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    // Newsletter subscription on self-edit: a subscribable involvement level
+    // (re)subscribes; switching to a non-subscribable one is an explicit
+    // unsubscribe (their own choice — confirmed with Cami). We never silently
+    // revive a previously-unsubscribed email; the client gets
+    // needsResubscribeConfirm and asks.
+    let needsResubscribeConfirm = false;
+    try {
+      if (result.email) {
+        if (isSubscribableInvolvement(result.preferences?.involvement_level, prefsTeamMember(result.preferences))) {
+          const { result: subResult } = await upsertSubscriber({
+            email: result.email,
+            name: result.name,
+            source: 'resident',
+            resident_id: result.id,
+          });
+          needsResubscribeConfirm = subResult === 'needs_resubscribe_confirm';
+        } else {
+          await unsubscribeByEmail(result.email, { actor: 'self', source: 'resident', resident_id: result.id });
+        }
+      }
+    } catch (err) {
+      logger.error('Resident update subscribe failed', {
+        endpoint: 'residents',
+        residentId: result.id,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
     await new Promise(resolve => setTimeout(resolve, 10));
 
     return NextResponse.json({
       success: true,
-      resident: result
+      resident: result,
+      needsResubscribeConfirm
     });
 
   } catch (error) {

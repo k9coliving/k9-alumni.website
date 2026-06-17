@@ -33,6 +33,26 @@ interface FilterOptions {
   periods: string[];
 }
 
+// When a resident opts into the newsletter with an email that had previously
+// unsubscribed, the API won't silently revive it — it returns
+// needsResubscribeConfirm. We ask the person before resubscribing.
+async function maybeConfirmResubscribe(email: string, needsResubscribeConfirm: boolean) {
+  if (!needsResubscribeConfirm || !email) return;
+  const wants = window.confirm(
+    `${email} previously unsubscribed from the K9 newsletter. Resubscribe to it?`
+  );
+  if (!wants) return;
+  try {
+    await fetch('/api/newsletter/resubscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'resident' }),
+    });
+  } catch (e) {
+    console.error('Resubscribe failed', e);
+  }
+}
+
 
 interface K9FamilyClientProps {
   initialMembers: AlumniMember[];
@@ -168,10 +188,12 @@ export default function K9FamilyClient({
 
       // Add the new member to the list
       setMembers(prev => [newMember, ...prev]);
-      
+
       // Show success message
       alert('Profile added successfully! Welcome to the K9 Family directory.');
-      
+
+      await maybeConfirmResubscribe(formData.email, result.needsResubscribeConfirm);
+
     } catch (error) {
       console.error('Error adding profile:', error);
       alert(error instanceof Error ? error.message : 'Failed to add profile. Please try again.');
@@ -243,6 +265,8 @@ export default function K9FamilyClient({
       window.history.replaceState({}, '', '/thek9family');
 
       alert('Profile updated successfully!');
+
+      await maybeConfirmResubscribe(formData.email, result.needsResubscribeConfirm);
 
     } catch (error) {
       console.error('Error updating profile:', error);
