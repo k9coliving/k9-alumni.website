@@ -10,7 +10,12 @@ export type AuditEventType =
   | 'system_error'
   | 'edit_request_sent'
   | 'newsletter_email_sent'
-  | 'newsletter_reminder_sent';
+  | 'newsletter_reminder_sent'
+  // Subscription state changes. NOTE: these send no email — deliberately NOT
+  // added to getEmailsSentInLast24h() so they don't count against the quota.
+  | 'newsletter_subscribed'
+  | 'newsletter_unsubscribed'
+  | 'newsletter_resubscribed';
 
 interface AuditLogEntry {
   event_type: AuditEventType;

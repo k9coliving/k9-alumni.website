@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from './supabase';
+import { getActiveSubscribers } from './subscribers';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,7 +74,7 @@ export interface NewsletterRecord {
   status: 'draft' | 'sent';
 }
 
-export type RecipientSource = 'resident_subscribed' | 'past_submitter' | 'manual';
+export type RecipientSource = 'subscriber' | 'manual';
 
 export interface RecipientEntry {
   email: string;
@@ -500,75 +501,18 @@ export async function getUpcomingEvents(months = 3): Promise<NewsletterEventReco
 // Recipients
 // ---------------------------------------------------------------------------
 
-// Residents opted into the newsletter: involvement_level in the allowed set OR
-// flagged as a team member. Excludes rows with no email.
-export async function getNewsletterSubscribedResidents(): Promise<
-  { id: string; name: string; email: string }[]
-> {
-  const { data, error } = await supabaseAdmin
-    .from('residents')
-    .select('id, name, email')
-    .not('email', 'is', null)
-    .or(
-      [
-        'preferences->>involvement_level.eq.full-engagement',
-        'preferences->>involvement_level.eq.newsletter-only',
-        'preferences->>involvement_level.eq.team-member',
-        'preferences->>is_team_member.eq.true',
-      ].join(',')
-    );
-
-  if (error) {
-    throw new Error(`Failed to fetch subscribed residents: ${error.message}`);
-  }
-
-  return (data || []).filter((r): r is { id: string; name: string; email: string } => !!r.email);
-}
-
-// Distinct emails (lowercased-dedup, original casing preserved) of past
-// submitters who asked to be reminded about the next newsletter.
-export async function getPastSubmittersWantingReminders(): Promise<string[]> {
-  const { data, error } = await supabaseAdmin
-    .from('newsletter_submissions')
-    .select('email')
-    .eq('notify_for_future_newsletters', true)
-    .not('email', 'is', null);
-
-  if (error) {
-    throw new Error(`Failed to fetch reminder subscribers: ${error.message}`);
-  }
-
-  const byKey = new Map<string, string>();
-  for (const row of data || []) {
-    if (row.email) {
-      const key = row.email.toLowerCase();
-      if (!byKey.has(key)) {
-        byKey.set(key, row.email);
-      }
-    }
-  }
-  return [...byKey.values()];
-}
-
-// Unions subscribed residents + reminder-wanting past submitters + manual
-// additions, deduped by lowercased email. First source to claim an email wins
-// its source tag (resident_subscribed > past_submitter > manual).
+// The newsletter_subscribers table (src/lib/subscribers.ts) is the single
+// source of truth for who receives the newsletter. resolveRecipients unions the
+// active subscribers with any admin-supplied manual emails, deduped by
+// lowercased email — subscribers win their source tag.
 export async function resolveRecipients(manualEmails: string[] = []): Promise<RecipientEntry[]> {
   const byKey = new Map<string, RecipientEntry>();
 
-  const residents = await getNewsletterSubscribedResidents();
-  for (const r of residents) {
-    const key = r.email.toLowerCase();
+  const subscribers = await getActiveSubscribers();
+  for (const s of subscribers) {
+    const key = s.email.toLowerCase();
     if (!byKey.has(key)) {
-      byKey.set(key, { email: r.email, name: r.name, source: 'resident_subscribed' });
-    }
-  }
-
-  const pastSubmitters = await getPastSubmittersWantingReminders();
-  for (const email of pastSubmitters) {
-    const key = email.toLowerCase();
-    if (!byKey.has(key)) {
-      byKey.set(key, { email, source: 'past_submitter' });
+      byKey.set(key, { email: s.email, name: s.name ?? undefined, source: 'subscriber' });
     }
   }
 
