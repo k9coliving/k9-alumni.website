@@ -34,7 +34,7 @@ The form page and per-token newsletter pages are publicly accessible (no site pa
   - `admin/login/page.tsx`, server-gated `admin/newsletter/page.tsx` + `AdminNewsletterClient.tsx` — quota widget, create-draft form, unassigned-submissions list (delete + edit-via-public-token-page), newsletters list with preview + send links.
   - Admin API (all `requireAdminAuth`): `POST /api/admin/newsletter`, `PATCH /api/admin/newsletter/[id]`, `GET /api/admin/newsletter/email-quota`, `GET /api/admin/submissions`, `PATCH|DELETE /api/admin/submissions/[id]`.
 - **Gate:** `AuthProvider.tsx` bypasses the site password for `/newsletter/submit`, `/newsletter/edit/*`, `/newsletter/n/*`, **and `/admin/*`** (admin has its own gate).
-- **Seed data note:** 3 test submissions (`*.test@example.com`) + a "K9 Newsletter — Test Draft" were inserted into **prod** for preview testing — Cami to delete by hand before the real send.
+- **Seed data note:** ✅ The 3 test submissions (`*.test@example.com`) have been deleted from prod. The "K9 Newsletter — Test Draft" row is being **kept and repurposed as the first real newsletter** — Cami to update its title/intro/outro via the admin draft form. A draft renders the live set of unassigned submissions and `finalizeAndSendNewsletter` scoops them at send time, so it will contain exactly the real submissions present when sent.
 
 ### Start of next session — Phase 5c (send + reminder)
 
@@ -54,7 +54,7 @@ The send/reminder UI + backend. The hard part is the Resend send loop + quota ma
 4. `admin/newsletter/[id]/send/page.tsx` — reply-to input (prefill `ADMIN_DEFAULT_REPLY_TO`), recipient preview by source, quota strip (green/yellow/red, warning-only never blocks), Send button, audit-log table below with retry-failed.
 5. `admin/newsletter/reminder/page.tsx` — same shape for reminders.
    - **Note:** the dashboard already links to `/admin/newsletter/[id]/send` and `/admin/newsletter/reminder` — these 404 until built.
-6. Set a real `ADMIN_PASSWORD` (currently a throwaway `devadmin123` in local `.env.local`); test send to **your own email only** (prod DB + real Resend).
+6. ✅ Real `ADMIN_PASSWORD` set in Vercel (local `.env.local` still uses a throwaway `devadmin123`). Test send to **your own email only** (prod DB + real Resend).
 
 ### Then Phase 6 (remaining)
 - ~~robots~~ ✅ **Already covered** — a pre-existing `public/robots.txt` blanket-disallows the whole site (`Disallow: /`), which is stricter than the per-path rule originally planned and covers the public newsletter + admin routes. No `robots.ts` needed (it would conflict with the static file and be weaker). 
@@ -65,13 +65,16 @@ The send/reminder UI + backend. The hard part is the Resend send loop + quota ma
 - [ ] **`git push`** — 3 newsletter commits (`2725623`, `00709dd`, `e0459d7`) are **local only, not pushed yet**.
 - [ ] **Verify Vercel deploy still works** after push — confirm the live site builds and existing pages still work (the new routes are inert until Phase 4 wires UI to them, but the `sharp` dep is new in the bundle).
 - [ ] **Investigate npm vulnerabilities** — `npm install sharp` reported 26 vulns (2 low, 11 moderate, 13 high). These appear **repo-wide / pre-existing**, not sharp-specific, but confirm with `npm audit` and triage.
-- [ ] Set real **`ADMIN_PASSWORD`** in `.env.local` (and Vercel) before testing any admin feature (Phase 5). `JWT_SECRET` already present.
+- [x] ✅ Real **`ADMIN_PASSWORD`** set in Vercel. (`.env.local` keeps the throwaway `devadmin123` for local dev; `JWT_SECRET` already present.)
 - [ ] **No live E2E test yet** — deliberately skipped, since hitting `submit` writes to the prod DB and there's no admin delete path until Phase 5. Do the submit→preview→send dry-run once Phase 5 exists (test sends to your own email only).
 
 ### Gotchas to remember
 - **Single prod DB, no dev** — anything that writes (esp. test submissions, sends) hits production. Keep test sends to your own email.
 - **ESLint is broken in this repo** (flat-config + `eslint-config-next` compat crash; `next lint` removed in Next 16). Use `npx tsc --noEmit` + `npm run build` as the gates. Worth fixing separately.
 - **Next 16 dynamic route params are async** — handlers use `{ params }: { params: Promise<{...}> }` and must `await params`.
+- **Stale dev server after editing server modules** — the Turbopack dev server can keep serving *old* compiled `lib/`/route code after a Fast Refresh full-reload (triggered by a runtime error). Symptom seen 2026-06-15: a PATCH returned `200` and logged success but wrote the *old* column and ignored the new field — because the running server still had the pre-edit `parseSubmissionInput`/`updateSubmission`. `npm run build` is a separate process and does **not** refresh it. **Fix: restart the dev server** (`npm run dev`) after editing server-side modules when behaviour looks stale. Especially relevant when a change spans code **and** a DB schema change.
+- **Migrations live in `migrations/*.sql`, run by hand in the Supabase SQL editor** (established 2026-06-15; no migration tooling). Because dev and prod share **one** Supabase, **code and schema must ship together** — a column rename/drop breaks the currently-deployed code until the new code deploys, and breaks new code until the SQL is run. Commit + run the SQL + (locally) restart the dev server close together.
+- **Newsletter render is shared** — the public newsletter view and the submission-form live preview both render `src/components/newsletter/MemberCard.tsx` (tokens in `theme.ts`, photos+lightbox in the client `MemberPhotos.tsx`). Change the card there once; `preview` prop drops camera badges/anchor, forces the stacked photo layout, and disables the lightbox.
 
 ---
 
@@ -451,3 +454,104 @@ Navigation link for `/newsletter/submit`: leave out by default to keep nav clean
 - Slug-based newsletter URLs
 - Moderation workflow (submissions are auto-approved for now)
 - Auto-cross-posting "Hold my hair" newsletter entries to `/holdmyhair`
+
+---
+
+# Newsletter subscription model — single source of truth (planned 2026-06-15, build tomorrow)
+
+> Self-contained spec. Decisions are settled with Cami; build in the phase order below, one commit per phase, `npm run build` before each commit. **Public repo — placeholders only in docs/examples.**
+
+## Problem being solved
+Newsletter subscription state is currently **fragmented and inferred**, with no authoritative unsubscribe and no consent audit:
+1. `newsletter_submissions.notify_for_future_newsletters` (a boolean **per submission row** — a 3× submitter has it in 3 rows).
+2. `residents.preferences.involvement_level` ∈ {`full-engagement`, `newsletter-only`, `team-member`} **or** `preferences.is_team_member = true` — i.e. consent is inferred from *role/engagement* fields.
+
+`resolveRecipients()` unions these two (+ admin manual emails) at send time. Problems: consent overloaded onto role fields (can't unsubscribe a team member without changing their role); no single authoritative unsubscribe; no unsubscribe link; no audit trail.
+
+## Key finding that de-risks this
+**The send flow (Phase 5c) was never built.** `resolveRecipients`, `getNewsletterSubscribedResidents`, `getPastSubmittersWantingReminders` are **not called anywhere** outside `lib/newsletter.ts`. There is no send route, no send page, no email-with-recipients yet. So we are **defining the recipient model fresh**, not refactoring a live pipeline.
+
+## Decision: Option A — dedicated `newsletter_subscribers` table as the single source of truth
+The other places become **writers into** this table, never parallel readers. Sends read only this table.
+
+### Schema
+```sql
+create table newsletter_subscribers (
+  email             text primary key,           -- normalized lowercase
+  name              text,
+  status            text not null default 'subscribed',  -- 'subscribed' | 'unsubscribed'
+  source            text,                        -- 'resident' | 'submission' | 'manual' | 'import'
+  resident_id       uuid references residents(id) on delete set null,
+  unsubscribe_token text unique not null,        -- for one-click unsubscribe links
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  unsubscribed_at   timestamptz
+);
+create index idx_newsletter_subscribers_status on newsletter_subscribers(status);
+```
+(Store email normalized to lowercase as the PK; keep original-cased display in `name` only. Generate `unsubscribe_token` with `crypto.randomUUID()` or similar.)
+
+### One-time backfill (in the same migration)
+Insert from today's two derived sources, **subscribed residents win** the row (they carry `name` + `resident_id`), past submitters fill the rest. Dedup by lowercased email. Every row gets a token. Source tag set accordingly. (Write this as SQL using the same `involvement_level`/`is_team_member` criteria currently in `getNewsletterSubscribedResidents`, plus `newsletter_submissions` where `notify_for_future_newsletters = true`.)
+
+## The rules that make it work
+- **Sends read only `newsletter_subscribers` where `status='subscribed'`.**
+- **Writers upsert, but NEVER auto-resurrect an unsubscribe.** If an automated opt-in (form checkbox, resident create/edit, manual add) targets an email whose status is `unsubscribed`, do **not** silently re-subscribe. Instead return a `needs_resubscribe_confirm` signal and let the UI ask the person to confirm.
+- **Unsubscribe is authoritative and explicit** — via the token link or admin only.
+
+### Subscribe state machine (applies to newsletter form + resident create/edit)
+For an incoming email `E` with opt-in intent:
+- `E` not in table → create `subscribed`. → audit `newsletter_subscribed`
+- `E` already `subscribed` → no-op.
+- `E` is `unsubscribed` → **do not auto-resubscribe.** Return `needs_resubscribe_confirm`; UI prompts *"You unsubscribed before — resubscribe?"*; on confirm hit the resubscribe endpoint → set `subscribed`. → audit `newsletter_resubscribed`
+
+Unsubscribe (token or admin) → set `status='unsubscribed'`, `unsubscribed_at=now()`. → audit `newsletter_unsubscribed`
+
+## `notify_for_future_newsletters` column → DROP it
+The form checkbox drives `newsletter_subscribers` keyed by the **email entered in the form**:
+- **New submission, box checked:** subscribe that email (or `needs_resubscribe_confirm` if previously unsubscribed).
+- **New submission, box unchecked:** **no-op** (must not unsubscribe — box defaults off, person may have subscribed via residents).
+- **Edit form:** prefill the box from that email's current subscriber status. Checking → subscribe (with resubscribe-confirm if needed). **Unchecking → unsubscribe** (their own entry, explicit — confirmed with Cami).
+- Migration drops the column **after** backfill has read it.
+
+## Resident wiring (no new checkbox — confirmed)
+- On resident **self-create** and **self-edit to a subscribable state** (same `involvement_level`/`is_team_member` criteria as `getNewsletterSubscribedResidents`), upsert the subscriber (source `resident`, set `resident_id`, `name`, `email`).
+- **De-opting DOES unsubscribe (confirmed with Cami, reverses the earlier default).** If a resident self-edits their `involvement_level`/`is_team_member` away from a subscribable state, treat it as an explicit unsubscribe: set `status='unsubscribed'`, `unsubscribed_at=now()`, audit `newsletter_unsubscribed` (actor `self`, source `resident`). Rationale: the newsletter has its own specific involvement entry — not choosing it means they don't want the newsletter.
+  - **UI:** show an **info message under the involvement control** when the selected setting would not receive the newsletter — e.g. *"With this setting you won't receive the K9 newsletter — saving will unsubscribe you."* Not a blocker, just makes the consequence visible (so it's informed, not silent).
+- If the email already exists as `unsubscribed`, the resident create flow does a **second-step confirmation** (same resubscribe prompt) instead of silently re-subscribing.
+
+## Audit logging (Cami explicitly wants this clear)
+Extend `AuditEventType` in `src/lib/audit.ts`:
+```
+| 'newsletter_subscribed'
+| 'newsletter_unsubscribed'
+| 'newsletter_resubscribed'
+```
+`details` shape: `{ email, source: 'submission'|'resident'|'manual'|'import', actor: 'self'|'admin', resident_id?, submission_id? }`. Every status change in `lib/subscribers.ts` calls `logAuditEvent`. **Do NOT add these to `getEmailsSentInLast24h()`** — no email is sent, they must not count against the send quota.
+
+## Components to build
+- **`src/lib/subscribers.ts`** (new):
+  - `upsertSubscriber({ email, name?, source, resident_id? }) → { result: 'created' | 'already_subscribed' | 'needs_resubscribe_confirm' }` (normalizes email; logs audit on create).
+  - `resubscribe(email, { actor, source }) ` → set subscribed + audit `newsletter_resubscribed`.
+  - `unsubscribeByToken(token, { actor })` / `unsubscribeByEmail(email, { actor })` → audit `newsletter_unsubscribed`.
+  - `getActiveSubscribers() → { email, name }[]`.
+  - `getSubscriberByToken(token)`, `listSubscribers({ status? })` (admin).
+- **`resolveRecipients()`** → `getActiveSubscribers()` + manual emails (manual upserts as `source:'manual'`). **Retire** `getNewsletterSubscribedResidents` + `getPastSubmittersWantingReminders` (unused — safe to remove).
+- **Public unsubscribe:** `GET /api/newsletter/unsubscribe` (or a route handler) keyed by `?token=`, + a friendly `/newsletter/unsubscribe` page (confirm + done states). Ready for the eventual email footer link (wired when Phase 5c send is built). Likely needs to be added to `AuthProvider` public-path bypass list (like the other `/newsletter/*` public pages).
+- **Resubscribe endpoint:** confirm-by-email from the form success page / resident step 2. [Open security note below.]
+- **Admin subscribers page** under `/admin/newsletter` (or a tab): list + filter by status + unsubscribe/resubscribe buttons (admin actor in audit). All `requireAdminAuth`.
+
+## Build order (one commit per phase; migration runs in Supabase between/with deploys)
+1. **Schema + lib + audit + repoint** — create table + backfill migration; `lib/subscribers.ts`; extend `AuditEventType`; repoint `resolveRecipients`; remove the two dead source-functions. No UI. (DB + code move together — single shared Supabase, so coordinate like the column rename.)
+2. **Unsubscribe surfaces** — public `/newsletter/unsubscribe` page + endpoint; admin subscribers management page.
+3. **Newsletter form writer** — checkbox writes to subscribers; resubscribe-confirm on submit/edit success pages; **drop `notify_for_future_newsletters`** (column + all code refs: `lib/newsletter.ts` parse/type, `NewsletterForm.tsx`, edit page, submit/[id] route).
+4. **Resident writer** — upsert on resident create + self-edit; two-step resubscribe confirmation in the K9-family create flow (`/api/residents` + `K9FamilyClient.tsx`).
+
+## Resolved decisions (settled with Cami 2026-06-18)
+- **Resubscribe endpoint security:** ✅ **(a) — keep it simple.** Confirm resubscribe by raw email; low risk for an alumni list (worst case someone gets re-added and clicks unsubscribe once). No token gate, no double opt-in.
+- **De-opting involvement** on a resident: ✅ **YES, unsubscribe.** (Reverses the earlier "default no.") The involvement selector has its own newsletter-relevant entry; switching away is an explicit signal. Show an info message under the control warning the user, and audit `newsletter_unsubscribed`. See "Resident wiring" above.
+- **Manual-add path:** ✅ **Inform the admin** when the email previously unsubscribed — surface the resubscribe-confirm so the admin sees *"this user chose to unsubscribe"* before re-adding (don't silently resurrect).
+
+## Migration SQL to write (Phase 1 + Phase 3)
+- `migrations/<date>-newsletter-subscribers.sql` — `create table` + indexes + backfill INSERT…SELECT from residents (opt-in criteria) and `newsletter_submissions` (notify=true), dedup, tokens.
+- `migrations/<date>-drop-notify-column.sql` (Phase 3) — `alter table newsletter_submissions drop column notify_for_future_newsletters;` (only after backfill + code deployed).
