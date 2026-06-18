@@ -55,6 +55,13 @@ export default function ReminderClient({
   const [info, setInfo] = useState<string | null>(null);
 
   const replyToValid = EMAIL_RE.test(replyTo.trim());
+  const testEmailValid = EMAIL_RE.test(testEmail.trim());
+
+  // Why the test button is disabled, if it is (busy aside).
+  const testMissing = [
+    !replyToValid && 'reply-to email',
+    !testEmailValid && 'recipient email',
+  ].filter(Boolean) as string[];
 
   const failedCount = useMemo(() => {
     const latest = new Map<string, 'sent' | 'failed'>();
@@ -164,15 +171,19 @@ export default function ReminderClient({
               />
               <button
                 onClick={() => post('test')}
-                disabled={busy !== null || !replyToValid}
+                disabled={busy !== null || testMissing.length > 0}
                 className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:cursor-default disabled:opacity-50"
               >
                 {busy === 'test' ? 'Sending…' : 'Send test'}
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Doesn&apos;t finalize anything or count toward the audit log.
-            </p>
+            {busy === null && testMissing.length > 0 ? (
+              <p className="text-xs text-amber-600 mt-1">Missing {testMissing.join(' and ')}.</p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">
+                Doesn&apos;t finalize anything or count toward the audit log.
+              </p>
+            )}
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
