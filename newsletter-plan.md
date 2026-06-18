@@ -554,5 +554,66 @@ Extend `AuditEventType` in `src/lib/audit.ts`:
 - **Manual-add path:** ✅ **Inform the admin** when the email previously unsubscribed — surface the resubscribe-confirm so the admin sees *"this user chose to unsubscribe"* before re-adding (don't silently resurrect).
 
 ## Migration SQL to write (Phase 1 + Phase 3)
-- `migrations/<date>-newsletter-subscribers.sql` — `create table` + indexes + backfill INSERT…SELECT from residents (opt-in criteria) and `newsletter_submissions` (notify=true), dedup, tokens.
-- `migrations/<date>-drop-notify-column.sql` (Phase 3) — `alter table newsletter_submissions drop column notify_for_future_newsletters;` (only after backfill + code deployed).
+- ~~`migrations/*.sql`~~ — **this project does schema by hand**, no migration files. Phase 1 table SQL already run in Supabase. Phase 3 drop (`alter table newsletter_submissions drop column notify_for_future_newsletters;`) is the only pending one — run by hand AFTER the Phase 3 deploy is live.
+
+---
+
+# Phase 5c — send + reminder (scoped 2026-06-18, the final blocker)
+
+**Status:** 🟢 **Reminder built first** (done 2026-06-18, Cami needed it now) — shared `lib/resend.ts` + `lib/newsletterEmail.ts` (reminder builder), `getActiveSubscribers` now returns the token, `getReminderSendLog`, `POST /api/admin/newsletter/reminder/send` (all/test/retry-failed), `/admin/newsletter/reminder` page+client (reply-to, recipient count, quota strip, test-send, audit table + retry). `resolveRecipients`/`RecipientEntry`/`RecipientSource` removed; `resendDailyLimit()` lifted to `lib/resend`. tsc+build green; auth smoke-tested. ⬜ **Send (the newsletter itself) still to build** — recipients = subscribers ∪ this edition's contributors, contributor footer line, `newsletterEmail` newsletter builder, send route+page.
+
+The send flow. With the subscriber model in place, decisions settled with Cami:
+- **Email format:** announcement email (masthead + title + intro + "Read the newsletter →" button to `/newsletter/n/[token]` + unsubscribe footer). NOT the full newsletter inline — the token page already renders it.
+- **Newsletter recipients:** **active subscribers ∪ this edition's contributors**, deduped by lowercased email, **minus anyone explicitly unsubscribed** (a `newsletter_subscribers` row with `status='unsubscribed'` always suppresses — not opting into future newsletters is NOT the same as unsubscribing).
+  - *Active subscribers* = `newsletter_subscribers` where `status='subscribed'` (have a token).
+  - *This edition's contributors* = emails on the submissions assigned to this newsletter (after finalize, `newsletter_id = id`) — they get the issue they're in **regardless of the future-subscribe checkbox**, and are **NOT added to the ongoing list** (one-time for this send).
+- **Reminder recipients:** active subscribers, **MINUS anyone who already posted to the upcoming edition** (emails in the current unassigned-submissions pool — no point nudging someone to "add your news" when they already did). Still minus explicit unsubscribers. No per-send manual box.
+- **Scope:** build send AND reminder together.
+
+### Email footer — two variants, NO signed-email unsubscribe (simplified with Cami)
+- **Subscriber recipients** → unsubscribe footer link `?token=<unsubscribe_token>` (they're on the ongoing list).
+- **Contributor-only recipients** (not subscribers) → **no unsubscribe link**; instead an explanatory line: *"You're getting this email because you submitted a post to this newsletter."* It's a one-off tied to an action they just took, not an ongoing subscription. (Explicit unsubscribers are already excluded from the recipient set, so this never reaches someone who opted out.)
+- Dropped the earlier HMAC signed-email idea entirely — no `lib/unsubscribeLink.ts`, no `?u=`, no `suppressByEmail`.
+
+## Behaviour
+- **Send** = `finalizeAndSendNewsletter(id)` first (scoop + freeze + `status='sent'`), then Resend calls sequentially ~100 ms apart. Each recipient gets the announcement email with a personalised footer link `${BASE_URL}/newsletter/unsubscribe?token=${unsubscribe_token}` (+ a `List-Unsubscribe` header). Reply-to comes from the admin (required input, prefilled from `ADMIN_DEFAULT_REPLY_TO`).
+- **Every recipient logged** to `audit_logs` as `newsletter_email_sent` (success or failure) with `details = { newsletter_id, recipient_email, recipient_name, recipient_source:'subscriber', resend_message_id?, status:'sent'|'failed', error_message?, reply_to }`. Already counted by `getEmailsSentInLast24h()`.
+- **Re-send / retry-failed:** finalize is idempotent (no-op once sent). "Retry failed only" re-sends just the emails whose latest attempt for this newsletter was `failed` (failed-minus-later-succeeded, from the audit log).
+- **Test send:** a "send a test to one email" field that renders the same email (draft token link works — a draft renders the live preview) WITHOUT finalizing the newsletter or writing a quota-counted audit row. This is the safe path for the first dry-run to your own inbox (single prod DB + real Resend).
+- **Reminder:** same recipients (active subscribers) + same unsubscribe footer. Body: "The next newsletter is coming — add your news at `/newsletter/submit`." Logged `newsletter_reminder_sent` with `details.newsletter_id = null`.
+- **Quota strip:** green/yellow/red on `sentLast24h + recipientCount` vs `RESEND_DAILY_LIMIT`. Warning only, never blocks.
+
+## Files
+**New**
+- `src/lib/resend.ts` — shared Resend client, `NEWSLETTER_FROM`, `baseUrl()`, and `resendDailyLimit()` (lifted from the dashboard page + email-quota route, dedup).
+- `src/lib/newsletterEmail.ts` — `buildNewsletterEmailHtml({ newsletter, readUrl, unsubscribeUrl })` + `buildReminderEmailHtml({ submitUrl, unsubscribeUrl })` (inline-styled; masthead = `header_image_url` ?? default).
+- `src/app/api/admin/newsletter/[id]/send/route.ts` — `POST` (modes: full send / retry-failed / test-to-one), `requireAdminAuth`.
+- `src/app/admin/newsletter/[id]/send/page.tsx` (server-gated, loads newsletter + recipient count + quota + send-log) + `SendClient.tsx`.
+- `src/app/api/admin/newsletter/reminder/send/route.ts` — `POST`, `requireAdminAuth`.
+- `src/app/admin/newsletter/reminder/page.tsx` (server-gated, loads recipient count + quota + reminder log) + `ReminderClient.tsx`.
+
+**Modified**
+- `src/lib/subscribers.ts` — `getActiveSubscribers()` returns `{ email, name, unsubscribe_token }` (token needed for footer links); add `getUnsubscribedEmails()` (suppression set).
+- `src/lib/newsletter.ts` — add a contributors-by-newsletter email accessor (export `getSubmissionsByNewsletterId` or a thin `getNewsletterContributorEmails(id)`); remove now-dead `resolveRecipients` / `RecipientEntry` / `RecipientSource`.
+- `src/lib/audit.ts` — `getNewsletterSendLog(newsletterId)` + `getReminderSendLog()` (recent), for the audit tables + retry-failed set.
+- `src/app/admin/newsletter/page.tsx` + `AdminNewsletterClient.tsx` — use the lifted `resendDailyLimit()`; the existing Send / Re-send / reminder links now resolve instead of 404.
+- (No changes to the unsubscribe route/page — contributor recipients get an explanatory line, not an unsubscribe link.)
+
+## Recipient computation
+**Newsletter send (edition `id`):**
+1. `finalizeAndSendNewsletter(id)` → contributors are now `newsletter_id = id`.
+2. `active = getActiveSubscribers()` → `{email, name, token}` (subscriber footer = `?token=` link).
+3. `contributors = getNewsletterContributorEmails(id)` → `{email, name}` (contributor footer = "you submitted a post" line).
+4. `unsub = getUnsubscribedEmails()` → Set.
+5. recipients = dedupe(active ∪ contributors) by `lower(email)`, drop any in `unsub`. When an email is both, prefer the subscriber entry (so it gets the `?token=` unsubscribe link).
+
+**Reminder:**
+1. `active = getActiveSubscribers()`.
+2. `posted = ` emails in the current unassigned-submissions pool (`getUnassignedSubmissions`).
+3. `unsub = getUnsubscribedEmails()`.
+4. recipients = `active` minus `posted` minus `unsub`.
+
+## Not in scope / deferred
+- Full inline-HTML newsletter email (chose announcement-link instead).
+- Per-send ad-hoc manual recipient box (use the subscribers page).
+- One-click `List-Unsubscribe-Post` (header points at the GET confirm page only — our POST endpoint expects a JSON token body, not RFC 8058 one-click).

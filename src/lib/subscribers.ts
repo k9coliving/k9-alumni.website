@@ -208,11 +208,14 @@ export async function unsubscribeByEmail(
   return applyUnsubscribe(row, ctx);
 }
 
-// The recipient list. Sends read ONLY this.
-export async function getActiveSubscribers(): Promise<{ email: string; name: string | null }[]> {
+// Active subscribers with their unsubscribe token — the ongoing recipient list
+// for sends and reminders (the token drives each email's unsubscribe link).
+export async function getActiveSubscribers(): Promise<
+  { email: string; name: string | null; unsubscribe_token: string }[]
+> {
   const { data, error } = await supabaseAdmin
     .from('newsletter_subscribers')
-    .select('email, name')
+    .select('email, name, unsubscribe_token')
     .eq('status', 'subscribed');
 
   if (error) {

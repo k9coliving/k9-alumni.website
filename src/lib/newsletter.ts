@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from './supabase';
-import { getActiveSubscribers } from './subscribers';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,14 +69,6 @@ export interface NewsletterRecord {
   header_image_url?: string | null;
 
   status: 'draft' | 'sent';
-}
-
-export type RecipientSource = 'subscriber' | 'manual';
-
-export interface RecipientEntry {
-  email: string;
-  name?: string;
-  source: RecipientSource;
 }
 
 // Fields a submitter is allowed to set on create/update. Excludes server-managed
@@ -497,30 +488,7 @@ export async function getUpcomingEvents(months = 3): Promise<NewsletterEventReco
 // ---------------------------------------------------------------------------
 // Recipients
 // ---------------------------------------------------------------------------
-
-// The newsletter_subscribers table (src/lib/subscribers.ts) is the single
-// source of truth for who receives the newsletter. resolveRecipients unions the
-// active subscribers with any admin-supplied manual emails, deduped by
-// lowercased email — subscribers win their source tag.
-export async function resolveRecipients(manualEmails: string[] = []): Promise<RecipientEntry[]> {
-  const byKey = new Map<string, RecipientEntry>();
-
-  const subscribers = await getActiveSubscribers();
-  for (const s of subscribers) {
-    const key = s.email.toLowerCase();
-    if (!byKey.has(key)) {
-      byKey.set(key, { email: s.email, name: s.name ?? undefined, source: 'subscriber' });
-    }
-  }
-
-  for (const raw of manualEmails) {
-    const email = raw.trim();
-    if (!email) continue;
-    const key = email.toLowerCase();
-    if (!byKey.has(key)) {
-      byKey.set(key, { email, source: 'manual' });
-    }
-  }
-
-  return [...byKey.values()];
-}
+//
+// Recipient sets are computed in the send/reminder routes directly from
+// getActiveSubscribers() (and, for a send, the edition's contributors). There's
+// no shared resolver anymore — the two flows pick different sets.

@@ -106,6 +106,56 @@ export async function getEmailsSentInLast24h(): Promise<number> {
   }
 }
 
+// One per-recipient row from a send/reminder run, flattened from audit details.
+export interface SendLogEntry {
+  recipient_email: string;
+  recipient_name?: string;
+  status: 'sent' | 'failed';
+  error_message?: string;
+  timestamp: string;
+}
+
+function mapSendLog(
+  rows: { details: Record<string, unknown> | null; timestamp: string }[]
+): SendLogEntry[] {
+  return rows
+    .map((row) => {
+      const d = row.details || {};
+      return {
+        recipient_email: typeof d.recipient_email === 'string' ? d.recipient_email : '',
+        recipient_name: typeof d.recipient_name === 'string' ? d.recipient_name : undefined,
+        status: d.status === 'failed' ? 'failed' : 'sent',
+        error_message: typeof d.error_message === 'string' ? d.error_message : undefined,
+        timestamp: row.timestamp,
+      } as SendLogEntry;
+    })
+    .filter((e) => e.recipient_email);
+}
+
+// Recent reminder send attempts (newest first) — powers the reminder page's
+// audit table and its "retry failed" set. Reminders aren't tied to an edition,
+// so this is time-windowed rather than per-newsletter.
+export async function getReminderSendLog(sinceHours = 24): Promise<SendLogEntry[]> {
+  try {
+    const cutoff = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('details, timestamp')
+      .eq('event_type', 'newsletter_reminder_sent')
+      .gte('timestamp', cutoff)
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load reminder send log:', error);
+      return [];
+    }
+    return mapSendLog(data || []);
+  } catch (err) {
+    console.error('Error loading reminder send log:', err);
+    return [];
+  }
+}
+
 export function calculateBackoffDelay(attemptCount: number): number {
   if (attemptCount <= 3) return 0;
 
