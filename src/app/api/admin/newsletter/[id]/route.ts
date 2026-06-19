@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/api-auth';
-import { getNewsletterById, updateNewsletter } from '@/lib/newsletter';
+import { getNewsletterById, updateNewsletter, sanitizeFeatured } from '@/lib/newsletter';
 import { logger } from '@/lib/logger';
 
 const MAX_LEN = 10_000;
@@ -45,6 +45,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(raw.outro_text !== undefined ? { outro_text: clean(raw.outro_text) ?? null } : {}),
       ...(raw.header_image_url !== undefined ? { header_image_url: clean(raw.header_image_url) ?? null } : {}),
       ...(raw.email_reply_to !== undefined ? { email_reply_to: replyTo ?? null } : {}),
+      ...(raw.featured !== undefined ? { featured: sanitizeFeatured(raw.featured) } : {}),
     });
 
     logger.info('Newsletter draft updated', { endpoint: 'admin/newsletter/[id]', newsletterId: id });

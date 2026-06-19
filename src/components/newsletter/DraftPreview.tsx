@@ -1,8 +1,9 @@
 'use client';
 
 import { FONT_BODY } from './theme';
-import { IssueTopBar, Masthead, WelcomeNote, NewsletterFooter, resolveHeaderImage } from './sections';
+import { IssueTopBar, Masthead, WelcomeNote, FeaturedSection, NewsletterFooter, resolveHeaderImage } from './sections';
 import AutoScale from './AutoScale';
+import type { FeaturedItem } from '@/lib/newsletter';
 
 // Live preview of the parts of the newsletter the admin controls from the draft
 // form — top bar, masthead (heading + header image), the intro welcome note, and
@@ -16,6 +17,7 @@ export default function DraftPreview({
   introText,
   outroText,
   headerImageUrl,
+  featured,
   issueLabel,
 }: {
   title: string;
@@ -23,6 +25,7 @@ export default function DraftPreview({
   introText: string;
   outroText: string;
   headerImageUrl: string;
+  featured: FeaturedItem[];
   issueLabel: string;
 }) {
   const headerImage = resolveHeaderImage(headerImageUrl || null);
@@ -49,6 +52,7 @@ export default function DraftPreview({
               Submissions collected for this issue render here in the sent newsletter.
             </div>
           </div>
+          <FeaturedSection items={featured} />
         </div>
         <NewsletterFooter outroText={outroText} issueLabel={issueLabel} />
       </div>

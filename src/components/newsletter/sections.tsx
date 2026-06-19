@@ -5,7 +5,8 @@
 // These are pure (no hooks, no data fetching), so they work in both the server
 // component (NewsletterView) and the client preview (DraftPreview).
 
-import { FONT_DISPLAY, FONT_BODY, FONT_HAND, INK, ASSETS } from './theme';
+import { FONT_DISPLAY, FONT_BODY, FONT_HAND, INK, ASSETS, PALETTE } from './theme';
+import type { FeaturedItem } from '@/lib/newsletter';
 
 // Default intro shown when a newsletter has no intro_text of its own. Lives here
 // (not inline) so the public view and the dashboard preview share one copy.
@@ -93,6 +94,99 @@ export function WelcomeNote({ heading, introText }: { heading?: string | null; i
         </div>
       </div>
     </div>
+  );
+}
+
+// Group plain text into runs of consecutive lines of the same kind — "quote"
+// (lines starting with ">") or "text" — with blank lines breaking the run. Used
+// by both the page and email renderers so they treat quotes identically.
+function textBlocks(text: string): { type: 'quote' | 'text'; lines: string[] }[] {
+  const blocks: { type: 'quote' | 'text'; lines: string[] }[] = [];
+  let cur: { type: 'quote' | 'text'; lines: string[] } | null = null;
+  for (const line of text.split('\n')) {
+    if (line.trim() === '') {
+      cur = null;
+      continue;
+    }
+    const isQuote = line.trimStart().startsWith('>');
+    const content = isQuote ? line.replace(/^\s*>\s?/, '') : line;
+    const type = isQuote ? 'quote' : 'text';
+    if (!cur || cur.type !== type) {
+      cur = { type, lines: [] };
+      blocks.push(cur);
+    }
+    cur.lines.push(content);
+  }
+  return blocks;
+}
+
+// Lightweight rich text: a run of lines starting with ">" renders as a styled
+// pull-quote; everything else as paragraphs. Keeps admin copy plain-text simple
+// while allowing a quote anywhere.
+function renderRichText(text: string) {
+  return textBlocks(text).map((b, i) =>
+    b.type === 'quote' ? (
+      <blockquote
+        key={i}
+        style={{ margin: i === 0 ? 0 : '14px 0 0', padding: '6px 0 6px 18px', borderLeft: '4px solid #e5e7eb', fontStyle: 'italic', color: '#46587a', fontSize: '17px', lineHeight: 1.6, whiteSpace: 'pre-line' }}
+      >
+        {b.lines.join('\n')}
+      </blockquote>
+    ) : (
+      <p key={i} style={{ fontSize: '16px', lineHeight: 1.65, color: '#3a4a66', margin: i === 0 ? 0 : '12px 0 0', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+        {b.lines.join('\n')}
+      </p>
+    )
+  );
+}
+
+// Shared by the email renderer too (it can't import from a server bundle cleanly,
+// but this module is pure) — exported for newsletterEmail's paragraphs().
+export { textBlocks };
+
+// Optional editorial highlights for an issue (book rec, news, anniversary). One
+// accent card per item; the card colour cycles through the palette. Shared by the
+// public view and the dashboard preview. Renders nothing when there are none.
+export function FeaturedSection({ items }: { items: FeaturedItem[] }) {
+  if (!items.length) return null;
+  return (
+    <>
+      <div style={{ margin: '50px 0 20px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#E7A92F', marginBottom: '7px' }}>
+          A few things worth a mention
+        </div>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: 0 }}>From the K9 crew</h2>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {items.map((item, i) => {
+          const p = PALETTE[i % PALETTE.length];
+          return (
+            <div key={i} style={{ background: '#fff', borderRadius: '20px', padding: '22px 24px', boxShadow: '0 16px 38px -28px rgba(22,41,76,0.42)', borderLeft: `5px solid ${p.accent}` }}>
+              {item.image_url && (
+                // Mirrors a resident post: photo floats beside the text (stacks on
+                // narrow screens) and is shown at its full natural aspect, never cropped.
+                <div className="nl-member-photos">
+                  <div style={{ borderRadius: '18px', overflow: 'hidden', background: p.soft, boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.image_url} alt="" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                  </div>
+                </div>
+              )}
+              {item.eyebrow && (
+                <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: p.deep, marginBottom: '6px' }}>
+                  {item.eyebrow}
+                </div>
+              )}
+              <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '22px', color: INK, margin: '0 0 8px', lineHeight: 1.2 }}>
+                {item.title}
+              </h3>
+              {item.body && renderRichText(item.body)}
+              <div style={{ clear: 'both' }} />
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

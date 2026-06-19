@@ -81,8 +81,20 @@ export interface NewsletterRecord {
   status: 'draft' | 'sent';
 }
 
+// An optional editorial highlight for an issue — a book recommendation, a piece
+// of news, an anniversary banner. Stored in `data.featured` (no own column).
+export interface FeaturedItem {
+  eyebrow?: string; // small kicker label, e.g. "From #bookclub" / "K9 turns 10"
+  title: string; // required
+  body?: string;
+  image_url?: string; // optional Supabase public URL (reuses the image upload)
+}
+
+export const MAX_FEATURED = 3;
+
 export interface NewsletterData {
   email_reply_to?: string | null;
+  featured?: FeaturedItem[];
   [key: string]: unknown;
 }
 
@@ -90,6 +102,41 @@ export interface NewsletterData {
 export function replyToOf(n: Pick<NewsletterRecord, 'data'> | null | undefined): string {
   const v = n?.data?.email_reply_to;
   return typeof v === 'string' ? v.trim() : '';
+}
+
+// The featured highlights configured for an issue ([] when none).
+export function featuredOf(n: Pick<NewsletterRecord, 'data'> | null | undefined): FeaturedItem[] {
+  const v = n?.data?.featured;
+  return Array.isArray(v) ? sanitizeFeatured(v) : [];
+}
+
+// Validate/normalise featured items from any input: trim, soft-cap field lengths
+// (reusing MAX_FIELD_LENGTH), drop items with no title, cap the list at
+// MAX_FEATURED, and only carry image_url when it's a non-empty string.
+export function sanitizeFeatured(raw: unknown): FeaturedItem[] {
+  if (!Array.isArray(raw)) return [];
+  const str = (v: unknown): string | undefined => {
+    if (typeof v !== 'string') return undefined;
+    const t = v.trim();
+    return t ? t.slice(0, MAX_FIELD_LENGTH) : undefined;
+  };
+  return raw
+    .map((r): FeaturedItem | null => {
+      if (!r || typeof r !== 'object') return null;
+      const rec = r as Record<string, unknown>;
+      const title = str(rec.title);
+      if (!title) return null;
+      const item: FeaturedItem = { title };
+      const eyebrow = str(rec.eyebrow);
+      if (eyebrow) item.eyebrow = eyebrow;
+      const body = str(rec.body);
+      if (body) item.body = body;
+      const imageUrl = str(rec.image_url);
+      if (imageUrl) item.image_url = imageUrl;
+      return item;
+    })
+    .filter((i): i is FeaturedItem => i !== null)
+    .slice(0, MAX_FEATURED);
 }
 
 // Fields a submitter is allowed to set on create/update. Excludes server-managed
@@ -319,6 +366,7 @@ export async function createNewsletter(draft: {
   outro_text?: string | null;
   header_image_url?: string | null;
   email_reply_to?: string | null;
+  featured?: FeaturedItem[];
 }): Promise<NewsletterRecord> {
   // 192-bit url-safe token. This is the only thing gating access to the
   // newsletter, so it needs real entropy.
@@ -339,12 +387,16 @@ export async function createNewsletter(draft: {
   if (draft.header_image_url !== undefined) {
     row.header_image_url = draft.header_image_url;
   }
+  // email_reply_to + featured both live in the `data` jsonb; only attach it when
+  // there's something to store.
+  const data: NewsletterData = {};
   const replyTo = (draft.email_reply_to ?? '').trim();
-  if (replyTo) {
-    row.data = { email_reply_to: replyTo } satisfies NewsletterData;
-  }
+  if (replyTo) data.email_reply_to = replyTo;
+  const featured = sanitizeFeatured(draft.featured);
+  if (featured.length) data.featured = featured;
+  if (Object.keys(data).length) row.data = data;
 
-  const { data, error } = await supabaseAdmin
+  const { data: created, error } = await supabaseAdmin
     .from('newsletters')
     .insert([row])
     .select()
@@ -354,7 +406,7 @@ export async function createNewsletter(draft: {
     throw new Error(`Failed to create newsletter: ${error.message}`);
   }
 
-  return data;
+  return created;
 }
 
 // Edit a draft's editorial fields. Only meaningful while status='draft'; the
@@ -368,19 +420,27 @@ export async function updateNewsletter(
     outro_text?: string | null;
     header_image_url?: string | null;
     email_reply_to?: string | null;
+    featured?: FeaturedItem[];
   }
 ): Promise<NewsletterRecord | null> {
-  const { email_reply_to, ...columns } = patch;
+  const { email_reply_to, featured, ...columns } = patch;
   const update: Record<string, unknown> = { ...columns, updated_at: new Date().toISOString() };
 
-  // email_reply_to lives inside the `data` jsonb. Merge rather than overwrite so
-  // a draft edit can't clobber other keys (e.g. send-time stats written later).
-  if (email_reply_to !== undefined) {
+  // email_reply_to + featured live inside the `data` jsonb. Merge rather than
+  // overwrite so a draft edit can't clobber other keys (e.g. send-time stats).
+  if (email_reply_to !== undefined || featured !== undefined) {
     const existing = await getNewsletterById(id);
     const merged: NewsletterData = { ...(existing?.data ?? {}) };
-    const trimmed = (email_reply_to ?? '').trim();
-    if (trimmed) merged.email_reply_to = trimmed;
-    else delete merged.email_reply_to;
+    if (email_reply_to !== undefined) {
+      const trimmed = (email_reply_to ?? '').trim();
+      if (trimmed) merged.email_reply_to = trimmed;
+      else delete merged.email_reply_to;
+    }
+    if (featured !== undefined) {
+      const items = sanitizeFeatured(featured);
+      if (items.length) merged.featured = items;
+      else delete merged.featured;
+    }
     update.data = merged;
   }
 

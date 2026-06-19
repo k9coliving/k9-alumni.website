@@ -5,7 +5,8 @@
 // no external CSS and no absolute positioning. Pure (no server deps) so the
 // admin page can import it for a live preview.
 
-import { DEFAULT_INTRO, DEFAULT_INTRO_HEADING, resolveHeaderImage } from '@/components/newsletter/sections';
+import { DEFAULT_INTRO, DEFAULT_INTRO_HEADING, resolveHeaderImage, textBlocks } from '@/components/newsletter/sections';
+import type { FeaturedItem } from '@/lib/newsletter';
 
 const INK = '#16294C';
 const YELLOW = '#F6C44C';
@@ -38,16 +39,17 @@ function escapeHtml(s: string): string {
 }
 
 // Render admin-entered plain text as HTML: blank lines split paragraphs, single
-// newlines become <br>. Escaped so the admin can't break (or inject) markup.
+// newlines become <br>, and a block whose first line starts with "> " becomes a
+// styled pull-quote. Escaped so the admin can't break (or inject) markup.
 function paragraphs(text: string): string {
-  return text
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map(
-      (p) =>
-        `<p style="font-size:16px; line-height:1.7; color:#3a4a66; margin:0 0 16px;">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
-    )
+  return textBlocks(text)
+    .map((b) => {
+      const html = b.lines.map(escapeHtml).join('<br>');
+      if (b.type === 'quote') {
+        return `<blockquote style="margin:16px 0; padding:6px 0 6px 16px; border-left:4px solid #e5e7eb; font-style:italic; color:#46587a; font-size:16px; line-height:1.6;">${html}</blockquote>`;
+      }
+      return `<p style="font-size:16px; line-height:1.7; color:#3a4a66; margin:0 0 16px;">${html}</p>`;
+    })
     .join('');
 }
 
@@ -119,12 +121,45 @@ export function buildReminderEmailHtml({
 </div>`;
 }
 
+// Slim "Don't miss" teaser of the issue's featured highlights — eyebrow + title
+// (+ optional small image, short body), email-safe. Empty string when none.
+function featuredStrip(items: FeaturedItem[]): string {
+  if (!items.length) return '';
+  const cards = items
+    .map((it) => {
+      const img = it.image_url
+        ? `<td valign="top" style="padding:0 14px 0 0; width:84px;"><img src="${it.image_url}" alt="" width="84" style="width:84px; height:84px; object-fit:cover; border-radius:10px; display:block;" /></td>`
+        : '';
+      const eyebrow = it.eyebrow
+        ? `<div style="font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#E7A92F; margin:0 0 4px;">${escapeHtml(it.eyebrow)}</div>`
+        : '';
+      const body = it.body ? `<div style="margin:6px 0 0;">${paragraphs(it.body)}</div>` : '';
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:0 0 14px;">
+        <tr>
+          ${img}
+          <td valign="top">
+            ${eyebrow}
+            <div style="font-size:17px; font-weight:800; color:${INK}; line-height:1.25;">${escapeHtml(it.title)}</div>
+            ${body}
+          </td>
+        </tr>
+      </table>`;
+    })
+    .join('');
+  return `<div style="border-top:1px solid #eef0f4; margin:20px 0 0; padding:18px 0 0;">
+    <div style="font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#E7A92F; margin:0 0 12px;">Don't miss</div>
+    ${cards}
+  </div>`;
+}
+
 export interface NewsletterEmailArgs {
   title: string;
   introHeading?: string | null;
   introText?: string | null;
   // Raw per-issue header image (or null); resolved to the default masthead here.
   headerImageUrl?: string | null;
+  // Optional featured highlights, shown as a slim teaser above the Read button.
+  featured?: FeaturedItem[];
   // The token page that renders the full newsletter.
   readUrl: string;
   // Present for subscriber recipients (→ unsubscribe footer). Omit for
@@ -140,6 +175,7 @@ export function buildNewsletterEmailHtml({
   introHeading,
   introText,
   headerImageUrl,
+  featured,
   readUrl,
   unsubscribeUrl,
 }: NewsletterEmailArgs): string {
@@ -147,6 +183,7 @@ export function buildNewsletterEmailHtml({
   const safeHeading = escapeHtml((introHeading || '').trim() || DEFAULT_INTRO_HEADING);
   const intro = paragraphs((introText || '').trim() || DEFAULT_INTRO);
   const masthead = resolveHeaderImage(headerImageUrl ?? null);
+  const featuredHtml = featuredStrip(featured ?? []);
 
   // Subscribers get an unsubscribe link; contributor-only recipients get a line
   // explaining the one-off (they're not on the ongoing list).
@@ -180,6 +217,7 @@ export function buildNewsletterEmailHtml({
       </div>
       <h2 style="font-size:20px; line-height:1.2; color:${INK}; font-weight:800; margin:0 0 10px;">${safeHeading}</h2>
       ${intro}
+      ${featuredHtml}
       ${button(readUrl, 'Read the newsletter')}
     </div>
 

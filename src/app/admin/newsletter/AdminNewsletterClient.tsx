@@ -5,7 +5,60 @@ import { useRouter } from 'next/navigation';
 import MultiImageDrop from '@/components/MultiImageDrop';
 import DraftPreview from '@/components/newsletter/DraftPreview';
 import { DEFAULT_INTRO_HEADING } from '@/components/newsletter/sections';
-import type { NewsletterRecord, NewsletterSubmissionRecord } from '@/lib/newsletter';
+import type { NewsletterRecord, NewsletterSubmissionRecord, FeaturedItem } from '@/lib/newsletter';
+
+// Mirror of MAX_FEATURED in @/lib/newsletter. Kept as a local literal because
+// that module has server-only imports and this is a client component (the server
+// re-clamps on save regardless).
+const MAX_FEATURED = 3;
+
+// Editable form shape for a featured highlight — all-strings so inputs are
+// controlled; mapped to FeaturedItem (dropping blanks) on save.
+type FeaturedDraft = { eyebrow: string; title: string; body: string; image_url: string };
+
+const toFeaturedDrafts = (items: FeaturedItem[] | undefined): FeaturedDraft[] =>
+  (items ?? []).map((f) => ({
+    eyebrow: f.eyebrow ?? '',
+    title: f.title ?? '',
+    body: f.body ?? '',
+    image_url: f.image_url ?? '',
+  }));
+
+// Rows with a title, trimmed, blanks dropped — the same shape the server stores.
+// Used for the save payload and for dirty comparison.
+const toFeaturedItems = (rows: FeaturedDraft[]): FeaturedItem[] =>
+  rows
+    .filter((r) => r.title.trim())
+    .slice(0, MAX_FEATURED)
+    .map((r) => {
+      const item: FeaturedItem = { title: r.title.trim() };
+      if (r.eyebrow.trim()) item.eyebrow = r.eyebrow.trim();
+      if (r.body.trim()) item.body = r.body.trim();
+      if (r.image_url.trim()) item.image_url = r.image_url.trim();
+      return item;
+    });
+
+// Canonical serialization of featured items for equality checks. jsonb doesn't
+// preserve object key order, so the array returned from the DB has keys in a
+// different order than toFeaturedItems builds — comparing raw JSON.stringify
+// would always differ. Flatten each item to a fixed-order tuple instead.
+const canonFeatured = (items: FeaturedItem[] | undefined): string =>
+  JSON.stringify((items ?? []).map((it) => [it.title ?? '', it.eyebrow ?? '', it.body ?? '', it.image_url ?? '']));
+
+// Preview-only: show a row as soon as it has any content, with a placeholder
+// title until one is typed, so the live preview reflects a highlight while it's
+// still being built. (The saved payload uses toFeaturedItems, which is title-gated.)
+const toFeaturedPreview = (rows: FeaturedDraft[]): FeaturedItem[] =>
+  rows
+    .filter((r) => r.title.trim() || r.body.trim() || r.eyebrow.trim() || r.image_url.trim())
+    .slice(0, MAX_FEATURED)
+    .map((r) => {
+      const item: FeaturedItem = { title: r.title.trim() || 'Untitled highlight' };
+      if (r.eyebrow.trim()) item.eyebrow = r.eyebrow.trim();
+      if (r.body.trim()) item.body = r.body.trim();
+      if (r.image_url.trim()) item.image_url = r.image_url.trim();
+      return item;
+    });
 
 interface Quota {
   sentLast24h: number;
@@ -72,6 +125,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
   const [intro, setIntro] = useState(draft?.intro_text ?? '');
   const [outro, setOutro] = useState(draft?.outro_text ?? '');
   const [headerImageUrl, setHeaderImageUrl] = useState(draft?.header_image_url ?? '');
+  const [featured, setFeatured] = useState<FeaturedDraft[]>(toFeaturedDrafts(draft?.data?.featured));
   // Reply-to for every email this issue sends. Set once here, not per send.
   // Edit uses the draft's saved value; a new draft inherits the carried-forward default.
   const [replyTo, setReplyTo] = useState(draft ? (draft.data?.email_reply_to ?? '') : defaultReplyTo);
@@ -87,29 +141,38 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
   // shows the form straight away (nothing to collapse).
   const [editing, setEditing] = useState(false);
 
-  // Same drag-and-drop component the public submission form uses. It can hand up
-  // several files; we only keep the first since the header is a single image.
-  const addHeaderImage = async (files: File[]) => {
+  // Shared upload: validate an image file and POST it, returning the public URL.
+  // Used by the header field and each featured-highlight row.
+  const uploadImage = async (files: File[]): Promise<string | null> => {
     const file = files[0];
-    if (!file) return;
+    if (!file) return null;
     if (!file.type.startsWith('image/')) {
       setError('Please choose an image file.');
-      return;
+      return null;
     }
     if (file.size > 5 * 1024 * 1024) {
       setError('Image must be smaller than 5 MB.');
-      return;
+      return null;
     }
-    setUploadingHeader(true);
     setError(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/images/upload', { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed.');
+    return data.url as string;
+  };
+
+  // Same drag-and-drop component the public submission form uses. It can hand up
+  // several files; we only keep the first since the header is a single image.
+  const addHeaderImage = async (files: File[]) => {
+    setUploadingHeader(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/images/upload', { method: 'POST', body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Upload failed.');
-      setHeaderImageUrl(data.url);
-      setHeaderTouched(true);
+      const url = await uploadImage(files);
+      if (url) {
+        setHeaderImageUrl(url);
+        setHeaderTouched(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
@@ -120,6 +183,30 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
   const removeHeader = () => {
     setHeaderImageUrl('');
     setHeaderTouched(true);
+  };
+
+  // Featured-highlight row helpers.
+  const addFeatured = () =>
+    setFeatured((rows) =>
+      rows.length >= MAX_FEATURED ? rows : [...rows, { eyebrow: '', title: '', body: '', image_url: '' }]
+    );
+  const removeFeatured = (i: number) => setFeatured((rows) => rows.filter((_, idx) => idx !== i));
+  const moveFeaturedUp = (i: number) =>
+    setFeatured((rows) => {
+      if (i <= 0) return rows;
+      const next = [...rows];
+      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+      return next;
+    });
+  const updateFeatured = (i: number, patch: Partial<FeaturedDraft>) =>
+    setFeatured((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const addFeaturedImage = async (i: number, files: File[]) => {
+    try {
+      const url = await uploadImage(files);
+      if (url) updateFeatured(i, { image_url: url });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed.');
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -145,6 +232,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
           intro_text: intro,
           outro_text: outro,
           email_reply_to: replyTo.trim() || null,
+          featured: toFeaturedItems(featured),
           ...(headerTouched ? { header_image_url: headerImageUrl || null } : {}),
         }),
       });
@@ -162,6 +250,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
         setOutro('');
         setHeaderImageUrl('');
         setReplyTo(defaultReplyTo);
+        setFeatured([]);
         setHeaderTouched(false);
       }
       router.refresh();
@@ -188,7 +277,8 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
     intro !== (draft?.intro_text ?? '') ||
     outro !== (draft?.outro_text ?? '') ||
     headerImageUrl !== (draft?.header_image_url ?? '') ||
-    replyTo !== (draft ? (draft.data?.email_reply_to ?? '') : defaultReplyTo);
+    replyTo !== (draft ? (draft.data?.email_reply_to ?? '') : defaultReplyTo) ||
+    canonFeatured(toFeaturedItems(featured)) !== canonFeatured(draft?.data?.featured);
 
   const saveLabel = isEdit ? 'Save changes' : 'Save draft';
 
@@ -305,6 +395,74 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
         <p className="text-xs text-gray-400 mt-1">Overrides the default masthead photo for this issue.</p>
       </div>
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Featured highlights (optional)</label>
+        <p className="text-xs text-gray-400 mb-3">
+          Up to {MAX_FEATURED} — a book rec, a piece of news, a big event (e.g. an anniversary). Each needs a title; image is optional.
+          Tip: start a line in the description with <span className="font-mono">&gt;</span> to show it as a quote.
+        </p>
+        <div className="space-y-4">
+          {featured.map((f, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500">Highlight {i + 1}</span>
+                <div className="flex items-center gap-3">
+                  {i > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => moveFeaturedUp(i)}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                      title="Move up"
+                    >
+                      ↑ Move up
+                    </button>
+                  )}
+                  <button type="button" onClick={() => removeFeatured(i)} className="text-sm text-red-500 hover:text-red-700">
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={f.eyebrow}
+                onChange={(e) => updateFeatured(i, { eyebrow: e.target.value })}
+                className="form-input"
+                placeholder="Label (optional, e.g. From #bookclub)"
+              />
+              <input
+                type="text"
+                value={f.title}
+                onChange={(e) => updateFeatured(i, { title: e.target.value })}
+                className="form-input"
+                placeholder="Title"
+              />
+              <textarea
+                value={f.body}
+                onChange={(e) => updateFeatured(i, { body: e.target.value })}
+                rows={2}
+                className="form-input"
+                placeholder="Description (optional)"
+              />
+              {f.image_url ? (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.image_url} alt="Highlight preview" className="h-16 w-16 object-cover rounded-md border border-gray-200" />
+                  <button type="button" onClick={() => updateFeatured(i, { image_url: '' })} className="text-sm text-red-500 hover:text-red-700">
+                    Remove image
+                  </button>
+                </div>
+              ) : (
+                <MultiImageDrop onAdd={(files) => addFeaturedImage(i, files)} remaining={1} />
+              )}
+            </div>
+          ))}
+        </div>
+        {featured.length < MAX_FEATURED && (
+          <button type="button" onClick={addFeatured} className="mt-3 text-sm text-blue-600 hover:text-blue-700">
+            + Add a highlight
+          </button>
+        )}
+      </div>
+      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Reply-to email</label>
         <input
           type="email"
@@ -330,7 +488,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
       <div className="bg-white rounded-xl shadow p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-gray-900">Live preview</h2>
-          <span className="text-xs text-gray-400">Heading, intro &amp; footer — updates as you type</span>
+          <span className="text-xs text-gray-400">Heading, intro, featured &amp; footer — updates as you type</span>
         </div>
         <div className="rounded-lg overflow-hidden border border-gray-100">
           <DraftPreview
@@ -339,6 +497,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
             introText={intro}
             outroText={outro}
             headerImageUrl={headerImageUrl}
+            featured={toFeaturedPreview(featured)}
             issueLabel={issueLabel}
           />
         </div>

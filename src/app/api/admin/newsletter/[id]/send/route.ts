@@ -6,6 +6,7 @@ import {
   getNewsletterSendRecipients,
   getEffectiveReplyTo,
   replyToOf,
+  featuredOf,
 } from '@/lib/newsletter';
 import { getActiveSubscribers } from '@/lib/subscribers';
 import { logAuditEvent, getNewsletterSendLog } from '@/lib/audit';
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       introHeading: newsletter.intro_heading,
       introText: newsletter.intro_text,
       headerImageUrl: newsletter.header_image_url,
+      featured: featuredOf(newsletter),
       readUrl,
     };
 

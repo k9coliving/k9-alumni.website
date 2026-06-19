@@ -1,7 +1,8 @@
-import type {
-  NewsletterRecord,
-  NewsletterSubmissionRecord,
-  NewsletterEventRecord,
+import {
+  featuredOf,
+  type NewsletterRecord,
+  type NewsletterSubmissionRecord,
+  type NewsletterEventRecord,
 } from '@/lib/newsletter';
 import {
   FONT_DISPLAY,
@@ -15,6 +16,7 @@ import {
   IssueTopBar,
   Masthead,
   WelcomeNote,
+  FeaturedSection,
   NewsletterFooter,
   resolveHeaderImage,
 } from '@/components/newsletter/sections';
@@ -92,6 +94,7 @@ export default function NewsletterView({
   const recs = submissions.filter((s) => s.recommendation_link || s.recommendation_context);
 
   const headerImage = resolveHeaderImage(newsletter.header_image_url);
+  const featured = featuredOf(newsletter);
 
   return (
     <div style={{ minHeight: '100vh', background: '#FAF4E4', fontFamily: FONT_BODY, color: '#34466A' }}>
@@ -107,7 +110,10 @@ export default function NewsletterView({
         <WelcomeNote heading={newsletter.intro_heading} introText={newsletter.intro_text} />
 
         {submissions.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#7a879e', padding: '48px 0', fontSize: '17px', fontWeight: 600 }}>No contributions yet.</p>
+          <>
+            <p style={{ textAlign: 'center', color: '#7a879e', padding: '48px 0', fontSize: '17px', fontWeight: 600 }}>No contributions yet.</p>
+            <FeaturedSection items={featured} />
+          </>
         ) : (
           <>
             {/* life updates */}
@@ -115,6 +121,9 @@ export default function NewsletterView({
             {submissions.map((s, i) => (
               <MemberCard key={s.id} s={s} palette={PALETTE[i % PALETTE.length]} index={i} />
             ))}
+
+            {/* featured highlights */}
+            <FeaturedSection items={featured} />
 
             {/* recommendations board */}
             {recs.length > 0 && (
