@@ -23,6 +23,7 @@ interface Props {
   replyTo: string;
   log: SendLogEntry[];
   history: ReminderTextEntry[];
+  slackConfigured: boolean;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,12 +56,13 @@ export default function ReminderClient({
   replyTo,
   log,
   history,
+  slackConfigured,
 }: Props) {
   const router = useRouter();
   const [testEmail, setTestEmail] = useState('');
   const [subject, setSubject] = useState(DEFAULT_REMINDER_SUBJECT);
   const [message, setMessage] = useState(DEFAULT_REMINDER_BODY);
-  const [busy, setBusy] = useState<null | 'all' | 'test' | 'failed'>(null);
+  const [busy, setBusy] = useState<null | 'all' | 'test' | 'failed' | 'slack'>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -146,6 +148,32 @@ export default function ReminderClient({
     }
   };
 
+  // Post the same subject/message to the K9 Slack channel. Independent of the
+  // email send and unaffected by reply-to (Slack doesn't need one).
+  const postSlack = async () => {
+    setError(null);
+    setInfo(null);
+    if (!window.confirm('Post this reminder to the K9 Slack channel?')) {
+      return;
+    }
+
+    setBusy('slack');
+    try {
+      const res = await fetch('/api/admin/newsletter/reminder/slack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: subject.trim(), body: message.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to post to Slack.');
+      setInfo('Posted to the K9 Slack channel.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to post to Slack.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -159,10 +187,10 @@ export default function ReminderClient({
         <div className="bg-white rounded-xl shadow p-6 space-y-5">
           <p className="text-gray-600 text-sm">
             Nudges active subscribers to add their news for the next issue.{' '}
-            <span className="font-medium text-gray-900">{recipientCount}</span> people will get it
-            {skippedAlreadyPosted > 0 && (
-              <> · {skippedAlreadyPosted} skipped (already posted)</>
-            )}
+            <a href="/admin/newsletter/subscribers" className="font-medium text-blue-600 hover:text-blue-700">
+              {recipientCount} people will get it
+              {skippedAlreadyPosted > 0 && <> · {skippedAlreadyPosted} skipped (already posted)</>}
+            </a>
             .
           </p>
 
@@ -225,6 +253,25 @@ export default function ReminderClient({
               className="btn-primary px-6 py-2 cursor-pointer disabled:cursor-default disabled:opacity-50"
             >
               {busy === 'all' ? 'Sending…' : `Send reminder to ${recipientCount}`}
+            </button>
+          </div>
+
+          {/* Post to Slack — same copy, posted to the K9 channel */}
+          <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-sm text-gray-600">
+              Also post this reminder to the K9 Slack channel.
+              {!slackConfigured && (
+                <span className="block text-xs text-amber-600 mt-0.5">
+                  Set SLACK_WEBHOOK_URL to enable.
+                </span>
+              )}
+            </p>
+            <button
+              onClick={postSlack}
+              disabled={busy !== null || !slackConfigured}
+              className="shrink-0 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:cursor-default disabled:opacity-50"
+            >
+              {busy === 'slack' ? 'Posting…' : 'Post to Slack'}
             </button>
           </div>
 
@@ -297,7 +344,15 @@ export default function ReminderClient({
                   key={`${e.recipient_email}-${i}`}
                   className="flex items-center justify-between gap-4 text-sm border-b border-gray-100 pb-2 last:border-0"
                 >
-                  <span className="min-w-0 truncate text-gray-700">{e.recipient_email}</span>
+                  <span className="min-w-0 truncate text-gray-700">
+                    {e.recipient_name ? (
+                      <>
+                        {e.recipient_name} <span className="text-gray-400">· {e.recipient_email}</span>
+                      </>
+                    ) : (
+                      e.recipient_email
+                    )}
+                  </span>
                   <span className="shrink-0 flex items-center gap-2">
                     {e.status === 'failed' && e.error_message && (
                       <span className="text-xs text-gray-400 max-w-[200px] truncate">{e.error_message}</span>

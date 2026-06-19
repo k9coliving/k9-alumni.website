@@ -16,6 +16,9 @@ export type AuditEventType =
   // NOT an email-sending event itself — deliberately excluded from
   // getEmailsSentInLast24h() (the per-recipient rows already cover the quota).
   | 'newsletter_reminder_batch'
+  // One per Slack reminder post. Sends no email — deliberately NOT added to
+  // getEmailsSentInLast24h() so it doesn't count against the email quota.
+  | 'newsletter_reminder_slack_posted'
   // Subscription state changes. NOTE: these send no email — deliberately NOT
   // added to getEmailsSentInLast24h() so they don't count against the quota.
   | 'newsletter_subscribed'
@@ -108,6 +111,30 @@ export async function getEmailsSentInLast24h(): Promise<number> {
   } catch (err) {
     console.error('Error counting emails sent in last 24h:', err);
     return 0;
+  }
+}
+
+// Timestamp of the most recent reminder send (per-recipient rows exist for every
+// real reminder run; test sends aren't logged). null when none has gone out.
+export async function getLastReminderSentAt(): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('timestamp')
+      .eq('event_type', 'newsletter_reminder_sent')
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Failed to load last reminder timestamp:', error);
+      return null;
+    }
+
+    return data?.timestamp ?? null;
+  } catch (err) {
+    console.error('Error loading last reminder timestamp:', err);
+    return null;
   }
 }
 

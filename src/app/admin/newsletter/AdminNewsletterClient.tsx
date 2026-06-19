@@ -19,11 +19,21 @@ interface Props {
   // Reply-to to seed a brand-new draft with (carried forward from the most recent
   // issue, or the env default). Editing a draft uses the draft's own saved value.
   defaultReplyTo: string;
+  // ISO timestamp of the most recent reminder send, or null if none yet.
+  lastReminderAt: string | null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function QuotaWidget({ quota }: { quota: Quota }) {
+// Whole-day "x days ago" phrasing, with friendlier forms for the recent cases.
+function relativeDays(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
+}
+
+function QuotaWidget({ quota, lastReminderAt }: { quota: Quota; lastReminderAt: string | null }) {
   const remaining = Math.max(0, quota.limit - quota.sentLast24h);
   const pct = quota.limit > 0 ? Math.min(100, Math.round((quota.sentLast24h / quota.limit) * 100)) : 0;
   const bar = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-green-500';
@@ -39,6 +49,11 @@ function QuotaWidget({ quota }: { quota: Quota }) {
       <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
         <div className={`h-2 rounded-full ${bar}`} style={{ width: `${pct}%` }} />
       </div>
+      <p className="mt-2 text-xs text-gray-400">
+        {lastReminderAt
+          ? `Last email reminder sent ${relativeDays(lastReminderAt)}`
+          : 'No email reminder sent yet'}
+      </p>
     </div>
   );
 }
@@ -67,6 +82,10 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // For an existing draft the form starts collapsed behind an "Edit draft"
+  // button — the live preview below already conveys the content. A new draft
+  // shows the form straight away (nothing to collapse).
+  const [editing, setEditing] = useState(false);
 
   // Same drag-and-drop component the public submission form uses. It can hand up
   // several files; we only keep the first since the header is a single image.
@@ -160,9 +179,64 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
     year: 'numeric',
   });
 
+  // Unsaved-changes detection: compare each field to its pristine value. After a
+  // successful save, router.refresh() feeds back the saved draft as new props
+  // (same key → no remount), so pristine catches up and dirty clears.
+  const dirty =
+    title !== (draft?.title ?? '') ||
+    introHeading !== (draft?.intro_heading ?? '') ||
+    intro !== (draft?.intro_text ?? '') ||
+    outro !== (draft?.outro_text ?? '') ||
+    headerImageUrl !== (draft?.header_image_url ?? '') ||
+    replyTo !== (draft ? (draft.data?.email_reply_to ?? '') : defaultReplyTo);
+
+  const saveLabel = isEdit ? 'Save changes' : 'Save draft';
+
   return (
     <div className="space-y-6">
-    <form onSubmit={submit} className="bg-white rounded-xl shadow p-6 space-y-4">
+    {dirty && (
+      <div className="sticky top-0 z-40 animate-fadeInUp">
+        <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-md">
+          <span aria-hidden className="text-lg leading-none">💡</span>
+          <p className="flex-1 text-sm font-medium text-blue-900">You have unsaved changes.</p>
+          <button
+            type="submit"
+            form="draft-editor-form"
+            disabled={busy}
+            className="btn-primary shrink-0 px-4 py-1.5 text-sm disabled:opacity-50"
+          >
+            {busy ? 'Saving…' : saveLabel}
+          </button>
+        </div>
+      </div>
+    )}
+    {isEdit && !editing ? (
+      <div className="bg-white rounded-xl shadow p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Current draft</h2>
+          <a
+            href={`/newsletter/n/${draft.token}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            Preview →
+          </a>
+        </div>
+        <p className="text-sm text-gray-500">A draft already exists. Send it to start a fresh one.</p>
+        <p className="text-base font-medium text-gray-900">{draft.title}</p>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn-primary px-5 py-2"
+          >
+            Edit draft
+          </button>
+        </div>
+      </div>
+    ) : (
+    <form id="draft-editor-form" onSubmit={submit} className="bg-white rounded-xl shadow p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
           {isEdit ? 'Current draft' : 'Create next newsletter'}
@@ -251,6 +325,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
         </button>
       </div>
     </form>
+    )}
 
       <div className="bg-white rounded-xl shadow p-4">
         <div className="flex items-center justify-between mb-3">
@@ -402,7 +477,7 @@ function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
   );
 }
 
-export default function AdminNewsletterClient({ submissions, newsletters, quota, defaultReplyTo }: Props) {
+export default function AdminNewsletterClient({ submissions, newsletters, quota, defaultReplyTo, lastReminderAt }: Props) {
   const router = useRouter();
 
   // At most one draft should be active. If several exist (legacy/test data),
@@ -432,7 +507,7 @@ export default function AdminNewsletterClient({ submissions, newsletters, quota,
           </div>
         </div>
 
-        <QuotaWidget quota={quota} />
+        <QuotaWidget quota={quota} lastReminderAt={lastReminderAt} />
         <DraftEditor key={activeDraft?.id ?? 'new'} draft={activeDraft} defaultReplyTo={defaultReplyTo} />
         <Submissions submissions={submissions} />
         <PastNewsletters newsletters={newsletters} />

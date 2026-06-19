@@ -4,6 +4,7 @@ import { getActiveSubscribers } from '@/lib/subscribers';
 import { getUnassignedSubmissions, getEffectiveReplyTo } from '@/lib/newsletter';
 import { getEmailsSentInLast24h, getReminderSendLog, getReminderTextHistory } from '@/lib/audit';
 import { resendDailyLimit } from '@/lib/resend';
+import { slackConfigured } from '@/lib/slack';
 import ReminderClient from './ReminderClient';
 
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ export default async function ReminderPage() {
       replyTo={replyTo}
       log={log}
       history={history}
+      slackConfigured={slackConfigured()}
     />
   );
 }
