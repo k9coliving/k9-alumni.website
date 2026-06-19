@@ -224,6 +224,21 @@ export async function getActiveSubscribers(): Promise<
   return data || [];
 }
 
+// Lowercased emails that explicitly unsubscribed — the suppression set a send
+// subtracts from its recipients. An unsubscribe always wins, even for someone
+// who'd otherwise be in as a contributor to this edition.
+export async function getUnsubscribedEmails(): Promise<Set<string>> {
+  const { data, error } = await supabaseAdmin
+    .from('newsletter_subscribers')
+    .select('email')
+    .eq('status', 'unsubscribed');
+
+  if (error) {
+    throw new Error(`Failed to fetch unsubscribed emails: ${error.message}`);
+  }
+  return new Set((data || []).map((r) => r.email.toLowerCase()));
+}
+
 export async function getSubscriberByToken(token: string): Promise<SubscriberRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('newsletter_subscribers')

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from './supabase';
+import { getActiveSubscribers, getUnsubscribedEmails } from './subscribers';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -552,6 +553,68 @@ export async function getUpcomingEvents(months = 3): Promise<NewsletterEventReco
 // Recipients
 // ---------------------------------------------------------------------------
 //
-// Recipient sets are computed in the send/reminder routes directly from
-// getActiveSubscribers() (and, for a send, the edition's contributors). There's
-// no shared resolver anymore — the two flows pick different sets.
+// The reminder flow computes its set inline (active subscribers minus those who
+// already posted). The newsletter send uses the resolver below: active
+// subscribers ∪ this edition's contributors, minus explicit unsubscribers.
+
+// Dedupe a submission list down to one entry per email (first wins, keeping the
+// original-cased email + the contributor's name). Skips rows without an email.
+function dedupeSubmissionEmails(
+  subs: NewsletterSubmissionRecord[]
+): { email: string; name: string | null }[] {
+  const byEmail = new Map<string, { email: string; name: string | null }>();
+  for (const s of subs) {
+    const email = (s.email || '').trim();
+    if (!email) continue;
+    const key = email.toLowerCase();
+    if (!byEmail.has(key)) byEmail.set(key, { email, name: s.name ?? null });
+  }
+  return [...byEmail.values()];
+}
+
+// Emails of the people whose submissions are assigned to this (sent) newsletter.
+export async function getNewsletterContributorEmails(
+  newsletterId: string
+): Promise<{ email: string; name: string | null }[]> {
+  return dedupeSubmissionEmails(await getSubmissionsByNewsletterId(newsletterId));
+}
+
+export interface SendRecipient {
+  email: string;
+  name: string | null;
+  // Subscribers carry their unsubscribe token (→ unsubscribe footer link).
+  // Contributor-only recipients have null (→ "you submitted a post" line).
+  unsubscribe_token: string | null;
+}
+
+// Recipients for a newsletter send: active subscribers ∪ the edition's
+// contributors, deduped by lowercased email (the subscriber entry wins so they
+// keep their unsubscribe link), minus anyone explicitly unsubscribed. For a
+// draft the contributors are the current unassigned pool (what finalize will
+// scoop); for a sent issue they're the rows already assigned to it.
+export async function getNewsletterSendRecipients(
+  newsletter: NewsletterRecord
+): Promise<SendRecipient[]> {
+  const [active, unsub, contributors] = await Promise.all([
+    getActiveSubscribers(),
+    getUnsubscribedEmails(),
+    newsletter.status === 'sent'
+      ? getNewsletterContributorEmails(newsletter.id)
+      : dedupeSubmissionEmails(await getUnassignedSubmissions()),
+  ]);
+
+  const byEmail = new Map<string, SendRecipient>();
+  for (const c of contributors) {
+    const key = c.email.toLowerCase();
+    if (unsub.has(key)) continue;
+    byEmail.set(key, { email: c.email, name: c.name, unsubscribe_token: null });
+  }
+  // Subscribers added second so they overwrite a contributor entry for the same
+  // email — that way they get the token-based unsubscribe link.
+  for (const a of active) {
+    const key = a.email.toLowerCase();
+    if (unsub.has(key)) continue;
+    byEmail.set(key, { email: a.email, name: a.name, unsubscribe_token: a.unsubscribe_token });
+  }
+  return [...byEmail.values()];
+}

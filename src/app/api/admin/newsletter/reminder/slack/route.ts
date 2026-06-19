@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/api-auth';
 import { baseUrl } from '@/lib/resend';
 import { slackConfigured, postToSlack } from '@/lib/slack';
-import { DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY } from '@/lib/newsletterEmail';
+import { DEFAULT_REMINDER_BODY } from '@/lib/newsletterEmail';
 import { logAuditEvent } from '@/lib/audit';
 import { logger } from '@/lib/logger';
 
@@ -22,25 +22,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json().catch(() => ({}))) as {
-      subject?: string;
       body?: string;
     };
 
-    const subject =
-      (typeof body.subject === 'string' && body.subject.trim()) || DEFAULT_REMINDER_SUBJECT;
     const bodyText =
       (typeof body.body === 'string' && body.body.trim()) || DEFAULT_REMINDER_BODY;
 
     const submitUrl = `${baseUrl()}/newsletter/submit`;
-    // Slack mrkdwn: *bold* heading, body as-is (newlines preserved), CTA link.
-    const text = `*${subject}*\n\n${bodyText}\n\n<${submitUrl}|Add your news →>`;
+    // Slack mrkdwn: just the body (newlines preserved) + the CTA link — no
+    // subject/heading, unlike the email. Broadcast pings only fire from the
+    // escaped <!channel> form ("@channel" renders as plain text), so rewrite the
+    // three broadcast keywords.
+    const withBroadcasts = (s: string) =>
+      s.replace(/@(channel|here|everyone)\b/g, '<!$1>');
+    const text = `${withBroadcasts(bodyText)}\n\n<${submitUrl}|Add your news →>`;
 
     const result = await postToSlack(text);
 
     await logAuditEvent({
       event_type: 'newsletter_reminder_slack_posted',
       details: {
-        subject,
         body: bodyText,
         status: result.ok ? 'sent' : 'failed',
         error_message: result.error,

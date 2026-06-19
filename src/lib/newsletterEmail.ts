@@ -5,7 +5,10 @@
 // no external CSS and no absolute positioning. Pure (no server deps) so the
 // admin page can import it for a live preview.
 
+import { DEFAULT_INTRO, DEFAULT_INTRO_HEADING, resolveHeaderImage } from '@/components/newsletter/sections';
+
 const INK = '#16294C';
+const YELLOW = '#F6C44C';
 const GREEN_BAND = '#E3EDD6';
 const BLUE = '#2563eb';
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -109,6 +112,86 @@ export function buildReminderEmailHtml({
       <p style="color:#7c8aa3; font-size:12px; margin:16px 0 0;">
         You're receiving this because you're subscribed to the K9 newsletter.
         <a href="${unsubscribeUrl}" style="color:#7c8aa3;">Unsubscribe</a>.
+      </p>
+    </div>
+
+  </div>
+</div>`;
+}
+
+export interface NewsletterEmailArgs {
+  title: string;
+  introHeading?: string | null;
+  introText?: string | null;
+  // Raw per-issue header image (or null); resolved to the default masthead here.
+  headerImageUrl?: string | null;
+  // The token page that renders the full newsletter.
+  readUrl: string;
+  // Present for subscriber recipients (→ unsubscribe footer). Omit for
+  // contributor-only recipients (→ "you submitted a post" explanatory line).
+  unsubscribeUrl?: string;
+}
+
+// Announcement email for a newsletter send: masthead + title + intro + a "Read
+// the newsletter" button to the token page (NOT the full issue inline — the
+// token page renders that). Same email-safe constraints as the reminder.
+export function buildNewsletterEmailHtml({
+  title,
+  introHeading,
+  introText,
+  headerImageUrl,
+  readUrl,
+  unsubscribeUrl,
+}: NewsletterEmailArgs): string {
+  const safeTitle = escapeHtml(title.trim() || 'The K9 Newsletter');
+  const safeHeading = escapeHtml((introHeading || '').trim() || DEFAULT_INTRO_HEADING);
+  const intro = paragraphs((introText || '').trim() || DEFAULT_INTRO);
+  const masthead = resolveHeaderImage(headerImageUrl ?? null);
+
+  // Subscribers get an unsubscribe link; contributor-only recipients get a line
+  // explaining the one-off (they're not on the ongoing list).
+  const footerNote = unsubscribeUrl
+    ? `You're receiving this because you're subscribed to the K9 newsletter. <a href="${unsubscribeUrl}" style="color:#7c8aa3;">Unsubscribe</a>.`
+    : `You're receiving this because you submitted a post to this newsletter.`;
+
+  return `<div style="padding:24px 12px; font-family:${FONT};">
+  <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:20px; overflow:hidden; box-shadow:0 18px 40px -30px rgba(22,41,76,0.5);">
+
+    <!-- top bar -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr>
+        <td style="padding:24px 32px 0; font-size:18px; font-weight:800; color:${INK};">
+          K9 Newsletter
+        </td>
+        <td style="padding:24px 32px 0; text-align:right; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#9aa6bd;">
+          Alumni Edition
+        </td>
+      </tr>
+    </table>
+
+    <!-- masthead image -->
+    ${masthead ? `<div style="padding:18px 32px 0;"><img src="${masthead}" alt="" width="536" style="width:100%; height:auto; max-height:240px; object-fit:cover; border-radius:14px; display:block;" /></div>` : ''}
+
+    <!-- body -->
+    <div style="padding:22px 32px 28px;">
+      <h1 style="font-size:30px; line-height:1.15; color:${INK}; font-weight:800; margin:0 0 14px;">${safeTitle}</h1>
+      <div style="display:inline-block; background:${YELLOW}; border-radius:999px; padding:7px 18px; font-style:italic; font-weight:800; font-size:14px; color:#1c2f54; margin:0 0 18px;">
+        Together, we make our community thrive.
+      </div>
+      <h2 style="font-size:20px; line-height:1.2; color:${INK}; font-weight:800; margin:0 0 10px;">${safeHeading}</h2>
+      ${intro}
+      ${button(readUrl, 'Read the newsletter')}
+    </div>
+
+    <!-- footer band -->
+    <div style="background:${GREEN_BAND}; padding:24px 32px; text-align:center;">
+      <p style="font-size:14px; line-height:1.6; color:#3a4a66; font-weight:600; margin:0;">
+        Stay connected at
+        <a href="https://alumni.k9coliving.com/" style="color:${INK}; font-weight:800; text-decoration:underline;">alumni.k9coliving.com</a>
+        — directory, tips &amp; help, and an events calendar.
+      </p>
+      <p style="color:#7c8aa3; font-size:12px; margin:16px 0 0;">
+        ${footerNote}
       </p>
     </div>
 

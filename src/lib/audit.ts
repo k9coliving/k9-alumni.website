@@ -188,6 +188,29 @@ export async function getReminderSendLog(sinceHours = 24): Promise<SendLogEntry[
   }
 }
 
+// Per-recipient send attempts for one newsletter (newest first) — powers the
+// send page's audit table and its "retry failed" set. Scoped by newsletter_id
+// (not time-windowed) so a re-send sees the issue's full history.
+export async function getNewsletterSendLog(newsletterId: string): Promise<SendLogEntry[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('details, timestamp')
+      .eq('event_type', 'newsletter_email_sent')
+      .eq('details->>newsletter_id', newsletterId)
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load newsletter send log:', error);
+      return [];
+    }
+    return mapSendLog(data || []);
+  } catch (err) {
+    console.error('Error loading newsletter send log:', err);
+    return [];
+  }
+}
+
 // One reminder send run, flattened from a 'newsletter_reminder_batch' event —
 // the text that went out plus its counts. Powers the "previous reminders" list.
 export interface ReminderTextEntry {
