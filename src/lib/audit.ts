@@ -11,6 +11,11 @@ export type AuditEventType =
   | 'edit_request_sent'
   | 'newsletter_email_sent'
   | 'newsletter_reminder_sent'
+  // One per reminder send *run* (not per recipient): records the subject + body
+  // text and the run's counts, so past reminder texts can be browsed/reused.
+  // NOT an email-sending event itself — deliberately excluded from
+  // getEmailsSentInLast24h() (the per-recipient rows already cover the quota).
+  | 'newsletter_reminder_batch'
   // Subscription state changes. NOTE: these send no email — deliberately NOT
   // added to getEmailsSentInLast24h() so they don't count against the quota.
   | 'newsletter_subscribed'
@@ -152,6 +157,54 @@ export async function getReminderSendLog(sinceHours = 24): Promise<SendLogEntry[
     return mapSendLog(data || []);
   } catch (err) {
     console.error('Error loading reminder send log:', err);
+    return [];
+  }
+}
+
+// One reminder send run, flattened from a 'newsletter_reminder_batch' event —
+// the text that went out plus its counts. Powers the "previous reminders" list.
+export interface ReminderTextEntry {
+  subject: string;
+  body: string;
+  mode: string;
+  sent: number;
+  failed: number;
+  total: number;
+  reply_to?: string;
+  timestamp: string;
+}
+
+// Recent reminder texts (newest first), count-limited rather than time-windowed
+// — reminders are infrequent and the point is to look back over past wording.
+export async function getReminderTextHistory(limit = 20): Promise<ReminderTextEntry[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('details, timestamp')
+      .eq('event_type', 'newsletter_reminder_batch')
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Failed to load reminder text history:', error);
+      return [];
+    }
+
+    return (data || []).map((row) => {
+      const d = (row.details || {}) as Record<string, unknown>;
+      return {
+        subject: typeof d.subject === 'string' ? d.subject : '',
+        body: typeof d.body === 'string' ? d.body : '',
+        mode: typeof d.mode === 'string' ? d.mode : 'all',
+        sent: typeof d.sent === 'number' ? d.sent : 0,
+        failed: typeof d.failed === 'number' ? d.failed : 0,
+        total: typeof d.total === 'number' ? d.total : 0,
+        reply_to: typeof d.reply_to === 'string' ? d.reply_to : undefined,
+        timestamp: row.timestamp,
+      } as ReminderTextEntry;
+    });
+  } catch (err) {
+    console.error('Error loading reminder text history:', err);
     return [];
   }
 }

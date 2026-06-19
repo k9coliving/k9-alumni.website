@@ -4,6 +4,7 @@ import { getNewsletterById, updateNewsletter } from '@/lib/newsletter';
 import { logger } from '@/lib/logger';
 
 const MAX_LEN = 10_000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clean(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
@@ -32,11 +33,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'A title is required.' }, { status: 400 });
     }
 
+    const replyTo = clean(raw.email_reply_to);
+    if (replyTo && !EMAIL_RE.test(replyTo)) {
+      return NextResponse.json({ error: 'Reply-to must be a valid email.' }, { status: 400 });
+    }
+
     const updated = await updateNewsletter(id, {
       ...(title !== undefined ? { title } : {}),
+      ...(raw.intro_heading !== undefined ? { intro_heading: clean(raw.intro_heading) ?? null } : {}),
       ...(raw.intro_text !== undefined ? { intro_text: clean(raw.intro_text) ?? null } : {}),
       ...(raw.outro_text !== undefined ? { outro_text: clean(raw.outro_text) ?? null } : {}),
       ...(raw.header_image_url !== undefined ? { header_image_url: clean(raw.header_image_url) ?? null } : {}),
+      ...(raw.email_reply_to !== undefined ? { email_reply_to: replyTo ?? null } : {}),
     });
 
     logger.info('Newsletter draft updated', { endpoint: 'admin/newsletter/[id]', newsletterId: id });

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/api-auth';
 import { getActiveSubscribers } from '@/lib/subscribers';
-import { getUnassignedSubmissions } from '@/lib/newsletter';
+import { getUnassignedSubmissions, getEffectiveReplyTo } from '@/lib/newsletter';
 import { logAuditEvent, getReminderSendLog } from '@/lib/audit';
 import { resendClient, NEWSLETTER_FROM, baseUrl } from '@/lib/resend';
-import { buildReminderEmailHtml } from '@/lib/newsletterEmail';
+import {
+  buildReminderEmailHtml,
+  pickReminderImage,
+  DEFAULT_REMINDER_SUBJECT,
+  DEFAULT_REMINDER_BODY,
+} from '@/lib/newsletterEmail';
 import { logger } from '@/lib/logger';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SUBJECT = 'The next K9 newsletter — add your news';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -26,17 +30,32 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as {
-      replyTo?: string;
       mode?: string;
       testEmail?: string;
+      subject?: string;
+      body?: string;
     };
-    const replyTo = typeof body.replyTo === 'string' ? body.replyTo.trim() : '';
+
+    // Reply-to is configured per issue in the newsletter admin, not per send.
+    const replyTo = await getEffectiveReplyTo();
     if (!replyTo || !EMAIL_RE.test(replyTo)) {
-      return NextResponse.json({ error: 'A valid reply-to email is required.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Set a reply-to email in the newsletter admin before sending.' },
+        { status: 400 }
+      );
     }
+
+    // Admin-supplied subject (doubles as the in-email heading) + message body.
+    // Fall back to the defaults when left blank.
+    const subject =
+      (typeof body.subject === 'string' && body.subject.trim()) || DEFAULT_REMINDER_SUBJECT;
+    const bodyText =
+      (typeof body.body === 'string' && body.body.trim()) || DEFAULT_REMINDER_BODY;
 
     const mode = body.mode === 'failed' ? 'failed' : body.mode === 'test' ? 'test' : 'all';
     const submitUrl = `${baseUrl()}/newsletter/submit`;
+    // One random decorative image per run, as an absolute URL for mail clients.
+    const imageUrl = `${baseUrl()}/newsletter/assets/${pickReminderImage()}`;
 
     // Test: one email, no audit/quota write. Uses the test address's own token
     // when it happens to be a subscriber, else a tokenless link.
@@ -48,12 +67,12 @@ export async function POST(request: NextRequest) {
       const subs = await getActiveSubscribers();
       const match = subs.find((s) => s.email.toLowerCase() === testEmail.toLowerCase());
       const unsubscribeUrl = unsubscribeUrlFor(match?.unsubscribe_token ?? null);
-      const html = buildReminderEmailHtml({ submitUrl, unsubscribeUrl });
+      const html = buildReminderEmailHtml({ heading: subject, bodyText, submitUrl, unsubscribeUrl, imageUrl });
       const { error } = await resendClient.emails.send({
         from: NEWSLETTER_FROM,
         to: testEmail,
         replyTo,
-        subject: SUBJECT,
+        subject,
         html,
         headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
       });
@@ -85,7 +104,7 @@ export async function POST(request: NextRequest) {
     let failed = 0;
     for (const r of recipients) {
       const unsubscribeUrl = unsubscribeUrlFor(r.unsubscribe_token);
-      const html = buildReminderEmailHtml({ submitUrl, unsubscribeUrl });
+      const html = buildReminderEmailHtml({ heading: subject, bodyText, submitUrl, unsubscribeUrl, imageUrl });
 
       let status: 'sent' | 'failed' = 'sent';
       let resendId: string | undefined;
@@ -95,7 +114,7 @@ export async function POST(request: NextRequest) {
           from: NEWSLETTER_FROM,
           to: r.email,
           replyTo,
-          subject: SUBJECT,
+          subject,
           html,
           headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
         });
@@ -128,6 +147,23 @@ export async function POST(request: NextRequest) {
       });
 
       await sleep(100);
+    }
+
+    // Record the run's text + counts once, so past reminder wording can be
+    // browsed and reused. Skipped when nothing was sent (no run to remember).
+    if (recipients.length > 0) {
+      await logAuditEvent({
+        event_type: 'newsletter_reminder_batch',
+        details: {
+          subject,
+          body: bodyText,
+          mode,
+          sent,
+          failed,
+          total: recipients.length,
+          reply_to: replyTo,
+        },
+      });
     }
 
     logger.info('Newsletter reminder sent', {

@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { SendLogEntry } from '@/lib/audit';
+import type { SendLogEntry, ReminderTextEntry } from '@/lib/audit';
+import {
+  buildReminderEmailHtml,
+  pickReminderImage,
+  DEFAULT_REMINDER_SUBJECT,
+  DEFAULT_REMINDER_BODY,
+} from '@/lib/newsletterEmail';
 
 interface Quota {
   sentLast24h: number;
@@ -13,8 +19,10 @@ interface Props {
   recipientCount: number;
   skippedAlreadyPosted: number;
   quota: Quota;
-  defaultReplyTo: string;
+  // Configured per issue in the newsletter admin (not editable here).
+  replyTo: string;
   log: SendLogEntry[];
+  history: ReminderTextEntry[];
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,22 +52,42 @@ export default function ReminderClient({
   recipientCount,
   skippedAlreadyPosted,
   quota,
-  defaultReplyTo,
+  replyTo,
   log,
+  history,
 }: Props) {
   const router = useRouter();
-  const [replyTo, setReplyTo] = useState(defaultReplyTo);
   const [testEmail, setTestEmail] = useState('');
+  const [subject, setSubject] = useState(DEFAULT_REMINDER_SUBJECT);
+  const [message, setMessage] = useState(DEFAULT_REMINDER_BODY);
   const [busy, setBusy] = useState<null | 'all' | 'test' | 'failed'>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // One sample image for the preview (same-origin relative path), picked once so
+  // it doesn't reshuffle on every keystroke. The actual send picks its own.
+  const previewImage = useMemo(() => `/newsletter/assets/${pickReminderImage()}`, []);
+
+  // Live preview of the actual email HTML — the exact builder the send route
+  // uses, with placeholder links. Blank fields fall back to the defaults.
+  const previewHtml = useMemo(
+    () =>
+      buildReminderEmailHtml({
+        heading: subject,
+        bodyText: message,
+        submitUrl: '#',
+        unsubscribeUrl: '#',
+        imageUrl: previewImage,
+      }),
+    [subject, message, previewImage]
+  );
 
   const replyToValid = EMAIL_RE.test(replyTo.trim());
   const testEmailValid = EMAIL_RE.test(testEmail.trim());
 
   // Why the test button is disabled, if it is (busy aside).
   const testMissing = [
-    !replyToValid && 'reply-to email',
+    !replyToValid && 'reply-to (set it in the newsletter admin)',
     !testEmailValid && 'recipient email',
   ].filter(Boolean) as string[];
 
@@ -76,7 +104,7 @@ export default function ReminderClient({
     setError(null);
     setInfo(null);
     if (!replyToValid) {
-      setError('Enter a valid reply-to email first.');
+      setError('Set a reply-to email in the newsletter admin first.');
       return;
     }
     if (mode === 'test' && !EMAIL_RE.test(testEmail.trim())) {
@@ -95,7 +123,12 @@ export default function ReminderClient({
       const res = await fetch('/api/admin/newsletter/reminder/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replyTo: replyTo.trim(), mode, testEmail: testEmail.trim() }),
+        body: JSON.stringify({
+          mode,
+          testEmail: testEmail.trim(),
+          subject: subject.trim(),
+          body: message.trim(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to send.');
@@ -126,22 +159,61 @@ export default function ReminderClient({
         <div className="bg-white rounded-xl shadow p-6 space-y-5">
           <p className="text-gray-600 text-sm">
             Nudges active subscribers to add their news for the next issue.{' '}
-            <span className="font-medium text-gray-900">{recipientCount}</span> will get it
+            <span className="font-medium text-gray-900">{recipientCount}</span> people will get it
             {skippedAlreadyPosted > 0 && (
               <> · {skippedAlreadyPosted} skipped (already posted)</>
             )}
             .
           </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Reply-to email</label>
-            <input
-              type="email"
-              value={replyTo}
-              onChange={(e) => setReplyTo(e.target.value)}
-              className="form-input"
-              placeholder="replies@k9coliving.com"
-            />
+          {replyToValid ? (
+            <p className="text-sm text-gray-600">
+              Replies go to <span className="font-medium text-gray-900">{replyTo}</span>.{' '}
+              <a href="/admin/newsletter" className="text-blue-600 hover:text-blue-700">
+                Change in newsletter admin
+              </a>
+            </p>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No reply-to is set.{' '}
+              <a href="/admin/newsletter" className="font-medium underline">
+                Set one in the newsletter admin
+              </a>{' '}
+              before sending.
+            </div>
+          )}
+
+          {/* Email content */}
+          <div className="border-t border-gray-200 pt-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subject &amp; heading
+              </label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="form-input w-full"
+                placeholder={DEFAULT_REMINDER_SUBJECT}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Shown in the inbox and as the big heading inside the email.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={5}
+                className="form-input w-full"
+                placeholder={DEFAULT_REMINDER_BODY}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Plain text. Leave a blank line between paragraphs. The “Add my news” button
+                and footer are added automatically.
+              </p>
+            </div>
           </div>
 
           <QuotaStrip quota={quota} recipientCount={recipientCount} />
@@ -190,6 +262,18 @@ export default function ReminderClient({
           {info && <p className="text-sm text-green-600">{info}</p>}
         </div>
 
+        {/* Email preview — renders the real email HTML as you type */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Preview</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Roughly how the email will look. A random illustration is added to each send. Links are inactive here.
+          </p>
+          <div
+            className="rounded-lg border border-gray-200 overflow-hidden"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        </div>
+
         {/* Recent send log */}
         {log.length > 0 && (
           <div className="bg-white rounded-xl shadow p-6">
@@ -226,6 +310,40 @@ export default function ReminderClient({
                       {e.status}
                     </span>
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Previous reminder texts — browse and reuse past wording */}
+        {history.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Previous reminders</h2>
+            <div className="space-y-4">
+              {history.map((h, i) => (
+                <div key={`${h.timestamp}-${i}`} className="border-b border-gray-100 pb-4 last:border-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{h.subject}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {new Date(h.timestamp).toLocaleString()} · {h.sent} sent
+                        {h.failed > 0 && `, ${h.failed} failed`}
+                        {h.mode === 'failed' && ' · retry'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSubject(h.subject);
+                        setMessage(h.body);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="shrink-0 text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+                    >
+                      Reuse
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2 whitespace-pre-line line-clamp-3">{h.body}</p>
                 </div>
               ))}
             </div>

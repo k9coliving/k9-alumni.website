@@ -61,6 +61,8 @@ export interface NewsletterRecord {
 
   token: string;
   title: string;
+  // Heading above the intro ("welcome note"). Falls back to DEFAULT_INTRO_HEADING.
+  intro_heading?: string | null;
   intro_text?: string | null;
   outro_text?: string | null;
 
@@ -68,7 +70,25 @@ export interface NewsletterRecord {
   // falls back to the default newsletter-header.jpg in Supabase storage.
   header_image_url?: string | null;
 
+  // Open jsonb bag for newsletter-scoped config and write-once snapshots that
+  // don't each warrant a column. Today: email_reply_to (the address all mail for
+  // this issue uses). Room for send-time stats later (e.g. sent_count). NOT for
+  // high-frequency counters — derive view/sent counts from audit_logs instead of
+  // racy read-modify-write on this blob.
+  data?: NewsletterData | null;
+
   status: 'draft' | 'sent';
+}
+
+export interface NewsletterData {
+  email_reply_to?: string | null;
+  [key: string]: unknown;
+}
+
+// The reply-to address configured for an issue, trimmed ('' when unset).
+export function replyToOf(n: Pick<NewsletterRecord, 'data'> | null | undefined): string {
+  const v = n?.data?.email_reply_to;
+  return typeof v === 'string' ? v.trim() : '';
 }
 
 // Fields a submitter is allowed to set on create/update. Excludes server-managed
@@ -293,9 +313,11 @@ async function getSubmissionsByNewsletterId(newsletterId: string): Promise<Newsl
 
 export async function createNewsletter(draft: {
   title: string;
+  intro_heading?: string | null;
   intro_text?: string | null;
   outro_text?: string | null;
   header_image_url?: string | null;
+  email_reply_to?: string | null;
 }): Promise<NewsletterRecord> {
   // 192-bit url-safe token. This is the only thing gating access to the
   // newsletter, so it needs real entropy.
@@ -310,8 +332,15 @@ export async function createNewsletter(draft: {
     token,
     status: 'draft',
   };
+  if (draft.intro_heading !== undefined) {
+    row.intro_heading = draft.intro_heading;
+  }
   if (draft.header_image_url !== undefined) {
     row.header_image_url = draft.header_image_url;
+  }
+  const replyTo = (draft.email_reply_to ?? '').trim();
+  if (replyTo) {
+    row.data = { email_reply_to: replyTo } satisfies NewsletterData;
   }
 
   const { data, error } = await supabaseAdmin
@@ -331,11 +360,32 @@ export async function createNewsletter(draft: {
 // caller is responsible for not exposing this on a sent newsletter.
 export async function updateNewsletter(
   id: string,
-  patch: { title?: string; intro_text?: string | null; outro_text?: string | null; header_image_url?: string | null }
+  patch: {
+    title?: string;
+    intro_heading?: string | null;
+    intro_text?: string | null;
+    outro_text?: string | null;
+    header_image_url?: string | null;
+    email_reply_to?: string | null;
+  }
 ): Promise<NewsletterRecord | null> {
+  const { email_reply_to, ...columns } = patch;
+  const update: Record<string, unknown> = { ...columns, updated_at: new Date().toISOString() };
+
+  // email_reply_to lives inside the `data` jsonb. Merge rather than overwrite so
+  // a draft edit can't clobber other keys (e.g. send-time stats written later).
+  if (email_reply_to !== undefined) {
+    const existing = await getNewsletterById(id);
+    const merged: NewsletterData = { ...(existing?.data ?? {}) };
+    const trimmed = (email_reply_to ?? '').trim();
+    if (trimmed) merged.email_reply_to = trimmed;
+    else delete merged.email_reply_to;
+    update.data = merged;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('newsletters')
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update(update)
     .eq('id', id)
     .select()
     .single();
@@ -348,6 +398,19 @@ export async function updateNewsletter(
   }
 
   return data;
+}
+
+// Reply-to for reminder mail, which isn't tied to a specific newsletter row.
+// Prefers the active draft (the issue the reminder nudges for), then the most
+// recent newsletter that has one, then the legacy env default.
+export async function getEffectiveReplyTo(): Promise<string> {
+  const all = await getAllNewsletters(); // newest first
+  const draft = all.find((n) => n.status === 'draft');
+  const fromDraft = replyToOf(draft);
+  if (fromDraft) return fromDraft;
+  const fromLatest = all.map(replyToOf).find(Boolean);
+  if (fromLatest) return fromLatest;
+  return (process.env.ADMIN_DEFAULT_REPLY_TO ?? '').trim();
 }
 
 // All newsletters, newest first — for the admin "past newsletters" list.

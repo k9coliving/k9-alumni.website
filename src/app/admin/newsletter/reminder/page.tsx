@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { getActiveSubscribers } from '@/lib/subscribers';
-import { getUnassignedSubmissions } from '@/lib/newsletter';
-import { getEmailsSentInLast24h, getReminderSendLog } from '@/lib/audit';
+import { getUnassignedSubmissions, getEffectiveReplyTo } from '@/lib/newsletter';
+import { getEmailsSentInLast24h, getReminderSendLog, getReminderTextHistory } from '@/lib/audit';
 import { resendDailyLimit } from '@/lib/resend';
 import ReminderClient from './ReminderClient';
 
@@ -13,11 +13,13 @@ export default async function ReminderPage() {
     redirect('/admin/login?next=/admin/newsletter/reminder');
   }
 
-  const [subs, unassigned, sentLast24h, log] = await Promise.all([
+  const [subs, unassigned, sentLast24h, log, history, replyTo] = await Promise.all([
     getActiveSubscribers(),
     getUnassignedSubmissions(),
     getEmailsSentInLast24h(),
     getReminderSendLog(),
+    getReminderTextHistory(),
+    getEffectiveReplyTo(),
   ]);
 
   // Skip subscribers who already posted to the upcoming edition.
@@ -29,8 +31,9 @@ export default async function ReminderPage() {
       recipientCount={recipientCount}
       skippedAlreadyPosted={subs.length - recipientCount}
       quota={{ sentLast24h, limit: resendDailyLimit() }}
-      defaultReplyTo={process.env.ADMIN_DEFAULT_REPLY_TO || ''}
+      replyTo={replyTo}
       log={log}
+      history={history}
     />
   );
 }

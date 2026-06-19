@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiImageDrop from '@/components/MultiImageDrop';
+import DraftPreview from '@/components/newsletter/DraftPreview';
+import { DEFAULT_INTRO_HEADING } from '@/components/newsletter/sections';
 import type { NewsletterRecord, NewsletterSubmissionRecord } from '@/lib/newsletter';
 
 interface Quota {
@@ -14,7 +16,12 @@ interface Props {
   submissions: NewsletterSubmissionRecord[];
   newsletters: NewsletterRecord[];
   quota: Quota;
+  // Reply-to to seed a brand-new draft with (carried forward from the most recent
+  // issue, or the env default). Editing a draft uses the draft's own saved value.
+  defaultReplyTo: string;
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function QuotaWidget({ quota }: { quota: Quota }) {
   const remaining = Math.max(0, quota.limit - quota.sentLast24h);
@@ -41,14 +48,18 @@ function QuotaWidget({ quota }: { quota: Quota }) {
 // every draft's preview renders the same unassigned-submissions pool, and
 // sending any one scoops all of them. A new draft becomes available again only
 // once the current one is sent.
-function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
+function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null; defaultReplyTo: string }) {
   const router = useRouter();
   const isEdit = !!draft;
 
   const [title, setTitle] = useState(draft?.title ?? '');
+  const [introHeading, setIntroHeading] = useState(draft?.intro_heading ?? '');
   const [intro, setIntro] = useState(draft?.intro_text ?? '');
   const [outro, setOutro] = useState(draft?.outro_text ?? '');
   const [headerImageUrl, setHeaderImageUrl] = useState(draft?.header_image_url ?? '');
+  // Reply-to for every email this issue sends. Set once here, not per send.
+  // Edit uses the draft's saved value; a new draft inherits the carried-forward default.
+  const [replyTo, setReplyTo] = useState(draft ? (draft.data?.email_reply_to ?? '') : defaultReplyTo);
   // Only send header_image_url when the admin actually changes it, so issues
   // that don't use a custom header never write the (optional) DB column.
   const [headerTouched, setHeaderTouched] = useState(false);
@@ -100,6 +111,10 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
       setError('A title is required.');
       return;
     }
+    if (replyTo.trim() && !EMAIL_RE.test(replyTo.trim())) {
+      setError('Reply-to must be a valid email.');
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch(isEdit ? `/api/admin/newsletter/${draft.id}` : '/api/admin/newsletter', {
@@ -107,8 +122,10 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
+          intro_heading: introHeading,
           intro_text: intro,
           outro_text: outro,
+          email_reply_to: replyTo.trim() || null,
           ...(headerTouched ? { header_image_url: headerImageUrl || null } : {}),
         }),
       });
@@ -121,9 +138,11 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         setHeaderTouched(false);
       } else {
         setTitle('');
+        setIntroHeading('');
         setIntro('');
         setOutro('');
         setHeaderImageUrl('');
+        setReplyTo(defaultReplyTo);
         setHeaderTouched(false);
       }
       router.refresh();
@@ -134,7 +153,15 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
     }
   };
 
+  // Issue label mirrors the public view: the month/year the draft was created
+  // (or now, for a not-yet-saved new draft).
+  const issueLabel = new Date(draft?.created_at || Date.now()).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
+    <div className="space-y-6">
     <form onSubmit={submit} className="bg-white rounded-xl shadow p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
@@ -163,6 +190,16 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         className="form-input"
         placeholder="Title (e.g. K9 Newsletter — Summer 2026)"
       />
+      <div>
+        <input
+          type="text"
+          value={introHeading}
+          onChange={(e) => setIntroHeading(e.target.value)}
+          className="form-input"
+          placeholder={`Intro heading (default: "${DEFAULT_INTRO_HEADING}")`}
+        />
+        <p className="text-xs text-gray-400 mt-1">The greeting above the intro. Blank uses the default.</p>
+      </div>
       <textarea
         value={intro}
         onChange={(e) => setIntro(e.target.value)}
@@ -193,6 +230,19 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         {uploadingHeader && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
         <p className="text-xs text-gray-400 mt-1">Overrides the default masthead photo for this issue.</p>
       </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Reply-to email</label>
+        <input
+          type="email"
+          value={replyTo}
+          onChange={(e) => setReplyTo(e.target.value)}
+          className="form-input"
+          placeholder="replies@k9coliving.com"
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Where replies to this issue&apos;s emails (and its reminders) go. Set once — Send and Send reminder use it automatically.
+        </p>
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-600">Saved.</p>}
       <div className="flex justify-end">
@@ -201,6 +251,24 @@ function DraftEditor({ draft }: { draft: NewsletterRecord | null }) {
         </button>
       </div>
     </form>
+
+      <div className="bg-white rounded-xl shadow p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Live preview</h2>
+          <span className="text-xs text-gray-400">Heading, intro &amp; footer — updates as you type</span>
+        </div>
+        <div className="rounded-lg overflow-hidden border border-gray-100">
+          <DraftPreview
+            title={title}
+            introHeading={introHeading}
+            introText={intro}
+            outroText={outro}
+            headerImageUrl={headerImageUrl}
+            issueLabel={issueLabel}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -334,7 +402,7 @@ function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
   );
 }
 
-export default function AdminNewsletterClient({ submissions, newsletters, quota }: Props) {
+export default function AdminNewsletterClient({ submissions, newsletters, quota, defaultReplyTo }: Props) {
   const router = useRouter();
 
   // At most one draft should be active. If several exist (legacy/test data),
@@ -365,7 +433,7 @@ export default function AdminNewsletterClient({ submissions, newsletters, quota 
         </div>
 
         <QuotaWidget quota={quota} />
-        <DraftEditor key={activeDraft?.id ?? 'new'} draft={activeDraft} />
+        <DraftEditor key={activeDraft?.id ?? 'new'} draft={activeDraft} defaultReplyTo={defaultReplyTo} />
         <Submissions submissions={submissions} />
         <PastNewsletters newsletters={newsletters} />
       </div>

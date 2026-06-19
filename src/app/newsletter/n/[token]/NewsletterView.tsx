@@ -6,13 +6,18 @@ import type {
 import {
   FONT_DISPLAY,
   FONT_BODY,
-  FONT_HAND,
   INK,
-  ASSETS,
   PALETTE,
   firstNameOf,
   type Palette,
 } from '@/components/newsletter/theme';
+import {
+  IssueTopBar,
+  Masthead,
+  WelcomeNote,
+  NewsletterFooter,
+  resolveHeaderImage,
+} from '@/components/newsletter/sections';
 import MemberCard, { RecommendIcon, RecommendationBody } from '@/components/newsletter/MemberCard';
 
 // ---------------------------------------------------------------------------
@@ -86,12 +91,7 @@ export default function NewsletterView({
   const landed = submissions.filter((s) => s.where_now);
   const recs = submissions.filter((s) => s.recommendation_link || s.recommendation_context);
 
-  // Per-issue masthead image, falling back to the default gathering photo in
-  // Supabase storage (same convention as the team photos / homepage moving
-  // image: storage base URL + a known filename). The private photo is never
-  // bundled in the repo.
-  const storageBase = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL;
-  const headerImage = newsletter.header_image_url || (storageBase ? `${storageBase}/newsletter-header.jpg` : null);
+  const headerImage = resolveHeaderImage(newsletter.header_image_url);
 
   return (
     <div style={{ minHeight: '100vh', background: '#FAF4E4', fontFamily: FONT_BODY, color: '#34466A' }}>
@@ -102,68 +102,9 @@ export default function NewsletterView({
           </div>
         )}
 
-        {/* top bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', paddingBottom: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '18px', color: INK }}>K9 Newsletter</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#9aa6bd', letterSpacing: '.14em', textTransform: 'uppercase', marginLeft: '2px' }}>
-              Alumni Edition
-            </span>
-          </div>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: '#5B7FD4', letterSpacing: '.08em', textTransform: 'uppercase' }}>{issueLabel}</div>
-        </div>
-
-        {/* masthead */}
-        <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px', marginTop: '10px', padding: '26px 6px 18px' }}>
-          <div style={{ flex: '1 1 430px', minWidth: '290px' }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(40px,6vw,60px)', lineHeight: 0.98, color: INK, margin: '0 0 22px', letterSpacing: '-0.012em', textWrap: 'balance' }}>
-              {newsletter.title}
-            </h1>
-            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#F6C44C', borderRadius: '38px 30px 40px 28px / 26px 38px 24px 36px', padding: '9px 26px', boxShadow: '0 12px 24px -14px rgba(231,169,47,0.95)' }}>
-              <span style={{ fontFamily: FONT_BODY, fontStyle: 'italic', fontWeight: 800, fontSize: '18px', color: '#1c2f54', lineHeight: 1.2 }}>
-                Together, we make our community thrive.
-              </span>
-            </div>
-            <p style={{ fontSize: '19px', lineHeight: 1.5, color: '#3a4a66', fontWeight: 600, margin: '20px 0 0', maxWidth: '30ch', textWrap: 'pretty' }}>
-              Updates, stories, and highlights from around the K9 family.
-            </p>
-          </div>
-
-          {/* illustration cluster */}
-          <div style={{ flex: '1 1 360px', minWidth: '290px', position: 'relative', height: '380px' }}>
-            <div style={{ position: 'absolute', top: '40px', left: '50%', transform: 'translateX(-47%)', width: '320px', height: '290px', background: '#DCE6F7', opacity: 0.65, borderRadius: '46% 54% 57% 43% / 49% 44% 56% 51%' }} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/airplane.png`} alt="" className="nl-drift" style={{ position: 'absolute', top: '-18px', right: '6px', width: '120px', height: 'auto', zIndex: 4 }} />
-            <div style={{ position: 'absolute', top: '34px', left: '50%', transform: 'translateX(-50%)', width: 'min(420px, 90%)', height: '300px', borderRadius: '26px', overflow: 'hidden', border: '6px solid #fff', boxShadow: '0 18px 30px -6px rgba(22,41,76,0.28)', zIndex: 2, background: 'linear-gradient(135deg, #EAF0FB, #DCE6F7)' }}>
-              {headerImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={headerImage} alt="K9 friends gathered together" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '60% center', display: 'block' }} />
-              )}
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/mug.png`} alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '113px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${ASSETS}/plant.png`} alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
-          </div>
-        </div>
-
-        {/* welcome note */}
-        <div style={{ background: '#fff', borderRadius: '24px', padding: '30px 34px', marginTop: '26px', boxShadow: '0 18px 40px -30px rgba(22,41,76,0.3)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-26px', right: '-18px', width: '130px', height: '130px', borderRadius: '50%', background: '#FBEBC2', opacity: 0.55 }} />
-          <div style={{ position: 'relative' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#E7A92F', marginBottom: '8px' }}>A note to begin</div>
-            <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: '0 0 12px', lineHeight: 1.1 }}>Hello again, friends.</h2>
-            <p style={{ fontSize: '17px', lineHeight: 1.7, margin: 0, maxWidth: '62ch', textWrap: 'pretty', whiteSpace: 'pre-line' }}>
-              {newsletter.intro_text ||
-                "It's been a while since we all shared a kitchen, but the group chat never really went quiet. This issue is the whole table catching up at once — where everyone landed, what's keeping you busy, and the little things worth passing on. Pour something warm and scroll slow."}
-            </p>
-            <div style={{ fontFamily: FONT_HAND, fontSize: '26px', color: '#5B7FD4', marginTop: '16px', lineHeight: 1.1 }}>
-              With love,
-              <br />
-              <span style={{ color: INK }}>— the K9 crew</span>
-            </div>
-          </div>
-        </div>
+        <IssueTopBar issueLabel={issueLabel} />
+        <Masthead title={newsletter.title} headerImage={headerImage} />
+        <WelcomeNote heading={newsletter.intro_heading} introText={newsletter.intro_text} />
 
         {submissions.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#7a879e', padding: '48px 0', fontSize: '17px', fontWeight: 600 }}>No contributions yet.</p>
@@ -232,47 +173,7 @@ export default function NewsletterView({
         )}
       </div>
 
-      {/* footer */}
-      <div style={{ position: 'relative', marginTop: '60px', padding: '56px 22px 40px', background: '#E3EDD6', overflow: 'hidden' }}>
-        <svg viewBox="0 0 980 70" preserveAspectRatio="none" style={{ position: 'absolute', top: '-1px', left: 0, width: '100%', height: '70px', display: 'block' }} aria-hidden="true">
-          <path d="M0,40 C160,5 330,5 490,30 C650,55 820,55 980,22 L980,0 L0,0 Z" fill="#FAF4E4" />
-        </svg>
-        <div style={{ maxWidth: '760px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/mountains.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '17px', bottom: '8px', width: '120px', height: 'auto', opacity: 0.85 }} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/camera.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', right: '40px', bottom: '10px', width: '74px', height: 'auto', opacity: 0.9, transform: 'rotate(-6deg)' }} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/envelope.png`} alt="" className="nl-floaty" style={{ width: '76px', height: 'auto', display: 'inline-block' }} />
-          {newsletter.outro_text && (
-            <p style={{ fontSize: '17px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '14px auto 0', maxWidth: '60ch', whiteSpace: 'pre-line', textWrap: 'pretty' }}>
-              {newsletter.outro_text}
-            </p>
-          )}
-          <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '32px', color: INK, margin: '14px 0 8px', lineHeight: 1.12, textWrap: 'balance' }}>
-            Together, we make our community thrive.
-          </h2>
-          <p style={{ fontSize: '17px', fontWeight: 600, color: '#557A40', margin: '0 0 22px' }}>Your corner of the world belongs in the next issue.</p>
-          <a href="/newsletter/submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: INK, color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '16px', padding: '14px 26px', borderRadius: '999px', textDecoration: 'none', boxShadow: '0 16px 30px -16px rgba(22,41,76,0.7)' }}>
-            Share your update <span style={{ fontSize: '18px' }}>→</span>
-          </a>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${ASSETS}/heart-pink.png`} alt="" style={{ width: '46px', height: 'auto', display: 'block', margin: '40px auto 0' }} />
-          <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '8px auto 0', maxWidth: '52ch', textWrap: 'pretty' }}>
-            Stay connected at{' '}
-            <a href="https://alumni.k9coliving.com/" style={{ color: INK, fontWeight: 800, textDecoration: 'underline' }}>
-              alumni.k9coliving.com
-            </a>
-            {' '}— alumni directory, tips &amp; help, and a calendar for events.
-            <span style={{ display: 'block', marginTop: '2px', fontSize: '13px', fontWeight: 600, color: '#7FA968' }}>
-              password for access on Slack, in the #alumni channel description
-            </span>
-          </p>
-          <div style={{ marginTop: '18px', fontSize: '13px', fontWeight: 700, color: '#7FA968', letterSpacing: '.06em' }}>
-            K9 Newsletter · {issueLabel}
-          </div>
-        </div>
-      </div>
+      <NewsletterFooter outroText={newsletter.outro_text} issueLabel={issueLabel} />
     </div>
   );
 }
