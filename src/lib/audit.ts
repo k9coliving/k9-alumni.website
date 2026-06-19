@@ -138,6 +138,31 @@ export async function getLastReminderSentAt(): Promise<string | null> {
   }
 }
 
+// Timestamp of the most recent *successful* Slack reminder post. Filters on
+// details.status so a failed attempt doesn't read as "sent". null when none.
+export async function getLastSlackReminderAt(): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('timestamp')
+      .eq('event_type', 'newsletter_reminder_slack_posted')
+      .eq('details->>status', 'sent')
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Failed to load last Slack reminder timestamp:', error);
+      return null;
+    }
+
+    return data?.timestamp ?? null;
+  } catch (err) {
+    console.error('Error loading last Slack reminder timestamp:', err);
+    return null;
+  }
+}
+
 // One per-recipient row from a send/reminder run, flattened from audit details.
 export interface SendLogEntry {
   recipient_email: string;

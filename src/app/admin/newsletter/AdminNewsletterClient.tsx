@@ -74,6 +74,8 @@ interface Props {
   defaultReplyTo: string;
   // ISO timestamp of the most recent reminder send, or null if none yet.
   lastReminderAt: string | null;
+  // ISO timestamp of the most recent successful Slack reminder post, or null.
+  lastSlackReminderAt: string | null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,7 +88,15 @@ function relativeDays(iso: string): string {
   return `${days} days ago`;
 }
 
-function QuotaWidget({ quota, lastReminderAt }: { quota: Quota; lastReminderAt: string | null }) {
+function QuotaWidget({
+  quota,
+  lastReminderAt,
+  lastSlackReminderAt,
+}: {
+  quota: Quota;
+  lastReminderAt: string | null;
+  lastSlackReminderAt: string | null;
+}) {
   const remaining = Math.max(0, quota.limit - quota.sentLast24h);
   const pct = quota.limit > 0 ? Math.min(100, Math.round((quota.sentLast24h / quota.limit) * 100)) : 0;
   const bar = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-green-500';
@@ -103,9 +113,23 @@ function QuotaWidget({ quota, lastReminderAt }: { quota: Quota; lastReminderAt: 
         <div className={`h-2 rounded-full ${bar}`} style={{ width: `${pct}%` }} />
       </div>
       <p className="mt-2 text-xs text-gray-400">
-        {lastReminderAt
-          ? `Last email reminder sent ${relativeDays(lastReminderAt)}`
-          : 'No email reminder sent yet'}
+        {lastReminderAt ? (
+          <>
+            Last email reminder sent{' '}
+            <span className="font-semibold text-gray-600">{relativeDays(lastReminderAt)}</span>
+          </>
+        ) : (
+          'No email reminder sent yet'
+        )}
+        {' · '}
+        {lastSlackReminderAt ? (
+          <>
+            Last Slack reminder sent{' '}
+            <span className="font-semibold text-gray-600">{relativeDays(lastSlackReminderAt)}</span>
+          </>
+        ) : (
+          'No Slack reminder sent yet'
+        )}
       </p>
     </div>
   );
@@ -636,7 +660,7 @@ function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
   );
 }
 
-export default function AdminNewsletterClient({ submissions, newsletters, quota, defaultReplyTo, lastReminderAt }: Props) {
+export default function AdminNewsletterClient({ submissions, newsletters, quota, defaultReplyTo, lastReminderAt, lastSlackReminderAt }: Props) {
   const router = useRouter();
 
   // At most one draft should be active. If several exist (legacy/test data),
@@ -666,7 +690,7 @@ export default function AdminNewsletterClient({ submissions, newsletters, quota,
           </div>
         </div>
 
-        <QuotaWidget quota={quota} lastReminderAt={lastReminderAt} />
+        <QuotaWidget quota={quota} lastReminderAt={lastReminderAt} lastSlackReminderAt={lastSlackReminderAt} />
         <DraftEditor key={activeDraft?.id ?? 'new'} draft={activeDraft} defaultReplyTo={defaultReplyTo} />
         <Submissions submissions={submissions} />
         <PastNewsletters newsletters={newsletters} />
