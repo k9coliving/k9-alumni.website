@@ -10,6 +10,19 @@ Add a real newsletter workflow to the alumni website:
 
 The form page and per-token newsletter pages are publicly accessible (no site password) — each newsletter is protected only by its token.
 
+## Post-launch additions (2026-06-20)
+
+The core feature shipped (Phases 1–5c + send). These were built on top, all on `main`:
+
+- **Reminder email spruce-up** (`6e8aabf`): editable subject/heading + message on the Send-a-reminder page, a live HTML preview, on-brand email HTML (`lib/newsletterEmail.ts` → `buildReminderEmailHtml`), a random decorative image (airplane/envelope), and a "previous reminders" history (audit `newsletter_reminder_batch`, `getReminderTextHistory`) with a reuse button.
+- **Slack reminder posting** (`cf1f653`): "Post to Slack" button on the reminder page → `POST /api/admin/newsletter/reminder/slack` → Slack Incoming Webhook (`lib/slack.ts`). Body-only (no subject); `@channel/@here/@everyone` are rewritten to `<!channel>` etc. so they actually ping. Needs `SLACK_WEBHOOK_URL` (in `.env.local` + Vercel). Audit: `newsletter_reminder_slack_posted` (deliberately NOT counted in the email quota). **Slack reminders are now DONE — was deferred.**
+- **Featured highlights** (`bdf11ae`): up to 3 admin-curated highlights per issue (book rec / Slack news / anniversary), stored in `newsletters.data.featured` jsonb — **no migration**. `FeaturedItem` + `sanitizeFeatured`/`featuredOf` in `lib/newsletter.ts`; shared `FeaturedSection` (`components/newsletter/sections.tsx`) renders on the token page and the draft live preview; the image follows the resident-post floated layout (full natural aspect, never cropped); admin editor supports add/remove/**reorder (↑)** + image upload; slim teaser in the announcement email. Public section title: **"From the K9 crew"** (kicker "A few things worth a mention").
+- **Quote syntax**: in admin-authored text (featured body, intro, reminder body), lines starting with `>` render as a light-gray pull-quote on both page and email. Shared grouping `textBlocks()` in `sections.tsx`, used by `renderRichText` (page) and `paragraphs()` (email).
+
+**Gotcha reaffirmed this session:** after editing `lib/*` or shared components (e.g. `sections.tsx`), **restart `npm run dev`**. Stale Turbopack served the old `lib/newsletter` and caused both a 500 on save (missing `sanitizeFeatured`) and missing quote rendering. `npm run build` is a separate process and does NOT refresh the dev server.
+
+---
+
 ## Build status — resume here (as of 2026-06-12)
 
 **Phases 1–4 + 5a + 5b done. Next: Phase 5c (send + reminder), then Phase 6.**
@@ -97,7 +110,7 @@ The send/reminder UI + backend. The hard part is the Resend send loop + quota ma
 | Resident decoupling | Submission form does not pre-fill from residents |
 | Newsletter recipients | Residents with `involvement_level` in (`full-engagement`, `newsletter-only`, `team-member`) **or** `is_team_member = true`. Not `database-only`, not `other` |
 | Quota warning | Warn if the send would exceed Resend daily limit (rolling 24h). Don't block |
-| Slack reminders | Deferred to later |
+| Slack reminders | ✅ Done (2026-06-20) — Incoming Webhook (`SLACK_WEBHOOK_URL`), "Post to Slack" on the reminder page. See Post-launch additions. |
 | Send email on edit | Only on initial submission, not on subsequent edits |
 
 ---
@@ -112,6 +125,7 @@ Add to `.env.local` and `.env.local.example`:
 ADMIN_PASSWORD=...                      # separate from SITE_PASSWORD
 ADMIN_DEFAULT_REPLY_TO=...              # optional; pre-fills the reply-to input
 RESEND_DAILY_LIMIT=100                  # bump after upgrading Resend plan
+SLACK_WEBHOOK_URL=...                   # Slack Incoming Webhook for "Post to Slack" reminders (2026-06-20)
 ```
 
 Update `NEXT_PUBLIC_NEWSLETTER_FORM_URL` in Vercel + `.env.local` to `https://alumni.k9coliving.com/newsletter/submit` after deploy.
@@ -446,7 +460,7 @@ Navigation link for `/newsletter/submit`: leave out by default to keep nav clean
 ## Deferred (not in this build)
 
 - Optional "Lock" step (freeze submissions before sending) to close the small preview→send race — only if it ever bites
-- Slack reminder integration
+- ~~Slack reminder integration~~ ✅ Done 2026-06-20 (see Post-launch additions)
 - Public archive teaser of past newsletter intros
 - Markdown rendering of submission fields
 - Resident-to-submission pre-fill by email match
