@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import ProfileForm, { type ProfileFormData, type InitialProfileData } from '@/components/ProfileForm';
+import ProfileForm, { type ProfileFormData } from '@/components/ProfileForm';
 import JoinCallToAction from '@/components/JoinCallToAction';
 import BaseModal from '@/components/BaseModal';
 

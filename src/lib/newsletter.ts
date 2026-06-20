@@ -104,6 +104,16 @@ export function replyToOf(n: Pick<NewsletterRecord, 'data'> | null | undefined):
   return typeof v === 'string' ? v.trim() : '';
 }
 
+// The month/year label for an issue, derived from the given date (falling back
+// to the current month for a not-yet-dated draft). Kept as a plain helper so the
+// `Date.now()` fallback stays out of React render scope (react-hooks/purity).
+export function issueLabelOf(date?: string | null): string {
+  return new Date(date || Date.now()).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 // The featured highlights configured for an issue ([] when none).
 export function featuredOf(n: Pick<NewsletterRecord, 'data'> | null | undefined): FeaturedItem[] {
   const v = n?.data?.featured;

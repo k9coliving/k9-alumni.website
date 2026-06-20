@@ -123,7 +123,7 @@ test('K9 Family directory loads and functions correctly', async ({ page }) => {
       await clickableElements.first().click({ timeout: 3000 })
       await page.waitForTimeout(1000)
       console.log('✓ Resident card clickable')
-    } catch (error) {
+    } catch {
       console.log('Resident cards may not be clickable or no modal appeared')
     }
   }

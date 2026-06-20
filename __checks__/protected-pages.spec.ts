@@ -63,7 +63,7 @@ test('All protected pages are accessible after authentication', async ({ page })
 
       // Wait a bit for the page to render
       await page.waitForTimeout(2000)
-    } catch (error) {
+    } catch {
       console.log(`⚠ ${pageDef.name} page navigation timed out, but continuing...`)
       // If navigation timed out but page partially loaded, continue with checks
       await page.waitForTimeout(1000)

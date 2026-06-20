@@ -12,6 +12,14 @@ import type { NewsletterRecord, NewsletterSubmissionRecord, FeaturedItem } from 
 // re-clamps on save regardless).
 const MAX_FEATURED = 3;
 
+// Local mirror of issueLabelOf (same reason as MAX_FEATURED above). Defined at
+// module scope so the Date.now() fallback stays out of render (react-hooks/purity).
+const issueLabelOf = (date?: string | null): string =>
+  new Date(date || Date.now()).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
 // Editable form shape for a featured highlight — all-strings so inputs are
 // controlled; mapped to FeaturedItem (dropping blanks) on save.
 type FeaturedDraft = { eyebrow: string; title: string; body: string; image_url: string };
@@ -287,10 +295,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
 
   // Issue label mirrors the public view: the month/year the draft was created
   // (or now, for a not-yet-saved new draft).
-  const issueLabel = new Date(draft?.created_at || Date.now()).toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const issueLabel = issueLabelOf(draft?.created_at);
 
   // Unsaved-changes detection: compare each field to its pristine value. After a
   // successful save, router.refresh() feeds back the saved draft as new props

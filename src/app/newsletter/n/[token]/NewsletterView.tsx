@@ -1,5 +1,6 @@
 import {
   featuredOf,
+  issueLabelOf,
   type NewsletterRecord,
   type NewsletterSubmissionRecord,
   type NewsletterEventRecord,
@@ -85,10 +86,7 @@ export default function NewsletterView({
   submissions: NewsletterSubmissionRecord[];
   events: NewsletterEventRecord[];
 }) {
-  const issueLabel = new Date(newsletter.sent_at || newsletter.created_at || Date.now()).toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const issueLabel = issueLabelOf(newsletter.sent_at || newsletter.created_at);
 
   const landed = submissions.filter((s) => s.where_now);
   const recs = submissions.filter((s) => s.recommendation_link || s.recommendation_context);

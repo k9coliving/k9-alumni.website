@@ -45,10 +45,8 @@ test('Invalid password is rejected', async ({ page, context }) => {
     page.locator('[class*="error"]')
   ]
 
-  let errorFound = false
   for (const errorLocator of errorMessages) {
     if (await errorLocator.count() > 0) {
-      errorFound = true
       break
     }
   }
