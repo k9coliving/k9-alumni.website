@@ -23,9 +23,9 @@ The core feature shipped (Phases 1–5c + send). These were built on top, all on
 
 ---
 
-## Build status — resume here (as of 2026-06-12)
+## Build status (historical — feature COMPLETE as of 2026-06-20)
 
-**Phases 1–4 + 5a + 5b done. Next: Phase 5c (send + reminder), then Phase 6.**
+**All phases done.** Send + reminder (5c) shipped; see "Post-launch additions" at the top for what was built on top. Only open items are the manual prod/testing steps below — NOT code.
 
 | Phase | Status | Commit |
 |---|---|---|
@@ -35,8 +35,14 @@ The core feature shipped (Phases 1–5c + send). These were built on top, all on
 | 4 — Public pages | ✅ Done — deployed + tested | `c79555b` (+ copy polish `19fbe75`, `d141ef4`) |
 | 5a — Admin auth | ✅ Done — login flow verified (401/cookie/redirect) | `4707a43` |
 | 5b — Admin dashboard + submissions | ✅ Done — dashboard SSRs, build green | `f391731` |
-| 5c — Admin send + reminder | ⬜ **Next (resume here)** | — |
-| 6 — Existing code edits | 🟡 Partial (teaser link done; robots.ts + env-example pending) | — |
+| 5c — Admin send + reminder | ✅ Done — reminder `076a535`, send `0115196` (auth smoke-tested; not yet live-tested with a real Resend send) | — |
+| 6 — Existing code edits | 🟡 Partial (teaser link done; robots.ts covered by static `robots.txt`; env-example done) | — |
+
+### Open items (manual, Cami owns — no code left)
+- ⬜ **Live dry run:** test-to-self from `/admin/newsletter/[id]/send` before any real send (single shared prod DB + real Resend).
+- ⬜ **Vercel env:** set `SLACK_WEBHOOK_URL` (Slack button), confirm `NEXT_PUBLIC_BASE_URL`, verify `mail.k9coliving.com` in Resend, set `RESEND_DAILY_LIMIT`.
+- ⬜ **Schema cleanup:** drop `newsletter_submissions.notify_for_future_newsletters` by hand once the subscriber-model deploy is confirmed live.
+- ℹ️ Schema added by hand this work: `newsletters.data jsonb`, `newsletters.intro_heading text` (featured highlights live in `data.featured`).
 
 ### What exists now
 - **Lib:** `admin-auth.ts`, `newsletter.ts` (data layer + `parseSubmissionInput` + `timingSafeEqualStr`; **email now required** in `parseSubmissionInput`; + `updateNewsletter`, `getAllNewsletters`, `deleteSubmission`), `rate-limit.ts` (+ `adminLogin` limit), `api-auth.ts` (`requireAdminAuth`), `audit.ts` (`getEmailsSentInLast24h`).
