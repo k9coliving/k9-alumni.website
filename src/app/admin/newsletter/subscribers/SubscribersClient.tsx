@@ -314,6 +314,7 @@ function PersonCard({ group, onChanged }: { group: PersonGroup; onChanged: () =>
 export default function SubscribersClient({ subscribers }: { subscribers: SubscriberRecord[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
 
   const counts = useMemo(
     () => ({
@@ -324,10 +325,17 @@ export default function SubscribersClient({ subscribers }: { subscribers: Subscr
     [subscribers]
   );
 
-  const visible = useMemo(
-    () => (filter === 'all' ? subscribers : subscribers.filter((s) => s.status === filter)),
-    [subscribers, filter]
-  );
+  // Status tab + free-text search combine. The search matches name OR email
+  // (case-insensitive, trimmed); filtering happens per email row before grouping,
+  // so an email-only match still surfaces that person's card.
+  const visible = useMemo(() => {
+    const byStatus = filter === 'all' ? subscribers : subscribers.filter((s) => s.status === filter);
+    const q = query.trim().toLowerCase();
+    if (!q) return byStatus;
+    return byStatus.filter(
+      (s) => (s.name ?? '').toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+    );
+  }, [subscribers, filter, query]);
 
   const groups = useMemo(() => groupByName(visible), [visible]);
 
@@ -361,7 +369,7 @@ export default function SubscribersClient({ subscribers }: { subscribers: Subscr
         <AddSubscriber existingNames={existingNames} onAdded={() => router.refresh()} />
 
         <div className="bg-white rounded-xl shadow p-6">
-          <div className="flex flex-wrap gap-2 mb-5">
+          <div className="flex flex-wrap gap-2 mb-4">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -375,8 +383,30 @@ export default function SubscribersClient({ subscribers }: { subscribers: Subscr
             ))}
           </div>
 
+          <div className="relative mb-5">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="form-input w-full"
+              placeholder="Search by name or email…"
+              aria-label="Search subscribers by name or email"
+            />
+            {query.trim() && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           {groups.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">No subscribers here.</p>
+            <p className="text-gray-500 text-sm py-4">
+              {query.trim() ? `No subscribers match “${query.trim()}”.` : 'No subscribers here.'}
+            </p>
           ) : (
             <div className="space-y-3">
               {groups.map((g) => (
