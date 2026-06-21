@@ -1,156 +1,355 @@
 import Layout from '@/components/Layout';
 import Image from 'next/image';
 
+// Design tokens for the newsletter-aligned landing page (from the handoff design).
+const C = {
+  bg: '#FAF6F0',
+  ink: '#1B2A41',
+  accent: '#E1564D',
+  body: '#6F695F',
+  card: '#FBF7F1',
+  cardBorder: '#ECE3D5',
+  section: '#F5EEE2',
+};
+
+// Public Supabase storage bucket base (e.g. .../object/public/images) — same
+// pattern used elsewhere for remote images; host is allowlisted in next.config.ts.
+const STORAGE = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL;
+
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
+const HAND = 'var(--font-caveat), "Caveat", cursive';
+
+const linkStyle = {
+  color: C.accent,
+  fontWeight: 600,
+  textDecoration: 'underline',
+  textDecorationColor: 'rgba(225,86,77,.45)',
+} as const;
+
+// The six "ways to stay connected". Relocation is still a work in progress
+// (disabled in the nav too), so it renders as a non-clickable "coming soon" tile.
+const cards = [
+  {
+    href: '/thek9family',
+    img: '/hi_from_windows.png',
+    w: 582,
+    h: 624,
+    maxW: '92%',
+    maxH: 118,
+    title: 'Meet Alumni',
+    body: 'Find and connect with fellow K9ers around the world.',
+  },
+  {
+    href: '/events',
+    img: '/calendar.png',
+    w: 1357,
+    h: 679,
+    maxW: '78%',
+    maxH: 118,
+    blend: true,
+    title: 'Upcoming Gatherings',
+    body: 'Discover events and casual get-togethers near you.',
+  },
+  {
+    href: '/relocation',
+    soon: true,
+    img: '/suitcase.png',
+    w: 1536,
+    h: 1024,
+    maxW: '90%',
+    maxH: 118,
+    title: 'Moving Somewhere New?',
+    body: 'Get tips, advice and warm introductions from alumni.',
+  },
+  {
+    href: '/newsletter',
+    img: '/newsletter/assets/envelope.png',
+    w: 360,
+    h: 305,
+    maxW: '62%',
+    maxH: 108,
+    title: 'Newsletter',
+    body: 'Catch up on stories, updates and good news from the pack.',
+  },
+  {
+    href: '/holdmyhair',
+    img: '/hands2.png',
+    w: 1536,
+    h: 1024,
+    maxW: '92%',
+    maxH: 104,
+    title: 'Hold my Hair',
+    body: 'Ask the community or lend a helping hand.',
+  },
+  {
+    href: '/tips',
+    img: '/lightbulb.png',
+    w: 1024,
+    h: 1024,
+    maxW: '64%',
+    maxH: 118,
+    title: 'Tips & Offers',
+    body: 'Share what you know and find things that might help.',
+  },
+];
+
+// Hand-drawn underline beneath section headings.
+function Squiggle({ width = 120 }: { width?: number }) {
+  return (
+    <svg width={width} height="13" viewBox="0 0 120 13" fill="none" className="mt-1.5">
+      <path d="M3 8 Q 32 2 60 7 T 117 6" stroke={C.accent} strokeWidth="3.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CardInner({ card }: { card: (typeof cards)[number] }) {
+  return (
+    <>
+      <div className="flex items-center justify-center mb-3.5" style={{ height: 118 }}>
+        <Image
+          src={card.img}
+          alt=""
+          width={card.w}
+          height={card.h}
+          className="object-contain rounded-2xl"
+          style={{
+            height: 'auto',
+            width: 'auto',
+            maxHeight: card.maxH,
+            maxWidth: card.maxW,
+            mixBlendMode: card.blend ? 'multiply' : undefined,
+          }}
+        />
+      </div>
+      <h3 className="mb-1.5" style={{ fontFamily: BODY, fontWeight: 800, fontSize: 20, color: C.ink }}>
+        {card.title}
+      </h3>
+      <p className="flex-1" style={{ fontFamily: BODY, fontSize: 15, lineHeight: 1.5, color: C.body }}>
+        {card.body}
+      </p>
+      <div className="mt-4 leading-none" style={{ fontSize: 22, color: C.accent }}>
+        {card.soon ? (
+          <span style={{ fontFamily: BODY, fontSize: 13, fontWeight: 700, opacity: 0.7 }}>Coming soon</span>
+        ) : (
+          '→'
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function Home() {
+  const cardClass =
+    'flex flex-col rounded-[20px] p-7 pb-6 transition-transform duration-200';
+  const cardStyle = {
+    background: C.card,
+    border: `1px solid ${C.cardBorder}`,
+    boxShadow: '0 1px 2px rgba(40,30,20,.03)',
+  } as const;
+
   return (
     <Layout>
-      <div className="min-h-screen relative" style={{
-        background: `
-          radial-gradient(circle at 10px 10px, rgba(156, 163, 175, 0.15) 1px, transparent 1px)
-        `,
-        backgroundColor: '#f9fafb',
-        backgroundSize: '20px 20px'
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="page-header mb-12">
-            <div className="flex justify-center mb-8">
-              <Image 
-                src="/k9-alumni-logo.png" 
-                alt="K9 Alumni Network logo - connecting former K9 house residents" 
-                width={120} 
-                height={120}
-                className="rounded-lg"
-              />
-            </div>
-            <h1 className="page-header-title">
-              Welcome to K9 Alumni
-            </h1>
-            <div className="page-header-divider"></div>
-            <p className="page-header-subtitle">
-              Whether you&apos;ve been a K9er for a few months or many years, moving out is never easy. 
-              We are on a journey to build a strong alumni network, so the K9 magic lives on, 
-              inside and outside the walls of the house.
-            </p>
+      <div style={{ background: C.bg, fontFamily: BODY, color: C.ink }}>
+        {/* ===== HERO ===== */}
+        <section className="max-w-[1040px] mx-auto px-5 sm:px-14 text-center pt-6 pb-8">
+          <h1
+            className="m-0"
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(52px,10vw,108px)',
+              lineHeight: 0.98,
+              letterSpacing: '-1px',
+              color: C.ink,
+            }}
+          >
+            Welcome back
+            <Image
+              src="/newsletter/assets/heart-pink.png"
+              alt=""
+              width={360}
+              height={503}
+              className="inline-block align-[-18%] ml-1.5"
+              style={{ height: 'clamp(58px,10vw,112px)', width: 'auto', transform: 'translateY(15px)' }}
+            />
+          </h1>
+          <p
+            className="mx-auto mt-5"
+            style={{ fontFamily: BODY, fontSize: 'clamp(16px,2.2vw,20px)', lineHeight: 1.55, opacity: 0.82, maxWidth: 480 }}
+          >
+            Whether you left last month or five years ago,
+            <br />
+            you&apos;re still part of the story.
+          </p>
+
+          <div className="max-w-[900px] mx-auto mt-4 sm:mt-6">
+            <Image
+              src="/hero2.png"
+              alt="K9 alumni gathered together"
+              width={1494}
+              height={776}
+              priority
+              className="w-full h-auto block"
+            />
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <a href="/thek9family" className="block bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 p-8 rounded-3xl shadow-xl hover:shadow-2xl  transition-all transform hover:-translate-y-1 hover:scale-102">
-              <div className="flex justify-center mb-6">
-                <Image 
-                  src="/alumni_db.png" 
-                  alt="Database icon - search and connect with K9 alumni directory" 
-                  width={120} 
-                  height={120}
-                  className="rounded-lg"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">The K9 Family</h3>
-              <p className="text-cyan-100 text-center text-sm">Introduce yourself and find other alumni</p>
-            </a>
-            
-            <a href="/events" className="block bg-gradient-to-br from-violet-400 to-purple-600 hover:from-violet-500 hover:to-purple-700 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
-              <div className="flex justify-center mb-6">
-                <Image 
-                  src="/calendar.svg" 
-                  alt="Calendar icon - discover upcoming K9 alumni events and gatherings" 
-                  width={120} 
-                  height={120}
-                  className="rounded-lg"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Events</h3>
-              <p className="text-violet-100 text-center text-sm">Share and discover alumni events</p>
-            </a>
-            
-            <div className="block bg-gradient-to-br from-orange-400 to-red-500 pt-4 px-8 pb-8 rounded-3xl shadow-xl relative">
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full">
-                Coming soon
-              </div>
-              <div className="flex justify-center mb-2">
-                <Image 
-                  src={`${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/moving-no-bg.png`}
-                  alt="Moving boxes illustration - relocation support and resources for K9 alumni" 
-                  width={200} 
-                  height={200}
-                  className="rounded-lg opacity-75"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Relocation</h3>
-              <p className="text-orange-100 text-center text-sm">Find alumni in your neighbourhood</p>
-            </div>
-            
-            <a href="/newsletter" className="block bg-gradient-to-br from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
-              <div className="flex justify-center mb-6">
-                <Image 
-                  src="/reading-side.svg" 
-                  alt="Person reading illustration - stay updated with K9 alumni newsletter" 
-                  width={120} 
-                  height={120}
-                  className="rounded-lg"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Newsletter</h3>
-              <p className="text-amber-100 text-center text-sm">Catch up and share life updates</p>
-            </a>
-            
-            <a href="/tips" className="block bg-gradient-to-br from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
-              <div className="flex justify-center mb-6">
-                <Image 
-                  src="/did-youknow.png" 
-                  alt="Light bulb with question mark - discover helpful tips and offerings from fellow alumni" 
-                  width={140} 
-                  height={140}
-                  className="rounded-lg"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Tips & Offerings</h3>
-              <p className="text-blue-100 text-center text-sm">Share what you can<br />Find what you need</p>
-            </a>
-            
-            <a href="/holdmyhair" className="block bg-gradient-to-br from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-102">
-              <div className="flex justify-center mb-6">
-                <Image 
-                  src="/help.png" 
-                  alt="Helping hands icon - peer support and assistance within K9 alumni community" 
-                  width={120} 
-                  height={120}
-                  className="rounded-lg"
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-1">Hold my Hair</h3>
-              <p className="text-pink-100 text-center text-sm">Tell us what you need</p>
-            </a>
-          </div>
-          
-          {/* Why we're here */}
-          <div className="max-w-4xl mx-auto px-4 mt-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-8">
-              Why we&apos;re here
+        </section>
+
+        {/* ===== INTRO ===== */}
+        <section className="max-w-[1040px] mx-auto px-5 sm:px-14 pt-6 sm:pt-10 text-center">
+          <p
+            className="mx-auto"
+            style={{ fontFamily: BODY, fontSize: 'clamp(16px,2vw,19px)', lineHeight: 1.7, color: C.body, maxWidth: 640 }}
+          >
+            Whether you&apos;ve been a K9er for a few months or many years, moving out is never easy. We are on a
+            journey to build a strong alumni network, so the K9 magic lives on, inside and outside the walls of the
+            house.
+          </p>
+        </section>
+
+        {/* ===== WAYS TO STAY CONNECTED ===== */}
+        <section className="max-w-[1100px] mx-auto px-5 sm:px-14 pt-8 sm:pt-12">
+          <div className="text-center mb-8 sm:mb-10 flex flex-col items-center">
+            <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(30px,5vw,46px)', color: C.ink }}>
+              Ways to stay connected
             </h2>
-            
-            {/* Additional explanation */}
-            <div className="prose prose-lg sm:prose-xl max-w-none text-gray-700 leading-relaxed space-y-6 mb-8">
-              <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
-                The friendships and connections you&apos;ve built at K9 🏠 don&apos;t end when you move out. Here, you&apos;ll find familiar faces in new cities, continue the conversations 💬 that started over shared meals, and keep being part of each other&apos;s stories. From catching up over coffee ☕ when someone&apos;s in town, to sharing life updates and adventures - we&apos;re still the same community, just spread across different places 🌍.
-              </p>
-              <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
-                If you&apos;re still a resident, no need to introduce yourself again 👋. <a href="/events" className="text-gray-800 underline decoration-gray-300 hover:text-violet-600 hover:decoration-violet-600 font-medium">Share events</a> 🎉 where alumni are welcome and join any existing events. Build new connections with alumni and make use of the <a href="/tips" className="text-gray-800 underline decoration-gray-300 hover:text-blue-600 hover:decoration-blue-600 font-medium">tips and resources</a> 💡 shared here. Tell us how life has been treating you via the <a href="/newsletter" className="text-gray-800 underline decoration-gray-300 hover:text-amber-600 hover:decoration-amber-600 font-medium">newsletter</a> 📝 and keep up with what alumni are up to. Don&apos;t hesitate to <a href="/holdmyhair" className="text-gray-800 underline decoration-gray-300 hover:text-pink-600 hover:decoration-pink-600 font-medium">ask for what you need</a> from the wider K9 family.
-              </p>
+            <Squiggle width={120} />
+          </div>
+
+          <div className="grid gap-[22px]" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(278px,1fr))' }}>
+            {cards.map((card) =>
+              card.soon ? (
+                <div key={card.title} className={cardClass} style={cardStyle}>
+                  <CardInner card={card} />
+                </div>
+              ) : (
+                <a
+                  key={card.title}
+                  href={card.href}
+                  className={`${cardClass} hover:-translate-y-1`}
+                  style={cardStyle}
+                >
+                  <CardInner card={card} />
+                </a>
+              )
+            )}
+          </div>
+        </section>
+
+        {/* ===== WHY WE'RE HERE ===== */}
+        <section className="mt-12 sm:mt-20" style={{ background: C.section }}>
+          <div className="max-w-[1100px] mx-auto px-5 sm:px-14 py-12 sm:py-[72px]">
+            <div className="flex flex-wrap gap-8 sm:gap-14 items-center">
+              <div className="flex-1 min-w-[300px]" style={{ flexBasis: '340px' }}>
+                <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(30px,5vw,46px)', color: C.ink }}>
+                  Why we&apos;re here
+                </h2>
+                <Squiggle width={96} />
+                <p
+                  className="mt-4"
+                  style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: C.body, maxWidth: 460 }}
+                >
+                  The friendships and connections you&apos;ve built at K9 🏠 don&apos;t end when you move out. Here,
+                  you&apos;ll find familiar faces in new cities, continue the conversations 💬 that started over shared
+                  meals, and keep being part of each other&apos;s stories. From catching up over coffee ☕ when
+                  someone&apos;s in town, to sharing life updates and adventures — we&apos;re still the same community,
+                  just spread across different places 🌍.
+                </p>
+              </div>
+
+              {/* polaroid collage */}
+              <div className="flex-1 min-w-[300px] relative" style={{ flexBasis: '340px', minHeight: 'clamp(290px,34vw,360px)' }}>
+                <Polaroid left="0%" top="14%" rotate={-8} tint="#E0E8F8" width="clamp(150px,20vw,200px)" img={`${STORAGE}/balcony.jpg`} caption="Remote work 💻" />
+                <Polaroid left="32%" top="0%" rotate={2} tint="#FBE2E4" width="clamp(160px,22vw,218px)" z={2} tape img={`${STORAGE}/dinner.jpg`} caption="Sharing food" />
+                <Polaroid right="-1%" top="30%" rotate={6} tint="#E3EDD6" width="clamp(140px,18vw,184px)" img={`${STORAGE}/ski.jpg`} caption="Ski trip ⛷️" />
+              </div>
             </div>
-            
-            <div className="bg-gray-100 border border-gray-300 p-8 rounded-2xl shadow-lg mb-12 max-w-3xl">
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                We have three main goals:
-              </h3>
-              <div className="space-y-3 text-gray-800">
-                <p className="text-lg leading-relaxed">💌  Stay in touch on and offline</p>
-                <p className="text-lg leading-relaxed">🤗  Build relationships between alumni and current residents</p>
-                <p className="text-lg leading-relaxed">🤲  Support each other emotionally, professionally and in any other way possible</p>
+
+            {/* fuller intro copy + goals */}
+            <div className="mt-12 sm:mt-16 max-w-[760px]">
+              <p style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: C.body }}>
+                If you&apos;re still a resident, no need to introduce yourself again 👋.{' '}
+                <a href="/events" style={linkStyle}>Share events</a> 🎉 where alumni are welcome and join any existing
+                events. Build new connections with alumni and make use of the{' '}
+                <a href="/tips" style={linkStyle}>tips and resources</a> 💡 shared here. Tell us how life has been
+                treating you via the <a href="/newsletter" style={linkStyle}>newsletter</a> 📝 and keep up with what
+                alumni are up to. Don&apos;t hesitate to{' '}
+                <a href="/holdmyhair" style={linkStyle}>ask for what you need</a> from the wider K9 family.
+              </p>
+
+              <div className="mt-8 rounded-[20px] p-7" style={{ background: C.card, border: `1px solid ${C.cardBorder}` }}>
+                <h3 className="m-0 mb-4" style={{ fontFamily: BODY, fontWeight: 800, fontSize: 18, color: C.ink }}>
+                  We have three main goals:
+                </h3>
+                <div className="space-y-2.5" style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.6, color: C.body }}>
+                  <p className="m-0">💌&nbsp;&nbsp;Stay in touch on and offline</p>
+                  <p className="m-0">🤗&nbsp;&nbsp;Build relationships between alumni and current residents</p>
+                  <p className="m-0">🤲&nbsp;&nbsp;Support each other emotionally, professionally and in any other way possible</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <div style={{ height: 'clamp(40px,6vw,64px)' }} />
       </div>
     </Layout>
+  );
+}
+
+function Polaroid({
+  left,
+  right,
+  top,
+  rotate,
+  tint,
+  width,
+  z,
+  tape,
+  img,
+  caption,
+}: {
+  left?: string;
+  right?: string;
+  top: string;
+  rotate: number;
+  tint: string;
+  width: string;
+  z?: number;
+  tape?: boolean;
+  img: string;
+  caption?: string;
+}) {
+  return (
+    <div
+      className="absolute bg-white"
+      style={{
+        left,
+        right,
+        top,
+        transform: `rotate(${rotate}deg)`,
+        padding: '9px 9px 0',
+        boxShadow: '0 12px 26px rgba(40,30,20,.18)',
+        width,
+        zIndex: z,
+      }}
+    >
+      {tape && (
+        <div
+          className="absolute"
+          style={{ top: -12, left: '50%', marginLeft: -30, width: 60, height: 22, background: 'rgba(210,180,140,.4)', transform: 'rotate(-4deg)' }}
+        />
+      )}
+      <div className="relative" style={{ aspectRatio: '1 / 0.9', background: tint }}>
+        <Image src={img} alt="" fill sizes="(max-width: 640px) 50vw, 220px" className="object-cover" />
+      </div>
+      {caption ? (
+        <div className="text-center" style={{ fontFamily: HAND, fontWeight: 600, fontSize: 'clamp(15px,1.9vw,20px)', color: C.ink, padding: '7px 4px 11px' }}>
+          {caption}
+        </div>
+      ) : (
+        <div style={{ height: 34 }} />
+      )}
+    </div>
   );
 }
