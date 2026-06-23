@@ -34,9 +34,9 @@ const linkStyle = {
 const cards = [
   {
     href: '/thek9family',
-    img: '/hi_from_windows.png',
-    w: 582,
-    h: 624,
+    img: '/cat-in-window.png',
+    w: 941,
+    h: 806,
     maxW: '92%',
     maxH: 118,
     title: 'Meet Alumni',
@@ -76,20 +76,20 @@ const cards = [
   },
   {
     href: '/holdmyhair',
-    img: '/hands2.png',
-    w: 1536,
-    h: 1024,
-    maxW: '92%',
-    maxH: 104,
+    img: '/dog-newspaper.png',
+    w: 954,
+    h: 703,
+    maxW: '90%',
+    maxH: 118,
     title: 'Hold my Hair',
     body: 'Ask the community or lend a helping hand.',
   },
   {
     href: '/tips',
-    img: '/lightbulb.png',
-    w: 1024,
-    h: 1024,
-    maxW: '64%',
+    img: '/bird.png',
+    w: 949,
+    h: 616,
+    maxW: '90%',
     maxH: 118,
     title: 'Tips & Offers',
     body: 'Share what you know and find things that might help.',
@@ -275,8 +275,8 @@ export default function Home() {
               <Image
                 src="/mug.png"
                 alt=""
-                width={168}
-                height={132}
+                width={150}
+                height={170}
                 className="mug-jiggle block mx-auto mb-8"
               />
               <p style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: C.body }}>

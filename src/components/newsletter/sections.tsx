@@ -69,7 +69,7 @@ export function Masthead({ title, headerImage }: { title: string; headerImage: s
           )}
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mug.png" alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '113px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+        <img src="/mug.png" alt="" style={{ position: 'absolute', bottom: '36px', left: 'calc(50% - min(210px, 45%) - 60px)', width: '90px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/plant.png" alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
       </div>
