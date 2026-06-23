@@ -92,7 +92,7 @@ export default async function WhoAreWe() {
                 <p className="text-3xl sm:text-4xl font-bold mb-2" style={{ fontFamily: HAND, color: '#1B2A41' }}>
                   The K9 Alumni Network team
                 </p>
-                <Image src="/dog-cat-turtle.png" alt="" width={200} height={200} className="nl-bob block mx-auto mt-4" />
+                <Image src="/dog-cat-turtle.png" alt="" width={200} height={200} className="block mx-auto mt-4" />
               </div>
             </div>
           </div>
