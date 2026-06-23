@@ -187,7 +187,20 @@ interface NewsletterFormProps {
   // Notified while a submit is in flight, so an external save button can show a
   // loading state and disable itself.
   onSubmittingChange?: (submitting: boolean) => void;
+  // When true, cache the draft in localStorage as it's typed and prefill it on
+  // the next visit — so a returning K9er sees what they last wrote. After a
+  // successful submit only the reusable identity fields are kept (the content is
+  // cleared). Off for the edit flow. A "shared computer" checkbox lets the user
+  // opt out (and clears anything stored).
+  persistLocal?: boolean;
 }
+
+// The whole draft (minus photos, which can't be serialised to localStorage) is
+// cached under this key as it's typed. On a successful submit it's trimmed to
+// the reusable identity fields below, so the just-sent content doesn't resurface
+// as a stale draft next time.
+const PERSIST_KEY = 'k9-newsletter-form';
+const KEEP_AFTER_SUBMIT = ['name', 'period_in_k9', 'email', 'where_now'] as const;
 
 // Serialises the editable fields (text + photos) so the current state can be
 // compared against the pristine snapshot to detect unsaved changes. Photo slots
@@ -218,7 +231,7 @@ const EMPTY: NewsletterFormValues = {
   photos: [],
 };
 
-export default function NewsletterForm({ initialValues, submitText, onSubmit, formId, onDirtyChange, onSubmittingChange }: NewsletterFormProps) {
+export default function NewsletterForm({ initialValues, submitText, onSubmit, formId, onDirtyChange, onSubmittingChange, persistLocal = false }: NewsletterFormProps) {
   const [values, setValues] = useState<NewsletterFormValues>({ ...EMPTY, ...initialValues });
   const [photos, setPhotos] = useState<PhotoSlot[]>(
     (initialValues?.photos ?? []).map((p) => ({ id: makeId(), file: null, existingUrl: p.url, focus: p.focus }))
@@ -226,6 +239,8 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "I'm on someone else's computer" — when on, we don't cache anything locally.
+  const [onSharedComputer, setOnSharedComputer] = useState(false);
 
   // Compare the current state against the pristine snapshot (captured on first
   // render) and report dirtiness to the parent.
@@ -246,6 +261,42 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
     () => () => photosRef.current.forEach((s) => s.previewUrl && URL.revokeObjectURL(s.previewUrl)),
     []
   );
+
+  // Restore the saved draft from a previous visit. Runs once on mount (not in a
+  // useState initializer) so it stays SSR-safe — localStorage only exists in the
+  // browser. Photos aren't cached, so they stay as-is.
+  useEffect(() => {
+    if (!persistLocal) return;
+    let saved: Partial<NewsletterFormValues>;
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY);
+      if (!raw) return;
+      saved = JSON.parse(raw);
+    } catch {
+      return; // missing or corrupt — nothing to restore
+    }
+    // One-time hydrate from localStorage on mount — a legitimate external-store
+    // sync, not derived render state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValues((prev) => ({ ...prev, ...saved, photos: prev.photos }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist the whole draft as it changes, so the next visit restores it. Photos
+  // can't be serialised, so they're dropped. On a shared computer we clear
+  // storage and write nothing.
+  useEffect(() => {
+    if (!persistLocal) return;
+    try {
+      if (onSharedComputer) {
+        localStorage.removeItem(PERSIST_KEY);
+        return;
+      }
+      localStorage.setItem(PERSIST_KEY, JSON.stringify({ ...values, photos: undefined }));
+    } catch {
+      // Storage unavailable (private mode / quota) — non-fatal, just skip caching.
+    }
+  }, [persistLocal, onSharedComputer, values]);
 
   const set = <K extends keyof NewsletterFormValues>(field: K, value: NewsletterFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -358,6 +409,18 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
       }
 
       await onSubmit({ ...values, photos: resolvedPhotos.slice(0, MAX_PHOTOS), website: '' });
+
+      // Submit succeeded (server returned ok). Keep only the reusable identity
+      // fields cached for next time; drop the just-sent content so it doesn't
+      // come back as a stale draft.
+      if (persistLocal && !onSharedComputer) {
+        try {
+          const kept = Object.fromEntries(KEEP_AFTER_SUBMIT.map((k) => [k, values[k]]));
+          localStorage.setItem(PERSIST_KEY, JSON.stringify(kept));
+        } catch {
+          // Non-fatal — storage may be unavailable.
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -428,6 +491,24 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
           {photoNotice && <p className="text-sm text-amber-600">{photoNotice}</p>}
         </div>
       </FormField>
+
+      {persistLocal && (
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={onSharedComputer}
+            onChange={(e) => setOnSharedComputer(e.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-700">
+            I&apos;m on someone else&apos;s computer
+            <span className="mt-1 block text-xs text-gray-500">
+              We save some of the fields in your browser so you don&apos;t have to search for your K9 period
+              every time you fill in the newsletter. If you check this box, we won&apos;t do that 😊
+            </span>
+          </span>
+        </label>
+      )}
 
       <FormField label="What should we call you?" required>
         <input

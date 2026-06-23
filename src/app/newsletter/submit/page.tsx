@@ -118,7 +118,7 @@ export default function NewsletterSubmit() {
               </a>
             </div>
           ) : (
-            <NewsletterForm submitText="Share my news" onSubmit={handleSubmit} />
+            <NewsletterForm submitText="Share my news" onSubmit={handleSubmit} persistLocal />
           )}
         </div>
       </div>
