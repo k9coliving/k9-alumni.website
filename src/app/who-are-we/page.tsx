@@ -1,6 +1,12 @@
 import Layout from '@/components/Layout';
+import Image from 'next/image';
 import TeamMembersClient from '@/components/TeamMembersClient';
 import { getTeamMembers } from '@/lib/supabase';
+
+// Landing-page fonts (loaded in layout.tsx) so this page matches its look.
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
+const HAND = 'var(--font-caveat), "Caveat", cursive';
 
 // Hardcoded team members (for people without database records or special entries)
 const hardcodedTeamMembers = [
@@ -53,20 +59,14 @@ export default async function WhoAreWe() {
 
   return (
     <Layout>
-      <div className="min-h-screen relative" style={{
-        background: `
-          radial-gradient(circle at 10px 10px, rgba(156, 163, 175, 0.15) 1px, transparent 1px)
-        `,
-        backgroundColor: '#f9fafb',
-        backgroundSize: '20px 20px'
-      }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#FAF6F0' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="page-header">
-            <h1 className="page-header-title">
+            <h1 className="page-header-title" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
               This is Us
             </h1>
             <div className="page-header-divider"></div>
-            <p className="page-header-subtitle">
+            <p className="page-header-subtitle" style={{ fontFamily: BODY }}>
               Meet the team behind the K9 Alumni Network
             </p>
           </div>
@@ -74,10 +74,11 @@ export default async function WhoAreWe() {
           <TeamMembersClient teamMembers={teamMembers} />
 
           <div className="max-w-4xl mx-auto px-4 mt-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-8">
+            <Image src="/house.png" alt="" width={160} height={160} className="nl-bob block mx-auto mb-4" />
+            <h2 className="text-4xl sm:text-5xl text-center mb-8" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
               Why an alumni network?
             </h2>
-            <div className="prose prose-lg sm:prose-xl max-w-none text-gray-700 leading-relaxed space-y-6">
+            <div className="prose prose-lg sm:prose-xl max-w-none text-gray-700 leading-relaxed space-y-6" style={{ fontFamily: BODY }}>
               <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
                 We&apos;ve all called K9 home and been transformed by the incredible community and family we discovered there. 
                 While we may no longer live within those walls, the connections we forged run far too deep to abandon.
@@ -86,12 +87,10 @@ export default async function WhoAreWe() {
                 What we built together—these relationships, this sense of belonging—is too precious to let slip away just because life takes us elsewhere.
               </p>
               <div className="text-center mt-12 mb-16">
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 font-parisienne">
+                <p className="text-3xl sm:text-4xl font-bold mb-2" style={{ fontFamily: HAND, color: '#1B2A41' }}>
                   The K9 Alumni Network team
                 </p>
-                <p className="text-3xl">
-                  ❤️ 🤗
-                </p>
+                <Image src="/dog-cat-turtle.png" alt="" width={200} height={200} className="nl-bob block mx-auto mt-4" />
               </div>
             </div>
           </div>

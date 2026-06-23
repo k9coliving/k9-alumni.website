@@ -89,6 +89,13 @@ export default function TeamMembersClient({ teamMembers }: TeamMembersClientProp
                 }
               }}
             >
+              {/* White matte filling the frame opening, so the area between the
+                  frame and the photo stays white regardless of the page bg.
+                  Tucked under the gold border (covered by the frame on top). */}
+              <div
+                aria-hidden="true"
+                style={{ position: 'absolute', top: '12%', bottom: '12%', left: '14%', right: '14%', background: '#fff', zIndex: 0 }}
+              />
               {member.image && (
                 <Image
                   src={member.image}
@@ -123,11 +130,12 @@ export default function TeamMembersClient({ teamMembers }: TeamMembersClientProp
                 }}
               />
             </div>
-            <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1 font-parisienne">
+            <h3 className="text-3xl sm:text-4xl font-bold mb-1" style={{ fontFamily: 'var(--font-caveat), "Caveat", cursive', color: '#1B2A41' }}>
               {member.name}
             </h3>
             {member.role && (
               <p
+                style={{ fontFamily: 'var(--font-nunito), "Nunito", system-ui, sans-serif' }}
                 className={`text-sm ${
                   member.name === 'You?'
                     ? 'text-blue-600 hover:text-blue-800 cursor-pointer hover:underline transition-colors'
