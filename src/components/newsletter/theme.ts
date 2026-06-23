@@ -7,7 +7,6 @@ export const FONT_BODY = "var(--font-nunito), 'Nunito', system-ui, sans-serif";
 export const FONT_HAND = "var(--font-caveat), 'Caveat', cursive";
 
 export const INK = '#16294C';
-export const ASSETS = '/newsletter/assets';
 
 export interface Palette {
   accent: string;

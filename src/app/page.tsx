@@ -64,7 +64,7 @@ const cards = [
   },
   {
     href: '/newsletter',
-    img: '/newsletter/assets/envelope.png',
+    img: '/envelope.png',
     w: 360,
     h: 305,
     maxW: '62%',
@@ -166,7 +166,7 @@ export default function Home() {
           >
             Welcome back
             <Image
-              src="/newsletter/assets/heart-pink.png"
+              src="/heart-pink.png"
               alt=""
               width={360}
               height={503}

@@ -4,7 +4,7 @@ import { type HTMLAttributes, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import type { NewsletterPhoto } from '@/lib/newsletter';
-import { ASSETS, type Palette } from './theme';
+import { type Palette } from './theme';
 
 const POLAROID_ROTATIONS = ['-5deg', '4deg', '-3deg', '5deg'];
 
@@ -97,7 +97,7 @@ export default function MemberPhotos({
         <img src={lead.url} alt={`Photo from ${name}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
         {cameraOn === 0 && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
+          <img src="/camera.png" alt="" style={{ position: 'absolute', top: '11px', right: '12px', width: '42px', height: 'auto', filter: 'drop-shadow(0 3px 5px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
         )}
       </div>
 
@@ -121,7 +121,7 @@ export default function MemberPhotos({
                 <Image src={photo.url} alt={`Photo ${i + 2} from ${name}`} fill sizes="94px" unoptimized={unoptimized} style={{ objectFit: 'cover', objectPosition: photo.focus ?? 'center' }} />
                 {cameraOn === i + 1 && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`${ASSETS}/camera.png`} alt="" style={{ position: 'absolute', top: '6px', right: '6px', width: '25px', height: 'auto', filter: 'drop-shadow(0 2px 4px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
+                  <img src="/camera.png" alt="" style={{ position: 'absolute', top: '6px', right: '6px', width: '25px', height: 'auto', filter: 'drop-shadow(0 2px 4px rgba(22,41,76,0.18))', transform: 'rotate(-5deg)', zIndex: 2 }} />
                 )}
               </div>
             </div>

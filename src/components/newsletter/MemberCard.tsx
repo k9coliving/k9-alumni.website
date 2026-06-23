@@ -1,5 +1,5 @@
 import type { NewsletterSubmissionRecord } from '@/lib/newsletter';
-import { FONT_DISPLAY, FONT_HAND, INK, ASSETS, firstNameOf, type Palette } from './theme';
+import { FONT_DISPLAY, FONT_HAND, INK, firstNameOf, type Palette } from './theme';
 import MemberPhotos from './MemberPhotos';
 
 // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ export function RecommendIcon({ id }: { id: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`${ASSETS}/${icon}.png`}
+      src={`/${icon}.png`}
       alt=""
       aria-hidden="true"
       style={{ position: 'absolute', top: '-14px', right: '-10px', width: '38px', height: 'auto', transform: 'rotate(-8deg)', filter: 'drop-shadow(0 4px 6px rgba(22,41,76,0.18))', zIndex: 1, pointerEvents: 'none' }}
@@ -150,7 +150,7 @@ export default function MemberCard({ s, palette, index = 0, preview = false }: M
               style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', marginTop: '9px', fontSize: '14px', fontWeight: 700, color: palette.deep, textDecoration: 'none', wordBreak: 'break-all' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`${ASSETS}/envelope.png`} alt="" style={{ width: '18px', height: 'auto', flex: 'none' }} />
+              <img src="/envelope.png" alt="" style={{ width: '18px', height: 'auto', flex: 'none' }} />
               {s.email}
             </a>
           )}

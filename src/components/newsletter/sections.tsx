@@ -5,7 +5,7 @@
 // These are pure (no hooks, no data fetching), so they work in both the server
 // component (NewsletterView) and the client preview (DraftPreview).
 
-import { FONT_DISPLAY, FONT_BODY, FONT_HAND, INK, ASSETS, PALETTE } from './theme';
+import { FONT_DISPLAY, FONT_BODY, FONT_HAND, INK, PALETTE } from './theme';
 import type { FeaturedItem } from '@/lib/newsletter';
 
 // Default intro shown when a newsletter has no intro_text of its own. Lives here
@@ -61,7 +61,7 @@ export function Masthead({ title, headerImage }: { title: string; headerImage: s
       <div style={{ flex: '1 1 360px', minWidth: '290px', position: 'relative', height: '380px' }}>
         <div style={{ position: 'absolute', top: '40px', left: '50%', transform: 'translateX(-47%)', width: '320px', height: '290px', background: '#DCE6F7', opacity: 0.65, borderRadius: '46% 54% 57% 43% / 49% 44% 56% 51%' }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/airplane.png`} alt="" className="nl-drift" style={{ position: 'absolute', top: '-18px', right: '6px', width: '120px', height: 'auto', zIndex: 4 }} />
+        <img src="/airplane.png" alt="" className="nl-drift" style={{ position: 'absolute', top: '-18px', right: '6px', width: '120px', height: 'auto', zIndex: 4 }} />
         <div style={{ position: 'absolute', top: '34px', left: '50%', transform: 'translateX(-50%)', width: 'min(420px, 90%)', height: '300px', borderRadius: '26px', overflow: 'hidden', border: '6px solid #fff', boxShadow: '0 18px 30px -6px rgba(22,41,76,0.28)', zIndex: 2, background: 'linear-gradient(135deg, #EAF0FB, #DCE6F7)' }}>
           {headerImage && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -69,9 +69,9 @@ export function Masthead({ title, headerImage }: { title: string; headerImage: s
           )}
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/mug.png`} alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '113px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+        <img src="/mug.png" alt="" style={{ position: 'absolute', bottom: '6px', left: 'calc(50% - min(210px, 45%) - 85px)', width: '113px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/plant.png`} alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
+        <img src="/plant.png" alt="" style={{ position: 'absolute', bottom: '0', right: 'calc(50% - min(210px, 45%) - 45px)', width: '112px', height: 'auto', filter: 'drop-shadow(0 12px 16px rgba(22,41,76,0.12))', zIndex: 3 }} />
       </div>
     </div>
   );
@@ -198,11 +198,11 @@ export function NewsletterFooter({ outroText, issueLabel }: { outroText?: string
       </svg>
       <div style={{ maxWidth: '760px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/mountains.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '17px', bottom: '8px', width: '120px', height: 'auto', opacity: 0.85 }} />
+        <img src="/mountains.png" alt="" className="nl-footer-deco" style={{ position: 'absolute', left: '17px', bottom: '8px', width: '120px', height: 'auto', opacity: 0.85 }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/camera.png`} alt="" className="nl-footer-deco" style={{ position: 'absolute', right: '40px', bottom: '10px', width: '74px', height: 'auto', opacity: 0.9, transform: 'rotate(-6deg)' }} />
+        <img src="/camera.png" alt="" className="nl-footer-deco" style={{ position: 'absolute', right: '40px', bottom: '10px', width: '74px', height: 'auto', opacity: 0.9, transform: 'rotate(-6deg)' }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/envelope.png`} alt="" className="nl-floaty" style={{ width: '76px', height: 'auto', display: 'inline-block' }} />
+        <img src="/envelope.png" alt="" className="nl-floaty" style={{ width: '76px', height: 'auto', display: 'inline-block' }} />
         {outroText && (
           <p style={{ fontSize: '17px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '14px auto 0', maxWidth: '60ch', whiteSpace: 'pre-line', textWrap: 'pretty' }}>
             {outroText}
@@ -216,7 +216,7 @@ export function NewsletterFooter({ outroText, issueLabel }: { outroText?: string
           Share your update <span style={{ fontSize: '18px' }}>→</span>
         </a>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${ASSETS}/heart-pink.png`} alt="" style={{ width: '46px', height: 'auto', display: 'block', margin: '40px auto 0' }} />
+        <img src="/heart-pink.png" alt="" style={{ width: '46px', height: 'auto', display: 'block', margin: '40px auto 0' }} />
         <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, margin: '8px auto 0', maxWidth: '52ch', textWrap: 'pretty' }}>
           Stay connected at{' '}
           <a href="https://alumni.k9coliving.com/" style={{ color: INK, fontWeight: 800, textDecoration: 'underline' }}>

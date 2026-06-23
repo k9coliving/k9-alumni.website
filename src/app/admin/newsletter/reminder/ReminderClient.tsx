@@ -68,7 +68,7 @@ export default function ReminderClient({
 
   // One sample image for the preview (same-origin relative path), picked once so
   // it doesn't reshuffle on every keystroke. The actual send picks its own.
-  const previewImage = useMemo(() => `/newsletter/assets/${pickReminderImage()}`, []);
+  const previewImage = useMemo(() => `/${pickReminderImage()}`, []);
 
   // Live preview of the actual email HTML — the exact builder the send route
   // uses, with placeholder links. Blank fields fall back to the defaults.

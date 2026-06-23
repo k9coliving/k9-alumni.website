@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const mode = body.mode === 'failed' ? 'failed' : body.mode === 'test' ? 'test' : 'all';
     const submitUrl = `${baseUrl()}/newsletter/submit`;
     // One random decorative image per run, as an absolute URL for mail clients.
-    const imageUrl = `${baseUrl()}/newsletter/assets/${pickReminderImage()}`;
+    const imageUrl = `${baseUrl()}/${pickReminderImage()}`;
 
     // Test: one email, no audit/quota write. Uses the test address's own token
     // when it happens to be a subscriber, else a tokenless link.

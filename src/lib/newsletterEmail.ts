@@ -22,8 +22,8 @@ export const DEFAULT_REMINDER_BODY =
   "whatever you're up to, the pack would love to hear it.\n\n" +
   'Add your post before this issue goes out:';
 
-// Decorative illustrations from /public/newsletter/assets, shown (centered)
-// below the CTA. Limited to the two that fit a "send us your news" nudge.
+// Decorative illustrations from /public, shown (centered) below the CTA.
+// Limited to the two that fit a "send us your news" nudge.
 export const REMINDER_IMAGE_FILES = ['airplane.png', 'envelope.png'];
 
 export function pickReminderImage(): string {
