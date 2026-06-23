@@ -114,7 +114,7 @@ function CardInner({ card }: { card: (typeof cards)[number] }) {
           alt=""
           width={card.w}
           height={card.h}
-          className="object-contain rounded-2xl"
+          className="card-img object-contain rounded-2xl"
           style={{
             height: 'auto',
             width: 'auto',
@@ -232,7 +232,7 @@ export default function Home() {
                 <a
                   key={card.title}
                   href={card.href}
-                  className={`${cardClass} hover:-translate-y-1`}
+                  className={`${cardClass} card-lift hover:-translate-y-1`}
                   style={cardStyle}
                 >
                   <CardInner card={card} />

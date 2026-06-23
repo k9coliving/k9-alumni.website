@@ -102,6 +102,9 @@ body {
 .mug-jiggle { transform-origin: 67% bottom; }
 .mug-jiggle:hover { animation: mug-jiggle 0.8s ease-in-out; }
 
+/* Float a card's image while the card is hovered (paired with the lift). */
+.card-lift:hover .card-img { animation: nl-bob 2s ease-in-out infinite; }
+
 /* Smooth scrolling for the newsletter's in-page jump links (pins / board names). */
 html {
   scroll-behavior: smooth;
