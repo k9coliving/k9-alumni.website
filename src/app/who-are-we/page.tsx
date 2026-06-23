@@ -62,10 +62,9 @@ export default async function WhoAreWe() {
       <div className="min-h-screen" style={{ backgroundColor: '#FAF6F0' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="page-header">
-            <h1 className="page-header-title" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
+            <h1 className="mb-4" style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(52px,10vw,108px)', lineHeight: 0.98, letterSpacing: '-1px', color: '#1B2A41' }}>
               This is Us
             </h1>
-            <div className="page-header-divider"></div>
             <p className="page-header-subtitle" style={{ fontFamily: BODY }}>
               Meet the team behind the K9 Alumni Network
             </p>
@@ -75,9 +74,12 @@ export default async function WhoAreWe() {
 
           <div className="max-w-4xl mx-auto px-4 mt-16">
             <Image src="/house.png" alt="" width={160} height={160} className="nl-bob block mx-auto mb-4" />
-            <h2 className="text-4xl sm:text-5xl text-center mb-8" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
+            <h2 className="text-4xl sm:text-5xl text-center" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
               Why an alumni network?
             </h2>
+            <svg width="120" height="13" viewBox="0 0 120 13" fill="none" aria-hidden="true" className="mx-auto mt-2 mb-8">
+              <path d="M3 8 Q 32 2 60 7 T 117 6" stroke="#E1564D" strokeWidth="3.2" strokeLinecap="round" />
+            </svg>
             <div className="prose prose-lg sm:prose-xl max-w-none text-gray-700 leading-relaxed space-y-6" style={{ fontFamily: BODY }}>
               <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
                 We&apos;ve all called K9 home and been transformed by the incredible community and family we discovered there. 
