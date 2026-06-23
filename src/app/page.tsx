@@ -19,6 +19,8 @@ const STORAGE = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL;
 const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
 const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
 const HAND = 'var(--font-caveat), "Caveat", cursive';
+// Matches the newsletter's FONT_DISPLAY (Baloo 2) — used for the footer-style goals box.
+const DISPLAY = 'var(--font-baloo2), "Baloo 2", system-ui, sans-serif';
 
 const linkStyle = {
   color: C.accent,
@@ -165,14 +167,18 @@ export default function Home() {
             }}
           >
             Welcome back
-            <Image
-              src="/heart-pink.png"
-              alt=""
-              width={360}
-              height={503}
-              className="inline-block align-[-18%] ml-1.5"
-              style={{ height: 'clamp(58px,10vw,112px)', width: 'auto', transform: 'translateY(15px)' }}
-            />
+            {/* Wrapper carries the downward nudge; the float animation's own
+                transform lives on the image, so the two don't clobber each other. */}
+            <span className="inline-block align-[-18%] ml-1.5" style={{ transform: 'translateY(15px)' }}>
+              <Image
+                src="/heart-pink.png"
+                alt=""
+                width={360}
+                height={503}
+                className="nl-bob block"
+                style={{ height: 'clamp(58px,10vw,112px)', width: 'auto' }}
+              />
+            </span>
           </h1>
           <p
             className="mx-auto mt-5"
@@ -238,13 +244,12 @@ export default function Home() {
 
         {/* ===== WHY WE'RE HERE ===== */}
         <section className="mt-12 sm:mt-20" style={{ background: C.section }}>
-          <div className="max-w-[1100px] mx-auto px-5 sm:px-14 py-12 sm:py-[72px]">
+          <div className="max-w-[1100px] mx-auto px-5 sm:px-14 pt-12 sm:pt-[72px]">
             <div className="flex flex-wrap gap-8 sm:gap-14 items-center">
               <div className="flex-1 min-w-[300px]" style={{ flexBasis: '340px' }}>
                 <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(30px,5vw,46px)', color: C.ink }}>
                   Why we&apos;re here
                 </h2>
-                <Squiggle width={96} />
                 <p
                   className="mt-4"
                   style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: C.body, maxWidth: 460 }}
@@ -265,8 +270,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* fuller intro copy + goals */}
-            <div className="mt-12 sm:mt-16 max-w-[760px]">
+            {/* fuller intro copy */}
+            <div>
+              <Image
+                src="/mug.png"
+                alt=""
+                width={168}
+                height={132}
+                className="mug-jiggle block mx-auto mb-8"
+              />
               <p style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: C.body }}>
                 If you&apos;re still a resident, no need to introduce yourself again 👋.{' '}
                 <a href="/events" style={linkStyle}>Share events</a> 🎉 where alumni are welcome and join any existing
@@ -276,22 +288,32 @@ export default function Home() {
                 alumni are up to. Don&apos;t hesitate to{' '}
                 <a href="/holdmyhair" style={linkStyle}>ask for what you need</a> from the wider K9 family.
               </p>
+            </div>
+          </div>
 
-              <div className="mt-8 rounded-[20px] p-7" style={{ background: C.card, border: `1px solid ${C.cardBorder}` }}>
-                <h3 className="m-0 mb-4" style={{ fontFamily: BODY, fontWeight: 800, fontSize: 18, color: C.ink }}>
-                  We have three main goals:
-                </h3>
-                <div className="space-y-2.5" style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.6, color: C.body }}>
-                  <p className="m-0">💌&nbsp;&nbsp;Stay in touch on and offline</p>
-                  <p className="m-0">🤗&nbsp;&nbsp;Build relationships between alumni and current residents</p>
-                  <p className="m-0">🤲&nbsp;&nbsp;Support each other emotionally, professionally and in any other way possible</p>
-                </div>
-              </div>
+          {/* Full-bleed footer-style goals band: spans the page edge to edge and
+              flush to the bottom (no rounding/side margins), with the newsletter
+              footer's wavy top carved from the section colour above. */}
+          <div className="relative w-full mt-12 sm:mt-16 px-6 pt-16 pb-14 text-center overflow-hidden" style={{ background: '#E3EDD6' }}>
+            <svg
+              viewBox="0 0 980 70"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              style={{ position: 'absolute', top: -1, left: 0, width: '100%', height: 48, display: 'block' }}
+            >
+              <path d="M0,40 C160,5 330,5 490,30 C650,55 820,55 980,22 L980,0 L0,0 Z" fill={C.section} />
+            </svg>
+            <Image src="/plant.png" alt="" width={58} height={74} className="nl-floaty block mx-auto" />
+            <h3 className="mt-3" style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(22px,3.6vw,30px)', color: C.ink, lineHeight: 1.15 }}>
+              We have three main goals
+            </h3>
+            <div className="mt-4 space-y-2 mx-auto" style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.7, color: '#3a4a66', fontWeight: 600, maxWidth: '46ch' }}>
+              <p className="m-0">💌&nbsp;&nbsp;Stay in touch on and offline</p>
+              <p className="m-0">🤗&nbsp;&nbsp;Build relationships between alumni and current residents</p>
+              <p className="m-0">🤲&nbsp;&nbsp;Support each other emotionally, professionally and in any other way possible</p>
             </div>
           </div>
         </section>
-
-        <div style={{ height: 'clamp(40px,6vw,64px)' }} />
       </div>
     </Layout>
   );

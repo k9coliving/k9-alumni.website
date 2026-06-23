@@ -90,6 +90,18 @@ body {
 .nl-drift { animation: nl-drift 5s ease-in-out infinite; }
 .nl-bob { animation: nl-bob 6s ease-in-out infinite; }
 
+/* Playful left-right wobble on hover, rocking from the base. */
+@keyframes mug-jiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-9deg); }
+  40% { transform: rotate(7deg); }
+  60% { transform: rotate(-5deg); }
+  80% { transform: rotate(3deg); }
+}
+/* Pivot at the cup's base (~67% across — the body sits right of the handle). */
+.mug-jiggle { transform-origin: 67% bottom; }
+.mug-jiggle:hover { animation: mug-jiggle 0.8s ease-in-out; }
+
 /* Smooth scrolling for the newsletter's in-page jump links (pins / board names). */
 html {
   scroll-behavior: smooth;
