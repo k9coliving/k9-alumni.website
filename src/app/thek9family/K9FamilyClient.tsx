@@ -21,13 +21,13 @@ const C = {
 const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
 const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
 
-// Playful icon that peeks from the top-right of a resident's photo. Kept sparse —
-// only every 5th card gets one — so it stays a delight rather than clutter. Which
+// Playful icon that peeks from the corner of a resident's photo. Kept sparse —
+// only every 3rd card gets one — so it stays a delight rather than clutter. Which
 // icon is picked deterministically from the resident id, so it stays stable
 // across renders (same set the newsletter uses for its decorative badges).
-const PHOTO_ICONS = ['heart-pink', 'heart-blue', 'mug', 'plant', 'airplane', 'camera', 'envelope', 'beach', 'cat', 'food'];
+const PHOTO_ICONS = ['heart-pink', 'mug', 'plant', 'airplane', 'camera', 'envelope', 'cat', 'dog-newspaper', 'bird'];
 function photoIcon(id: string, index: number): string | null {
-  if (index % 5 !== 0) return null;
+  if (index % 3 !== 0) return null;
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return PHOTO_ICONS[h % PHOTO_ICONS.length];
@@ -384,7 +384,7 @@ export default function K9FamilyClient({
                             <div className="k9-member-photo" style={{ position: 'relative' }}>
                               {/* overflow-hidden clips the photo to its rounded frame; the icon
                                   lives outside it so it can peek past the corner. */}
-                              <div style={{ borderRadius: '18px', overflow: 'hidden', background: palette.soft, boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)' }}>
+                              <div style={{ borderRadius: '18px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)' }}>
                                 {/* Shown in full at natural aspect — never cropped; long side
                                     capped via .k9-photo-img so portrait/landscape stay comparable. */}
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
