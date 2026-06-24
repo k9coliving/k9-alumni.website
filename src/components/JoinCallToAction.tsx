@@ -5,16 +5,26 @@ interface JoinCallToActionProps {
   isSubmitting?: boolean;
 }
 
+// Newsletter-aligned design tokens (shared with the landing + K9 Family pages).
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
+
 export default function JoinCallToAction({ onAddProfileClick, isSubmitting = false }: JoinCallToActionProps) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md text-center">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Excited about this?</h2>
-      <p className="text-gray-600 mb-6">
+    <div
+      className="p-8 rounded-[20px] text-center"
+      style={{ background: '#FBF7F1', border: '1px solid #ECE3D5', boxShadow: '0 1px 2px rgba(40,30,20,.03)' }}
+    >
+      <h2 className="text-3xl mb-3" style={{ fontFamily: SERIF, fontWeight: 400, color: '#1B2A41' }}>
+        Excited about this?
+      </h2>
+      <p className="mb-6 mx-auto" style={{ fontFamily: BODY, color: '#6F695F', maxWidth: 440, lineHeight: 1.6 }}>
         Join our alumni database to connect with fellow K9ers and help grow our community network.
       </p>
-      <button 
+      <button
         onClick={onAddProfileClick}
-        className="btn-primary px-6 py-3"
+        className="px-7 py-3 rounded-full font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:brightness-95"
+        style={{ fontFamily: BODY, background: '#E1564D' }}
         disabled={isSubmitting}
       >
         Add Your Profile

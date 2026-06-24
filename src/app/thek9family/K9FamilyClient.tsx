@@ -6,6 +6,32 @@ import Image from 'next/image';
 import ProfileForm, { type ProfileFormData } from '@/components/ProfileForm';
 import JoinCallToAction from '@/components/JoinCallToAction';
 import BaseModal from '@/components/BaseModal';
+import { FONT_DISPLAY, FONT_HAND, INK, PALETTE, firstNameOf } from '@/components/newsletter/theme';
+
+// Newsletter-aligned design tokens (shared with the landing + who-are-we pages).
+const C = {
+  bg: '#FAF6F0',
+  ink: '#1B2A41',
+  accent: '#E1564D',
+  body: '#6F695F',
+  card: '#FBF7F1',
+  cardBorder: '#ECE3D5',
+  section: '#F5EEE2',
+};
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
+
+// Playful icon that peeks from the top-right of a resident's photo. Kept sparse —
+// only every 5th card gets one — so it stays a delight rather than clutter. Which
+// icon is picked deterministically from the resident id, so it stays stable
+// across renders (same set the newsletter uses for its decorative badges).
+const PHOTO_ICONS = ['heart-pink', 'heart-blue', 'mug', 'plant', 'airplane', 'camera', 'envelope', 'beach', 'cat', 'food'];
+function photoIcon(id: string, index: number): string | null {
+  if (index % 5 !== 0) return null;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return PHOTO_ICONS[h % PHOTO_ICONS.length];
+}
 
 interface AlumniMember {
   id: string;
@@ -278,13 +304,7 @@ export default function K9FamilyClient({
 
   return (
     <>
-      <div className="min-h-screen relative" style={{
-        background: `
-          radial-gradient(circle at 10px 10px, rgba(156, 163, 175, 0.15) 1px, transparent 1px)
-        `,
-        backgroundColor: '#f9fafb',
-        backgroundSize: '20px 20px'
-      }}>
+      <div className="min-h-screen" style={{ backgroundColor: C.bg, fontFamily: BODY, color: C.ink }}>
         {/* Edit token error banner */}
         {editTokenError && (
           <div className="bg-red-50 border-b border-red-200">
@@ -307,158 +327,178 @@ export default function K9FamilyClient({
         )}
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="page-header !mb-4">
-            <h1 className="page-header-title">
+          <div className="page-header !mb-6 flex flex-col items-center">
+            <h1
+              className="m-0"
+              style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(52px,10vw,108px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
+            >
               The K9 Family
             </h1>
-            <div className="page-header-divider"></div>
-            <p className="page-header-subtitle">
+            <p
+              className="mt-5 mx-auto"
+              style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,18px)', lineHeight: 1.7, color: C.body, maxWidth: 540 }}
+            >
               Connect with fellow K9 alumni around the world. Find roommates, get life advice,
               or simply catch up with old friends.
             </p>
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, location, profession, interests, or K9 period..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 text-lg bg-white shadow-sm"
+              className="w-full px-5 py-3.5 rounded-2xl border border-[#ECE3D5] bg-white shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-[#E1564D]/30 focus:border-[#E1564D] transition-colors"
+              style={{ fontFamily: BODY, color: C.ink }}
             />
             <div className="text-center mt-2 mb-16">
-              <p className="text-gray-500 text-sm">
-                {searchQuery 
-                  ? `${filteredMembers.length} ${filteredMembers.length === 1 ? 'person' : 'people'}` 
+              <p className="text-sm" style={{ fontFamily: BODY, color: C.body }}>
+                {searchQuery
+                  ? `${filteredMembers.length} ${filteredMembers.length === 1 ? 'person' : 'people'}`
                   : `${members.length} ${members.length === 1 ? 'person' : 'people'}`
                 }
               </p>
             </div>
           </div>
 
-          <div className="space-y-16 mb-12">
+          <div className="space-y-7 mb-12">
             {filteredMembers.length === 0 && searchQuery ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No alumni found matching &ldquo;{searchQuery}&rdquo;</p>
-                <p className="text-gray-400 text-sm mt-2">Try searching for a different name, location, profession, or interest</p>
+                <p className="text-lg" style={{ fontFamily: BODY, color: C.ink }}>No alumni found matching &ldquo;{searchQuery}&rdquo;</p>
+                <p className="text-sm mt-2" style={{ fontFamily: BODY, color: C.body }}>Try searching for a different name, location, profession, or interest</p>
               </div>
             ) : (
               <>
                 {filteredMembers.map((member, index) => {
-                  const isEven = index % 2 === 0;
-                  
+                  const palette = PALETTE[index % PALETTE.length];
+
                   return (
                     <div key={`member-${member.id}`}>
-                      <div className={`flex items-start gap-12 ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
-                  {/* Profile Image */}
-                  <div className="flex-shrink-0">
-                    <div className="w-80 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
-                      {member.photo?.url ? (
-                        <Image
-                          src={member.photo.url}
-                          alt={member.photo.alt || `${member.name} profile photo`}
-                          width={320}
-                          height={320}
-                          className="w-80 h-auto object-contain rounded-lg"
-                        />
-                      ) : (
-                        <div className="w-80 h-80 bg-gray-50 flex items-center justify-center rounded-lg">
-                          <Image
-                            src={`/missing/${member.placeholderImage || 'cat.svg'}`}
-                            alt="Profile placeholder illustration"
-                            width={256}
-                            height={256}
-                            className="w-64 h-64"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      <div style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
+                        <div style={{ height: '7px', background: palette.accent }} />
+                        <div style={{ padding: '26px 28px 28px' }}>
+                          {/* Photo floats beside the story, stacks above it on narrow
+                              screens. When there's no photo, the story takes full width. */}
+                          {member.photo?.url && (
+                            <div className="k9-member-photo" style={{ position: 'relative' }}>
+                              {/* overflow-hidden clips the photo to its rounded frame; the icon
+                                  lives outside it so it can peek past the corner. */}
+                              <div style={{ borderRadius: '18px', overflow: 'hidden', background: palette.soft, boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)' }}>
+                                {/* Shown in full at natural aspect — never cropped; long side
+                                    capped via .k9-photo-img so portrait/landscape stay comparable. */}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={member.photo.url} alt={member.photo.alt || `${member.name} profile photo`} className="k9-photo-img" />
+                              </div>
+                              {(() => {
+                                const icon = photoIcon(member.id, index);
+                                return icon ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={`/${icon}.png`} alt="" aria-hidden="true" className="nl-floaty" style={{ position: 'absolute', bottom: '-18px', left: '-18px', width: '64px', height: 'auto', filter: 'drop-shadow(0 4px 6px rgba(22,41,76,0.2))', zIndex: 2, pointerEvents: 'none' }} />
+                                ) : null;
+                              })()}
+                            </div>
+                          )}
 
-                  {/* Profile Content */}
-                  <div className="flex-1 space-y-6">
-                    <div className="space-y-1">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>{member.name}</h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            member.currentlyLivingInHouse
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {member.currentlyLivingInHouse ? 'Resident' : 'Alumni'}
-                          </span>
-                          <button
-                            onClick={() => setEditRequestMember(member)}
-                            className="mx-3 px-2 py-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1 text-sm"
-                            title="Edit profile"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                            Edit
-                          </button>
-                        </div>
-                        <p className="text-lg text-gray-600 font-medium">At K9: {member.yearsInK9}</p>
-                      </div>
-                      
-                      {member.location && (
-                        <div className="flex items-center text-gray-600">
-                          <span className="mr-3 text-lg">🌍</span>
-                          <span className="text-lg">{member.location}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {member.description && (
-                      <div className="space-y-2">
-                        {member.description.split('\n').filter(para => para.trim()).map((paragraph, idx) => (
-                          <p key={idx} className="text-gray-700 text-lg leading-relaxed">
-                            {paragraph}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {member.profession && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">What I do:</p>
-                        <p className="text-gray-600 text-lg">
-                          {member.profession}
-                        </p>
-                      </div>
-                    )}
-
-                    {member.interests.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-3">Interests:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {member.interests.map((interest, index) => (
-                            <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                              {interest}
+                          {/* Name + badge + edit */}
+                          <div className="flex items-center flex-wrap gap-3">
+                            <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: '30px', color: INK, margin: 0, lineHeight: 1.04 }}>
+                              {member.name}
+                            </h3>
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={
+                              member.currentlyLivingInHouse
+                                ? { background: palette.soft, color: palette.deep }
+                                : { background: '#E0E8F8', color: '#39539E' }
+                            }>
+                              {member.currentlyLivingInHouse ? 'Resident' : 'Alumni'}
                             </span>
-                          ))}
+                            <button
+                              onClick={() => setEditRequestMember(member)}
+                              className="px-2 py-1 text-gray-400 hover:text-[#E1564D] hover:bg-[#E1564D]/5 rounded transition-colors cursor-pointer flex items-center gap-1 text-sm"
+                              title="Edit profile"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                              Edit
+                            </button>
+                          </div>
+
+                          {/* Location with teardrop pin */}
+                          {member.location && (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '9px', fontSize: '15px', fontWeight: 800, color: palette.deep }}>
+                              <span style={{ flex: 'none', width: '11px', height: '11px', borderRadius: '50% 50% 50% 0', transform: 'rotate(45deg)', background: palette.accent, boxShadow: `0 0 0 3px ${palette.soft}` }} />
+                              <span>{member.location}</span>
+                            </div>
+                          )}
+
+                          {/* In K9 period */}
+                          {member.yearsInK9 && (
+                            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#6b7890', marginTop: '7px' }}>
+                              In K9: {member.yearsInK9}
+                            </div>
+                          )}
+
+                          {/* Email */}
+                          {member.email && (
+                            <a
+                              href={`mailto:${member.email}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', marginTop: '9px', fontSize: '14px', fontWeight: 700, color: palette.deep, textDecoration: 'none', wordBreak: 'break-all' }}
+                            >
+                              <Image src="/envelope.png" alt="" width={18} height={15} style={{ width: '18px', height: 'auto', flex: 'none' }} />
+                              {member.email}
+                            </a>
+                          )}
+
+                          {/* Story */}
+                          {member.description && (
+                            <div style={{ margin: '18px 0 0' }}>
+                              {member.description.split('\n').filter(para => para.trim()).map((paragraph, idx) => (
+                                <p key={idx} style={{ fontSize: '16px', lineHeight: 1.68, color: '#3a4a66', margin: idx === 0 ? 0 : '12px 0 0' }}>
+                                  {paragraph}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Signature */}
+                          <div style={{ fontFamily: FONT_HAND, fontWeight: 700, fontSize: '30px', color: palette.deep, lineHeight: 1, marginTop: '14px' }}>
+                            — {firstNameOf(member.name)}
+                          </div>
+
+                          <div style={{ clear: 'both' }} />
+
+                          {/* What I do */}
+                          {member.profession && (
+                            <div style={{ marginTop: '16px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '5px' }}>
+                                What I do
+                              </div>
+                              <p style={{ fontSize: '15.5px', lineHeight: 1.62, color: '#3a4a66', margin: 0 }}>{member.profession}</p>
+                            </div>
+                          )}
+
+                          {/* Interests */}
+                          {member.interests.length > 0 && (
+                            <div style={{ marginTop: '16px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '8px' }}>
+                                Interests
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {member.interests.map((interest, i) => (
+                                  <span key={i} style={{ fontSize: '13.5px', fontWeight: 700, background: palette.soft, color: palette.deep, padding: '4px 12px', borderRadius: '999px' }}>
+                                    {interest}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
 
-                    {member.email && (
-                      <div>
-                        <a 
-                          href={`mailto:${member.email}`}
-                          className="inline-flex items-center gap-2 text-xl font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400 font-parisienne"
-                        >
-                          <span>🎈</span>
-                          {member.email}
-                        </a>
-                      </div>
-                      )}
-                    </div>
-                  </div>
-                      
                       {/* Show call-to-action after 3rd entry only if there are 5+ members total */}
                       {index === 2 && filteredMembers.length >= 5 && (
-                        <div className="mt-16">
+                        <div className="mt-7">
                           <JoinCallToAction
                             onAddProfileClick={() => setIsFormOpen(true)}
                             isSubmitting={isSubmitting}

@@ -140,11 +140,35 @@ html {
   width: 100%;
   margin: 0 0 20px;
 }
+/* The K9 Family directory floats one photo per card. Rather than fixing the
+   column width (which makes a portrait tower over a landscape), we cap the
+   image's long side: both max-width and max-height get the same bound, so the
+   frame shrinks to whichever orientation while staying comparable in size. */
+.k9-member-photo {
+  float: right;
+  max-width: min(300px, 36%);
+  margin: 4px 0 18px 34px;
+}
+.k9-photo-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 300px;
+}
 @media (max-width: 680px) {
   .nl-member-photos {
     float: none;
     width: 100%;
     margin: 0 0 20px;
+  }
+  .k9-member-photo {
+    float: none;
+    max-width: 100%;
+    margin: 0 0 20px;
+  }
+  .k9-photo-img {
+    margin: 0 auto; /* center when stacked full-width */
   }
   /* Footer corner decorations would crowd the CTA on small screens. */
   .nl-footer-deco {

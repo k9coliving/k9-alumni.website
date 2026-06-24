@@ -27,12 +27,12 @@ export default function Navigation() {
               href="/" 
               className="flex items-center hover:opacity-75 transition-opacity"
             >
-              <Image 
-                src="/k9-alumni-logo.png" 
-                alt="K9 Alumni Logo" 
-                width={40} 
-                height={40}
-                className="rounded-lg"
+              <Image
+                src="/k9-alumni-logo.png"
+                alt="K9 Alumni Logo"
+                width={799}
+                height={780}
+                className="rounded-lg w-10 h-auto"
               />
             </Link>
           </div>

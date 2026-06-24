@@ -63,7 +63,7 @@ export function RecommendationBody({ link, context }: { link?: string | null; co
 // box. Both whether it shows (~40% of entries) and which icon are derived
 // deterministically from the submission id, so the same result appears on both
 // the member card's "Recommends" band and the recommendations board.
-const RECOMMEND_ICONS = ['heart-pink', 'heart-blue', 'mug', 'plant', 'mountains', 'airplane', 'camera', 'envelope'];
+const RECOMMEND_ICONS = ['heart-pink', 'heart-blue', 'mug', 'plant', 'airplane', 'camera', 'envelope', 'beach', 'cat', 'food'];
 const RECOMMEND_ICON_CHANCE = 40; // percent
 
 function recommendIcon(id: string): string | null {
