@@ -28,15 +28,6 @@ function photoIcon(id: string, index: number): string | null {
   return PHOTO_ICONS[h % PHOTO_ICONS.length];
 }
 
-// Hand-drawn wavy underline, matching the who-are-we section dividers.
-function WavyDivider({ className = '' }: { className?: string }) {
-  return (
-    <svg width="120" height="13" viewBox="0 0 120 13" fill="none" aria-hidden="true" className={className}>
-      <path d="M3 8 Q 32 2 60 7 T 117 6" stroke={C.accent} strokeWidth="3.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 const firstNameOf = (name: string) => name.trim().split(/\s+/)[0] || name;
 
 interface NewsletterQuote {
@@ -102,7 +93,6 @@ export default function Newsletter() {
               <h2 className="text-4xl sm:text-5xl text-center m-0" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>
                 Letters from the past
               </h2>
-              <WavyDivider className="mt-3" />
             </div>
 
             {quotesLoading ? (

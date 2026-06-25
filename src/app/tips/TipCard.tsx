@@ -1,4 +1,18 @@
-import Image from 'next/image';
+import { FONT_HAND, INK, type Palette } from '@/components/newsletter/theme';
+
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+
+// Playful icon that peeks from the corner of a tip's photo. Kept sparse — only
+// every 3rd card gets one — so it stays a delight rather than clutter. Which icon
+// is picked deterministically from the tip id, so it stays stable across renders
+// (same set the newsletter / K9 Family pages use for their decorative badges).
+const PHOTO_ICONS = ['heart-pink', 'mug', 'plant', 'airplane', 'camera', 'envelope', 'cat', 'dog-newspaper', 'bird'];
+function photoIcon(id: string, index: number): string | null {
+  if (index % 3 !== 0) return null;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return PHOTO_ICONS[h % PHOTO_ICONS.length];
+}
 
 interface Tip {
   id: string;
@@ -15,99 +29,72 @@ interface Tip {
 
 interface TipCardProps {
   tip: Tip;
+  palette: Palette;
+  index: number;
   hideHoldMyHairBadge?: boolean;
 }
 
-export default function TipCard({ tip, hideHoldMyHairBadge = false }: TipCardProps) {
+export default function TipCard({ tip, palette, index, hideHoldMyHairBadge = false }: TipCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
-  return (
-    <div className="flex items-start gap-6">
-      {/* Tip Image */}
-      <div className="flex-shrink-0">
-        <div className="bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
-          {tip.image_url ? (
-            <Image
-              src={tip.image_url}
-              alt={tip.image_alt || `Image for ${tip.title}`}
-              width={256}
-              height={256}
-              className="max-w-80 max-h-48 w-auto h-auto object-contain rounded-lg"
-            />
-          ) : (
-            <div className="w-48 h-48 bg-gray-50 flex items-center justify-center rounded-lg">
-              <Image
-                src={`/missing/${(() => {
-                  const placeholderImages = [
-                    'Animals with Balloons.svg',
-                    'Cat Astronaut Illustration.svg', 
-                    'Cat Pumpkin Illustration.svg',
-                    'Cat Throwing Vase.svg',
-                    'Chicken Eating a Worm.svg',
-                    'Cute Chicken Illustration.svg',
-                    'Diving with Animals.svg',
-                    'Dog Paw Illustration.svg',
-                    'Kiwi Bird Illustration.svg',
-                    'Octopus Vector Illustration.svg',
-                    'Penguin Family Illustration.svg',
-                    'Playful Cat Illustration.svg',
-                    'cat.svg'
-                  ];
-                  // Use tip ID to deterministically choose an image
-                  const index = parseInt(tip.id.slice(-1), 16) % placeholderImages.length;
-                  return placeholderImages[index];
-                })()}`}
-                alt="Tip placeholder illustration"
-                width={96}
-                height={96}
-                className="w-24 h-24"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+  const icon = photoIcon(tip.id, index);
 
-      {/* Tip Details */}
-      <div className="flex-1 space-y-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h4 className="text-xl font-semibold text-gray-900">{tip.title}</h4>
-            <p className="text-sm text-gray-500">{formatDate(tip.created_at)}</p>
+  return (
+    <div style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
+      <div style={{ height: '7px', background: palette.accent }} />
+      <div style={{ padding: '26px 28px 28px' }}>
+        {/* Photo floats beside the tip, stacks above it on narrow screens.
+            When there's no image, the tip simply takes full width. */}
+        {tip.image_url && (
+          <div className="k9-member-photo" style={{ position: 'relative' }}>
+            <div style={{ borderRadius: '18px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(22,41,76,0.05)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={tip.image_url} alt={tip.image_alt || `Image for ${tip.title}`} className="k9-photo-img" />
+            </div>
+            {icon && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/${icon}.png`} alt="" aria-hidden="true" className="nl-floaty" style={{ position: 'absolute', bottom: '-18px', left: '-18px', width: '64px', height: 'auto', filter: 'drop-shadow(0 4px 6px rgba(22,41,76,0.2))', zIndex: 2, pointerEvents: 'none' }} />
+            )}
           </div>
-        </div>
-        
+        )}
+
+        {/* Title + date */}
+        <h4 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: '28px', color: INK, margin: 0, lineHeight: 1.08 }}>{tip.title}</h4>
+        <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#6b7890', marginTop: '6px' }}>{formatDate(tip.created_at)}</p>
+
         {/* Hold My Hair Badge */}
         {tip.is_hold_my_hair && !hideHoldMyHairBadge && (
-          <div className="flex items-center gap-2 text-gray-600">
+          <div className="flex items-center gap-2" style={{ marginTop: '12px' }}>
             <span className="text-lg">🔥</span>
-            <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full" style={{ background: '#FBE2E4', color: '#C2545E' }}>
               Hold My Hair
             </span>
           </div>
         )}
-        
+
         {/* Description */}
-        <div className="space-y-4">
-          {tip.description.split('\n').filter(para => para.trim()).map((paragraph, index) => (
-            <p key={index} className="text-gray-600 leading-relaxed">{paragraph}</p>
+        <div style={{ margin: '16px 0 0' }}>
+          {tip.description.split('\n').filter(para => para.trim()).map((paragraph, idx) => (
+            <p key={idx} style={{ fontSize: '16px', lineHeight: 1.68, color: '#3a4a66', margin: idx === 0 ? 0 : '12px 0 0' }}>{paragraph}</p>
           ))}
         </div>
-        
+
         {/* External Link */}
         {tip.external_link && (
-          <div>
+          <div style={{ marginTop: '14px' }}>
             <a
               href={tip.external_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-700 hover:text-gray-900 hover:underline font-medium"
+              className="font-semibold hover:underline"
+              style={{ color: palette.deep, wordBreak: 'break-all' }}
             >
               {(() => {
                 const link = tip.external_link;
@@ -122,13 +109,13 @@ export default function TipCard({ tip, hideHoldMyHairBadge = false }: TipCardPro
             </a>
           </div>
         )}
-        
+
         {/* Signature */}
-        <div className="flex justify-end mt-6">
-          <div className="text-right">
-            <p className="text-3xl font-bold text-gray-900 font-parisienne tracking-wide" style={{ wordSpacing: '0.25em' }}>— {tip.submitter_name}</p>
-          </div>
+        <div style={{ fontFamily: FONT_HAND, fontWeight: 700, fontSize: '30px', color: palette.deep, lineHeight: 1, marginTop: '16px', textAlign: 'right' }}>
+          — {tip.submitter_name}
         </div>
+
+        <div style={{ clear: 'both' }} />
       </div>
     </div>
   );
