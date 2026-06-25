@@ -535,13 +535,24 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
   );
 }
 
-function SubmissionRow({ s, onDeleted }: { s: NewsletterSubmissionRecord; onDeleted: () => void }) {
+function SubmissionRow({
+  s,
+  pinnedRank,
+  onChanged,
+}: {
+  s: NewsletterSubmissionRecord;
+  // 1-based position among pinned submissions, or null when not pinned.
+  pinnedRank: number | null;
+  onChanged: () => void;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pinning, setPinning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const editToken = s.edit_token?.token;
   const editUrl = editToken ? `/newsletter/edit/${s.id}?token=${encodeURIComponent(editToken)}` : null;
+  const isPinned = pinnedRank !== null;
 
   const del = async () => {
     setBusy(true);
@@ -552,27 +563,73 @@ function SubmissionRow({ s, onDeleted }: { s: NewsletterSubmissionRecord; onDele
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to delete.');
       }
-      onDeleted();
+      onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete.');
       setBusy(false);
     }
   };
 
+  // POST sends to top, DELETE unpins. After either, refresh to re-sort the list.
+  // The row isn't remounted on refresh (same key), so reset `pinning` in finally
+  // — otherwise the buttons stay disabled after a successful pin/unpin.
+  const setPinned = async (pinned: boolean) => {
+    setPinning(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/submissions/${s.id}/pin`, { method: pinned ? 'POST' : 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to update order.');
+      }
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update order.');
+    } finally {
+      setPinning(false);
+    }
+  };
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div className={`rounded-lg p-4 ${isPinned ? 'border-2 border-amber-300 bg-amber-50/40' : 'border border-gray-200'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="font-medium text-gray-900">
+            {isPinned && (
+              <span className="mr-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 align-middle">
+                📌 #{pinnedRank}
+              </span>
+            )}
             {s.name} <span className="font-normal text-gray-400">· {s.period_in_k9}</span>
           </p>
           <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{s.whats_up}</p>
           <p className="text-xs text-gray-400 mt-2">
             {s.email || 'no email'}
             {s.photos && s.photos.length > 0 ? ` · ${s.photos.length} photo(s)` : ''}
+            {s.created_at ? ` · submitted ${relativeDays(s.created_at)}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-sm">
+          {/* "Send to top" stamps pinned_at=now, so it floats above earlier pins.
+              Always available — even for an already-pinned row, so a pinned #2 can
+              be re-bumped to the top. */}
+          <button
+            onClick={() => setPinned(true)}
+            disabled={pinning}
+            className="text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            title="Move this submission to the top of the newsletter"
+          >
+            {pinning && !isPinned ? 'Pinning…' : '📌 Send to top'}
+          </button>
+          {isPinned && (
+            <button
+              onClick={() => setPinned(false)}
+              disabled={pinning}
+              className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            >
+              Unpin
+            </button>
+          )}
           {editUrl && (
             <a href={editUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700">
               Edit
@@ -607,13 +664,22 @@ function Submissions({ submissions }: { submissions: NewsletterSubmissionRecord[
       <h2 className="text-lg font-semibold text-gray-900 mb-1">
         Unassigned submissions <span className="text-gray-400 font-normal">({submissions.length})</span>
       </h2>
-      <p className="text-sm text-gray-500 mb-4">These go into the next newsletter when you send it.</p>
+      <p className="text-sm text-gray-500 mb-4">
+        These go into the next newsletter in this order. Use <span className="text-amber-600 font-medium">📌 Send to top</span> to
+        promote a submission; pinned ones lead, newest pin first.
+      </p>
       {submissions.length === 0 ? (
         <p className="text-gray-500 text-sm py-4">No submissions waiting.</p>
       ) : (
         <div className="space-y-3">
-          {submissions.map((s) => (
-            <SubmissionRow key={s.id} s={s} onDeleted={() => router.refresh()} />
+          {submissions.map((s, i) => (
+            <SubmissionRow
+              key={s.id}
+              s={s}
+              // The list arrives pinned-first, so a pinned row's index+1 is its rank.
+              pinnedRank={s.pinned_at ? i + 1 : null}
+              onChanged={() => router.refresh()}
+            />
           ))}
         </div>
       )}

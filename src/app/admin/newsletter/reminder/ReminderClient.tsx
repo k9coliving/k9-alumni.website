@@ -87,6 +87,11 @@ export default function ReminderClient({
   const replyToValid = EMAIL_RE.test(replyTo.trim());
   const testEmailValid = EMAIL_RE.test(testEmail.trim());
 
+  // Slack broadcast pings only fire from @channel/@here/@everyone (the slack
+  // route rewrites these to <!channel> etc). A reminder usually wants one, so
+  // warn when the body has none — but it's only a nudge, not a block.
+  const hasSlackMention = /@(channel|here|everyone)\b/.test(message);
+
   // Why the test button is disabled, if it is (busy aside).
   const testMissing = [
     !replyToValid && 'reply-to (set it in the newsletter admin)',
@@ -153,7 +158,10 @@ export default function ReminderClient({
   const postSlack = async () => {
     setError(null);
     setInfo(null);
-    if (!window.confirm('Post this reminder to the K9 Slack channel?')) {
+    const confirmMsg = hasSlackMention
+      ? 'Post this reminder to the K9 Slack channel?'
+      : "This message has no @channel mention, so it won't ping the channel. Post anyway?";
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
@@ -257,22 +265,29 @@ export default function ReminderClient({
           </div>
 
           {/* Post to Slack — same copy, posted to the K9 channel */}
-          <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-gray-600">
-              Also post this reminder to the K9 Slack channel.
-              {!slackConfigured && (
-                <span className="block text-xs text-amber-600 mt-0.5">
-                  Set SLACK_WEBHOOK_URL to enable.
-                </span>
-              )}
-            </p>
-            <button
-              onClick={postSlack}
-              disabled={busy !== null || !slackConfigured}
-              className="shrink-0 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:cursor-default disabled:opacity-50"
-            >
-              {busy === 'slack' ? 'Posting…' : 'Post to Slack'}
-            </button>
+          <div className="border-t border-gray-200 pt-4 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <p className="text-sm text-gray-600">
+                Also post this reminder to the K9 Slack channel.
+                {!slackConfigured && (
+                  <span className="block text-xs text-amber-600 mt-0.5">
+                    Set SLACK_WEBHOOK_URL to enable.
+                  </span>
+                )}
+              </p>
+              <button
+                onClick={postSlack}
+                disabled={busy !== null || !slackConfigured}
+                className="shrink-0 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:cursor-default disabled:opacity-50"
+              >
+                {busy === 'slack' ? 'Posting…' : 'Post to Slack'}
+              </button>
+            </div>
+            {slackConfigured && !hasSlackMention && (
+              <p className="text-xs text-amber-600">
+                ⚠ No <span className="font-mono">@channel</span>{' '}in the message
+              </p>
+            )}
           </div>
 
           {/* Test send */}

@@ -51,6 +51,12 @@ export interface NewsletterSubmissionRecord {
   edit_token?: NewsletterEditTokenData | null;
   newsletter_id?: string | null;
 
+  // Manual ordering override. When set, the submission floats to the top of the
+  // newsletter ahead of unpinned ones; among pinned submissions the most
+  // recently pinned wins (so clicking "Send to top" on B after A puts B first,
+  // A second). Null/absent means natural created_at order.
+  pinned_at?: string | null;
+
   user_agent?: string | null;
 }
 
@@ -292,6 +298,40 @@ export async function updateSubmission(
   return { updated: data };
 }
 
+// Pin ("Send to top") or unpin a submission. Pinning stamps pinned_at = now() so
+// the most recently pinned submission sorts first; unpinning clears it. Only
+// meaningful while unassigned — re-checks newsletter_id IS NULL at write time so
+// a submission scooped into a sent newsletter can't have its order changed.
+export async function setSubmissionPinned(
+  id: string,
+  pinned: boolean
+): Promise<{ updated: NewsletterSubmissionRecord | null; reason?: 'not_found' | 'already_sent' }> {
+  const existing = await getSubmissionById(id);
+  if (!existing) {
+    return { updated: null, reason: 'not_found' };
+  }
+  if (existing.newsletter_id) {
+    return { updated: null, reason: 'already_sent' };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('newsletter_submissions')
+    .update({ pinned_at: pinned ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('newsletter_id', null)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return { updated: null, reason: 'already_sent' };
+    }
+    throw new Error(`Failed to update submission pin: ${error.message}`);
+  }
+
+  return { updated: data };
+}
+
 // No expiry — the edit token persists until the submission is part of a sent
 // newsletter (at which point editing is closed regardless of the token).
 export async function setSubmissionEditToken(id: string, token: string): Promise<void> {
@@ -342,6 +382,9 @@ export async function getUnassignedSubmissions(): Promise<NewsletterSubmissionRe
     .from('newsletter_submissions')
     .select('*')
     .is('newsletter_id', null)
+    // Pinned ("Send to top") submissions first, most recently pinned on top;
+    // everything else falls back to natural created_at order.
+    .order('pinned_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -356,6 +399,8 @@ async function getSubmissionsByNewsletterId(newsletterId: string): Promise<Newsl
     .from('newsletter_submissions')
     .select('*')
     .eq('newsletter_id', newsletterId)
+    // Freeze the same pinned-first ordering the draft preview showed at send time.
+    .order('pinned_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: true });
 
   if (error) {
