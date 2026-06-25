@@ -1,24 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Parisienne, Baloo_2, Nunito, Caveat, DM_Serif_Display } from "next/font/google";
+import { Baloo_2, Nunito, Caveat, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import { isAuthenticated } from "@/lib/auth";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const parisienne = Parisienne({
-  variable: "--font-parisienne",
-  subsets: ["latin"],
-  weight: "400",
-});
 
 // Newsletter design fonts ("The Nest" layout)
 const baloo2 = Baloo_2({
@@ -70,7 +54,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${parisienne.variable} ${baloo2.variable} ${nunito.variable} ${caveat.variable} ${dmSerifDisplay.variable} antialiased`}
+        className={`${baloo2.variable} ${nunito.variable} ${caveat.variable} ${dmSerifDisplay.variable} antialiased`}
       >
         <AuthProvider initialAuth={authenticated}>
           {children}
