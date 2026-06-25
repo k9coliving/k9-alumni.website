@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SendLogEntry, ReminderTextEntry } from '@/lib/audit';
 import {
@@ -65,6 +65,13 @@ export default function ReminderClient({
   const [busy, setBusy] = useState<null | 'all' | 'test' | 'failed' | 'slack'>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // Timestamps in the history list use the viewer's locale + timezone, which the
+  // server can't know — formatting at SSR time causes a hydration mismatch. Gate
+  // formatting behind a post-mount flag so server and first client render agree
+  // (both blank), then fill in the local time on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // One sample image for the preview (same-origin relative path), picked once so
   // it doesn't reshuffle on every keystroke. The actual send picks its own.
@@ -397,7 +404,7 @@ export default function ReminderClient({
                     <div className="min-w-0">
                       <p className="font-medium text-gray-900 truncate">{h.subject}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(h.timestamp).toLocaleString()} · {h.sent} sent
+                        {mounted ? `${new Date(h.timestamp).toLocaleString()} · ` : ''}{h.sent} sent
                         {h.failed > 0 && `, ${h.failed} failed`}
                         {h.mode === 'failed' && ' · retry'}
                       </p>
