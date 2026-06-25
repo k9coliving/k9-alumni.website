@@ -82,12 +82,11 @@ export default function Newsletter() {
           <div className="page-header !mb-10 flex flex-col items-center">
             <h1
               className="m-0"
-              style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(52px,10vw,108px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
+              style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
             >
               Newsletter
             </h1>
-            <WavyDivider className="mt-3 mb-7" />
-            <div className="max-w-3xl mx-auto text-left space-y-4">
+            <div className="max-w-3xl mx-auto text-left space-y-4 mt-7">
               <p style={{ fontFamily: BODY, fontSize: '18px', lineHeight: 1.7, color: C.body }}>
                 Remember those late-night kitchen conversations and weekend catch-ups that made K9 feel like home? Our quarterly newsletter brings that same energy to your inbox, sharing the adventures, milestones, and everyday moments of our extended K9 family.
               </p>

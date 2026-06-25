@@ -330,9 +330,9 @@ export default function K9FamilyClient({
           <div className="page-header !mb-6 flex flex-col items-center">
             <h1
               className="m-0"
-              style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(52px,10vw,108px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
+              style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
             >
-              The K9 Family
+              Meet Alumni
             </h1>
             <p
               className="mt-5 mx-auto"

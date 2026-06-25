@@ -5,6 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import CustomEventForm from './CustomEventForm';
+import { PALETTE } from '@/components/newsletter/theme';
+
+// Newsletter-aligned design tokens (shared with the landing, who-are-we,
+// newsletter, and K9 Family pages).
+const C = {
+  bg: '#FAF6F0',
+  ink: '#1B2A41',
+  accent: '#E1564D',
+  body: '#6F695F',
+  cardBorder: '#ECE3D5',
+};
+const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
+const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
 
 interface ResidentData {
   id: string;
@@ -358,7 +371,7 @@ export default function Events() {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     return (
-      <div className="mb-8">
+      <div className="mb-8" style={{ background: '#fff', borderRadius: '24px', padding: '28px', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {months.map(({ month, year }) => {
             const firstDay = new Date(year, month, 1);
@@ -374,12 +387,12 @@ export default function Events() {
             
             return (
               <div key={`${year}-${month}`} className="space-y-2">
-                <h4 className="font-medium text-gray-800 text-center">
+                <h4 className="text-center text-2xl" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>
                   {monthNames[month]} {year}
                 </h4>
-                
+
                 {/* Day names header */}
-                <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 mb-1">
+                <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold mb-1" style={{ color: C.body }}>
                   {dayNames.map(day => (
                     <div key={day} className="py-1">{day}</div>
                   ))}
@@ -428,17 +441,19 @@ export default function Events() {
                         } ${
                           isNotLastRow ? 'border-b border-gray-100' : ''
                         } ${
-                          isSelected ? 'bg-blue-100' : isHovered ? 'bg-blue-50' : ''
+                          isSelected ? 'bg-[#F8DEDC]' : isHovered ? 'bg-[#FCEEEC]' : ''
                         } ${
                           hasEvent ? 'cursor-pointer' : ''
                         }`}
                         onClick={() => hasEvent && setSelectedEventDate(dateString)}
+                        onMouseEnter={() => hasEvent && setHoveredEventDate(dateString)}
+                        onMouseLeave={() => hasEvent && setHoveredEventDate(null)}
                       >
                         <span className={`text-sm ${
-                          isToday ? 'font-bold text-blue-600' : 
-                          isPast ? 'text-gray-300' : 
-                          isSelected ? 'font-bold text-blue-700' :
-                          isHovered ? 'font-bold text-blue-600' :
+                          isToday ? 'font-bold text-[#E1564D]' :
+                          isPast ? 'text-gray-300' :
+                          isSelected ? 'font-bold text-[#C2443B]' :
+                          isHovered ? 'font-bold text-[#E1564D]' :
                           'text-gray-700'
                         }`}>
                           {day}
@@ -453,17 +468,22 @@ export default function Events() {
                                 return eventDay === day;
                               });
                               
-                              // Show different emojis based on event types
+                              // Birthdays show the cake icon; custom events the coffee emoji.
                               const hasBirthday = dayEvents.some(event => event.type === 'birthday');
                               const hasCustom = dayEvents.some(event => event.type === 'custom');
-                              
-                              if (hasBirthday && hasCustom) {
-                                return '🎉☕'; // Both types
-                              } else if (hasCustom) {
-                                return '☕'; // Custom events (coffee emoji)
-                              } else {
-                                return '🎉'; // Birthday events
-                              }
+                              const cakeSize = isHovered ? 20 : 16;
+
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-0.5 align-middle"
+                                  style={{ animation: isHovered ? 'nl-bob 1.2s ease-in-out infinite' : undefined }}
+                                >
+                                  {hasBirthday && (
+                                    <Image src="/cake.png" alt="Birthday" width={20} height={20} style={{ width: cakeSize, height: 'auto' }} />
+                                  )}
+                                  {hasCustom && <span>☕</span>}
+                                </span>
+                              );
                             })()}
                           </div>
                         )}
@@ -503,9 +523,9 @@ export default function Events() {
 
     return (
       <div id="event-details" className="mt-16">
-        <div className="text-center mb-8">
-          <h3 className="text-4xl font-bold text-gray-900">{formatSelectedDate(selectedEventDate)}</h3>
-          <p className="text-sm text-gray-500 mt-1">
+        <div className="text-center mb-8 flex flex-col items-center">
+          <h3 className="text-4xl m-0" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{formatSelectedDate(selectedEventDate)}</h3>
+          <p className="text-sm mt-1" style={{ color: C.body }}>
             {isPastEvent ? `${absDaysUntil} days ago` : `in ${daysUntil} days`}
           </p>
         </div>
@@ -514,36 +534,32 @@ export default function Events() {
           {selectedEvents.map((event, index) => {
             if (event.type === 'birthday' && event.birthdayEvent) {
               const birthday = event.birthdayEvent;
-              
+              const palette = PALETTE[index % PALETTE.length];
+
               return (
-                <div key={event.id}>
-                  {index > 0 && (
-                    <div className="flex justify-center mb-8">
-                      <div className="border-t border-gray-200 w-[70%]"></div>
-                    </div>
-                  )}
-                  <div>
-                  <div className="flex items-start gap-6">
+                <div key={event.id} style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
+                  <div style={{ height: '7px', background: palette.accent }} />
+                  <div className="flex items-start gap-6" style={{ padding: '26px 28px 28px' }}>
                     {/* Profile Image */}
                     <div className="flex-shrink-0">
                       <Link href={`/thek9family?search=${encodeURIComponent(birthday.name)}`}>
-                        <div className="w-32 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-shadow">
+                        <div className="w-32 flex items-center justify-center rounded-2xl cursor-pointer transition-shadow" style={birthday.photo?.url ? { background: palette.soft, boxShadow: '0 10px 24px -16px rgba(22,41,76,0.5)' } : undefined}>
                           {birthday.photo?.url ? (
                             <Image
                               src={birthday.photo.url}
                               alt={birthday.photo.alt || `${birthday.name} profile photo`}
                               width={128}
                               height={128}
-                              className="w-32 h-auto object-contain rounded-lg"
+                              className="w-32 h-auto object-contain rounded-2xl"
                             />
                           ) : (
-                            <div className="w-32 h-32 bg-gray-50 flex items-center justify-center rounded-lg">
+                            <div className="w-32 h-32 flex items-center justify-center rounded-2xl">
                               <Image
-                                src={`/missing/${birthday.placeholderImage || 'cat.svg'}`}
-                                alt="Profile placeholder illustration"
+                                src="/cake.png"
+                                alt="Birthday cake"
                                 width={96}
                                 height={96}
-                                className="w-24 h-24"
+                                className="w-24 h-24 object-contain"
                               />
                             </div>
                           )}
@@ -554,51 +570,55 @@ export default function Events() {
                     {/* Birthday Details */}
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl">🎉</div>
+                        {birthday.photo?.url && (
+                          <Image src="/cake.png" alt="Birthday" width={32} height={32} className="w-8 h-auto flex-shrink-0" />
+                        )}
                         <div>
-                          <h4 className="text-xl font-semibold text-gray-900">{birthday.name}&apos;s Birthday</h4>
+                          <h4 className="text-2xl" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{birthday.name}&apos;s Birthday</h4>
                           {birthday.yearsInK9 && (
-                            <p className="text-sm text-gray-500">In K9: {birthday.yearsInK9}</p>
+                            <p className="text-sm" style={{ color: C.body }}>In K9: {birthday.yearsInK9}</p>
                           )}
                         </div>
                       </div>
-                      
+
                       {birthday.location && (
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2" style={{ color: C.body }}>
                           <span className="text-lg">🌍</span>
                           <span>{birthday.location}</span>
                         </div>
                       )}
-                      
+
                       {birthday.interests && birthday.interests.length > 0 && (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-gray-600">
+                          <div className="flex items-center gap-2" style={{ color: C.body }}>
                             <span className="text-lg">❤️</span>
                             <span className="font-medium">What I love</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {birthday.interests.map((interest, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">
+                              <span key={idx} className="text-sm rounded-full" style={{ padding: '4px 12px', fontWeight: 700, background: palette.soft, color: palette.deep }}>
                                 {interest}
                               </span>
                             ))}
                           </div>
                         </div>
                       )}
-                      
+
                       {birthday.email && (
                         <div className="pt-2">
                           <div className="flex items-center gap-6">
-                            <a 
+                            <a
                               href={`mailto:${birthday.email}`}
-                              className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400"
+                              className="inline-flex items-center gap-2 text-sm font-medium transition-all duration-200 px-3 py-1 rounded-full hover:brightness-95"
+                              style={{ background: palette.soft, color: palette.deep }}
                             >
                               <span>🎈</span>
                               {birthday.email}
                             </a>
-                            <Link 
+                            <Link
                               href={`/thek9family?search=${encodeURIComponent(birthday.name)}`}
-                              className="text-gray-600 hover:text-gray-800 font-semibold hover:underline"
+                              className="font-semibold hover:underline"
+                              style={{ color: C.accent }}
                             >
                               My profile
                             </Link>
@@ -607,34 +627,31 @@ export default function Events() {
                       )}
                     </div>
                   </div>
-                  </div>
                 </div>
               );
             } else if (event.type === 'custom' && event.customEvent) {
               const customEvent = event.customEvent;
               const startDate = new Date(customEvent.start_datetime);
               
+              const palette = PALETTE[index % PALETTE.length];
+
               return (
-                <div key={event.id}>
-                  {index > 0 && (
-                    <div className="flex justify-center mb-8">
-                      <div className="border-t border-gray-200 w-[70%]"></div>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-6">
+                <div key={event.id} style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
+                  <div style={{ height: '7px', background: palette.accent }} />
+                  <div className="flex items-start gap-6" style={{ padding: '26px 28px 28px' }}>
                     {/* Event Image */}
                     <div className="flex-shrink-0">
-                      <div className="w-32 bg-gray-100 flex items-center justify-center rounded-lg shadow-lg">
+                      <div className="w-32 flex items-center justify-center rounded-2xl" style={{ background: palette.soft, boxShadow: '0 10px 24px -16px rgba(22,41,76,0.5)' }}>
                         {customEvent.visual_url ? (
                           <Image
                             src={customEvent.visual_url}
                             alt="Event visual"
                             width={128}
                             height={128}
-                            className="w-32 h-32 object-cover rounded-lg"
+                            className="w-32 h-32 object-cover rounded-2xl"
                           />
                         ) : (
-                          <div className="w-32 h-32 bg-gray-50 flex items-center justify-center rounded-lg">
+                          <div className="w-32 h-32 flex items-center justify-center rounded-2xl">
                             <Image
                               src={`/missing/${(() => {
                                 const placeholderImages = [
@@ -671,62 +688,64 @@ export default function Events() {
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">☕</div>
                         <div>
-                          <h4 className="text-xl font-semibold text-gray-900">{customEvent.title}</h4>
-                          <p className="text-sm text-gray-500">Organized by {customEvent.organizer_name}</p>
+                          <h4 className="text-2xl" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{customEvent.title}</h4>
+                          <p className="text-sm" style={{ color: C.body }}>Organized by {customEvent.organizer_name}</p>
                         </div>
                       </div>
-                    
+
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <h5 className="font-medium text-gray-700 mb-0">📅 {startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h5>
-                          <p className="text-gray-600 ml-6">
+                          <h5 className="font-bold mb-0" style={{ color: C.ink }}>📅 {startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h5>
+                          <p className="ml-6" style={{ color: C.body }}>
                             {startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})} for {customEvent.duration}
                           </p>
                         </div>
-                        
+
                         <div>
-                          <h5 className="font-medium text-gray-700 mb-2">📍 {customEvent.location}</h5>
+                          <h5 className="font-bold mb-2" style={{ color: C.ink }}>📍 {customEvent.location}</h5>
                         </div>
-                        
+
                         {customEvent.organizer_email && (
                           <div>
-                            <a 
+                            <a
                               href={`mailto:${customEvent.organizer_email}`}
-                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline mb-2 block"
+                              className="font-medium hover:underline mb-2 block"
+                              style={{ color: C.accent }}
                             >
                               🎈 {customEvent.organizer_email}
                             </a>
                           </div>
                         )}
-                        
+
                         {customEvent.info_link && (
                           <div>
-                            <a 
+                            <a
                               href={customEvent.info_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              className="hover:underline"
+                              style={{ color: C.accent }}
                             >
                               {customEvent.info_link.length > 50 ? customEvent.info_link.substring(0, 50) + '...' : customEvent.info_link}
                             </a>
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div>
-                          <h5 className="font-medium text-gray-700 mb-2">📝 About</h5>
-                          <p className="text-gray-600 leading-relaxed">{customEvent.description}</p>
+                          <h5 className="font-bold mb-2" style={{ color: C.ink }}>📝 About</h5>
+                          <p className="leading-relaxed" style={{ color: C.body }}>{customEvent.description}</p>
                         </div>
-                        
+
                         {customEvent.additional_notes && (
                           <div>
-                            <h5 className="font-medium text-gray-700 mb-2">💡 Additional Info</h5>
-                            <p className="text-gray-600 leading-relaxed">{customEvent.additional_notes}</p>
+                            <h5 className="font-bold mb-2" style={{ color: C.ink }}>💡 Additional Info</h5>
+                            <p className="leading-relaxed" style={{ color: C.body }}>{customEvent.additional_notes}</p>
                           </div>
                         )}
-                        
+
                       </div>
                     </div>
                     </div>
@@ -744,14 +763,16 @@ export default function Events() {
   return (
     <>
       <Layout>
-        <div className="bg-gray-50 min-h-screen">
+        <div className="min-h-screen" style={{ backgroundColor: C.bg, fontFamily: BODY, color: C.ink }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="page-header !mb-12">
-              <h1 className="page-header-title">
-                Events & Gatherings
+            <div className="page-header !mb-12 flex flex-col items-center">
+              <h1
+                className="m-0"
+                style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 0.98, letterSpacing: '-1px', color: C.ink }}
+              >
+                Upcoming Gatherings
               </h1>
-              <div className="page-header-divider"></div>
-              <p className="page-header-subtitle">
+              <p className="mx-auto mt-5" style={{ fontFamily: BODY, fontSize: 'clamp(15px,1.8vw,18px)', lineHeight: 1.7, color: C.body, maxWidth: 560 }}>
                 Fikas ☕, shared pizzas 🍕 and birthdays 🎉 - staying connected with your K9 family around the world 🌍
               </p>
             </div>
@@ -759,12 +780,14 @@ export default function Events() {
             <div className="mb-12">
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: C.accent }}></div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-6">
+                <div className="flex flex-wrap gap-5 justify-center">
                   {upcomingEvents.length > 0 ? (
                     upcomingEvents.map((event, index) => {
+                      const palette = PALETTE[index % PALETTE.length];
+                      const isActive = selectedEventDate === event.date || hoveredEventDate === event.date;
                       const formatEventDate = (dateString: string) => {
                         const [, month, day] = dateString.split('-').map(Number);
                         const monthNames = [
@@ -773,33 +796,40 @@ export default function Events() {
                         ];
                         return `${monthNames[month - 1]} ${day}`;
                       };
-                      
+
                       return (
-                        <div 
-                          key={event.id} 
-                          className={`flex items-center gap-4 py-4 px-6 transition-colors relative cursor-pointer ${
-                            selectedEventDate === event.date ? 'bg-blue-100' :
-                            hoveredEventDate === event.date ? 'bg-blue-50' : 'hover:bg-gray-50'
-                          }`}
+                        <div
+                          key={event.id}
+                          className="flex items-stretch cursor-pointer transition-all w-full sm:w-auto"
+                          style={{
+                            background: '#fff',
+                            borderRadius: '20px',
+                            overflow: 'hidden',
+                            boxShadow: isActive
+                              ? '0 16px 34px -22px rgba(22,41,76,0.4)'
+                              : '0 16px 34px -26px rgba(22,41,76,0.32)',
+                            outlineStyle: 'solid',
+                            outlineColor: palette.accent,
+                            outlineWidth: isActive ? '2px' : '0px',
+                            outlineOffset: '-2px',
+                          }}
                           onMouseEnter={() => setHoveredEventDate(event.date)}
                           onMouseLeave={() => setHoveredEventDate(null)}
                           onClick={() => setSelectedEventDate(event.date)}
                         >
-                          {index > 0 && (
-                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-px h-16 bg-gray-200"></div>
-                          )}
-                          <div className="text-center min-w-[80px]">
-                            <div className="text-3xl font-bold text-blue-600 leading-tight">
+                          {/* Date block with the card's accent colour. */}
+                          <div className="text-center px-5 py-4 flex flex-col justify-center min-w-[88px]" style={{ background: palette.soft }}>
+                            <div className="leading-tight" style={{ fontFamily: SERIF, fontSize: '34px', color: palette.deep }}>
                               {formatEventDate(event.date).split(' ')[1]}
                             </div>
-                            <div className="text-xs font-medium text-gray-600 uppercase tracking-widest">
+                            <div className="text-xs font-bold uppercase tracking-widest" style={{ color: palette.deep }}>
                               {formatEventDate(event.date).split(' ')[0]}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs mt-1" style={{ color: C.body }}>
                               {Math.ceil((event.eventDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 px-5 py-4">
                             {/* Event Image or Icon */}
                             <div className="flex-shrink-0">
                               {(() => {
@@ -809,34 +839,39 @@ export default function Events() {
                                 } else if (event.type === 'custom' && event.customEvent?.visual_url) {
                                   imageUrl = event.customEvent.visual_url;
                                 }
-                                
+
                                 if (imageUrl) {
                                   return (
                                     <div className="relative">
-                                      <Image 
-                                        src={imageUrl} 
-                                        alt="Event" 
+                                      <Image
+                                        src={imageUrl}
+                                        alt="Event"
                                         width={96}
                                         height={96}
-                                        className="w-24 h-24 rounded-full object-cover border border-gray-200"
+                                        className="w-20 h-20 rounded-full object-cover"
+                                        style={{ boxShadow: `0 0 0 3px ${palette.soft}` }}
                                       />
-                                      <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full border border-gray-100 w-6 h-6 flex items-center justify-center">
-                                        {event.type === 'birthday' ? '🎉' : '☕'}
+                                      <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
+                                        {event.type === 'birthday'
+                                          ? <Image src="/cake.png" alt="Birthday" width={16} height={16} className="w-4 h-auto" />
+                                          : '☕'}
                                       </div>
                                     </div>
                                   );
                                 } else {
-                                  return <div className="text-2xl">{event.type === 'birthday' ? '🎉' : '☕'}</div>;
+                                  return event.type === 'birthday'
+                                    ? <Image src="/cake.png" alt="Birthday" width={32} height={32} className="w-8 h-auto" />
+                                    : <div className="text-2xl">☕</div>;
                                 }
                               })()}
                             </div>
                             <div>
-                              <h3 className="font-semibold text-gray-900 text-lg">{event.title}</h3>
+                              <h3 className="text-lg" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{event.title}</h3>
                               {event.location && (
-                                <p className="text-sm text-gray-500">{event.location}</p>
+                                <p className="text-sm" style={{ color: C.body }}>{event.location}</p>
                               )}
                               {event.type === 'custom' && event.customEvent && (
-                                <p className="text-xs text-gray-400">by {event.customEvent.organizer_name}</p>
+                                <p className="text-xs" style={{ color: C.body }}>by {event.customEvent.organizer_name}</p>
                               )}
                             </div>
                           </div>
@@ -844,7 +879,7 @@ export default function Events() {
                       );
                     })
                   ) : (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center" style={{ color: C.body }}>
                       No upcoming events found.
                     </div>
                   )}
@@ -855,10 +890,10 @@ export default function Events() {
             {/* Divider */}
             {!loading && (allBirthdays.length > 0 || customEvents.length > 0) && (
               <div className="flex justify-center my-8">
-                <div className="border-t border-gray-200 w-2/5"></div>
+                <div className="border-t w-2/5" style={{ borderColor: C.cardBorder }}></div>
               </div>
             )}
-            
+
             {/* Calendar View */}
             {renderCalendar()}
 
@@ -867,9 +902,10 @@ export default function Events() {
 
             {/* Add Event Button */}
             <div className="text-center mt-16 mb-8">
-              <button 
+              <button
                 onClick={() => setIsCustomEventFormOpen(true)}
-                className="btn-primary px-6 py-3"
+                className="px-7 py-3 rounded-full font-semibold text-white transition-colors hover:brightness-95 cursor-pointer"
+                style={{ fontFamily: BODY, background: C.accent }}
               >
                 Create Your Own Event
               </button>
