@@ -19,6 +19,13 @@ const C = {
 const SERIF = 'var(--font-dm-serif), "DM Serif Display", serif';
 const BODY = 'var(--font-nunito), "Nunito", system-ui, sans-serif';
 
+// The calendar places events by their *local* day (from `eventDate`), and the
+// calendar/selection keys are local `YYYY-MM-DD` strings. Deriving an event's
+// `date` from the raw timestamp's UTC date part (split on 'T') disagrees with
+// that near midnight, so build the key from the local date instead.
+const toLocalDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 interface ResidentData {
   id: string;
   name: string;
@@ -200,7 +207,7 @@ export default function Events() {
           ...fetchedCustomEvents.map(customEvent => ({
             id: `custom-${customEvent.id}`,
             title: customEvent.title,
-            date: customEvent.start_datetime.split('T')[0], // Extract date part
+            date: toLocalDateKey(new Date(customEvent.start_datetime)),
             location: customEvent.location,
             type: 'custom' as const,
             customEvent: customEvent,
@@ -302,7 +309,7 @@ export default function Events() {
           ...updatedCustomEvents.map((customEvent: CustomEvent) => ({
             id: `custom-${customEvent.id}`,
             title: customEvent.title,
-            date: customEvent.start_datetime.split('T')[0],
+            date: toLocalDateKey(new Date(customEvent.start_datetime)),
             location: customEvent.location,
             type: 'custom' as const,
             customEvent: customEvent,
@@ -668,7 +675,7 @@ export default function Events() {
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center gap-3">
                         {customEvent.visual_url && (
-                          <Image src="/fika.png" alt="Fika" width={32} height={32} className="w-8 h-auto flex-shrink-0" />
+                          <Image src="/fika.png" alt="Fika" width={44} height={44} className="w-11 h-auto flex-shrink-0" />
                         )}
                         <div>
                           <h4 className="text-2xl" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{customEvent.title}</h4>
