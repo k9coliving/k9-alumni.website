@@ -30,9 +30,6 @@ interface ResidentData {
   photo_url?: string;
   photo_alt?: string;
   interests?: string[];
-  preferences?: {
-    placeholder_image?: string;
-  };
 }
 
 interface BirthdayEvent {
@@ -47,7 +44,6 @@ interface BirthdayEvent {
     url: string;
     alt: string;
   };
-  placeholderImage?: string;
   birthdayThisYear?: Date;
   interests?: string[];
 }
@@ -147,7 +143,6 @@ export default function Events() {
                     url: resident.photo_url,
                     alt: resident.photo_alt || `${resident.name} profile photo`
                   } : undefined,
-                  placeholderImage: resident.preferences?.placeholder_image,
                   birthdayThisYear: currentMonthBirthday,
                   interests: resident.interests,
                   yearsInK9: resident.years_in_k9
@@ -170,7 +165,6 @@ export default function Events() {
                     url: resident.photo_url,
                     alt: resident.photo_alt || `${resident.name} profile photo`
                   } : undefined,
-                  placeholderImage: resident.preferences?.placeholder_image,
                   birthdayThisYear: nextMonthBirthday,
                   interests: resident.interests,
                   yearsInK9: resident.years_in_k9
@@ -468,10 +462,13 @@ export default function Events() {
                                 return eventDay === day;
                               });
                               
-                              // Birthdays show the cake icon; custom events the coffee emoji.
+                              // Birthdays show the cake icon; custom events the fika icon.
                               const hasBirthday = dayEvents.some(event => event.type === 'birthday');
                               const hasCustom = dayEvents.some(event => event.type === 'custom');
-                              const cakeSize = isHovered ? 20 : 16;
+                              // Shared square box + object-contain so the cake and
+                              // fika icons occupy the same footprint despite their
+                              // different aspect ratios.
+                              const iconBox = isHovered ? 26 : 21;
 
                               return (
                                 <span
@@ -479,9 +476,11 @@ export default function Events() {
                                   style={{ animation: isHovered ? 'nl-bob 1.2s ease-in-out infinite' : undefined }}
                                 >
                                   {hasBirthday && (
-                                    <Image src="/cake.png" alt="Birthday" width={20} height={20} style={{ width: cakeSize, height: 'auto' }} />
+                                    <Image src="/cake.png" alt="Birthday" width={26} height={26} style={{ width: iconBox, height: iconBox, objectFit: 'contain' }} />
                                   )}
-                                  {hasCustom && <span>☕</span>}
+                                  {hasCustom && (
+                                    <Image src="/fika.png" alt="Fika" width={26} height={26} style={{ width: iconBox, height: iconBox, objectFit: 'contain' }} />
+                                  )}
                                 </span>
                               );
                             })()}
@@ -639,9 +638,10 @@ export default function Events() {
                 <div key={event.id} style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 44px -32px rgba(22,41,76,0.32)' }}>
                   <div style={{ height: '7px', background: palette.accent }} />
                   <div className="flex items-start gap-6" style={{ padding: '26px 28px 28px' }}>
-                    {/* Event Image */}
+                    {/* Event Image — the visual, or the fika illustration as a
+                        big fallback when there's none (mirrors the birthday cake). */}
                     <div className="flex-shrink-0">
-                      <div className="w-32 flex items-center justify-center rounded-2xl" style={{ background: palette.soft, boxShadow: '0 10px 24px -16px rgba(22,41,76,0.5)' }}>
+                      <div className="w-32 flex items-center justify-center rounded-2xl" style={customEvent.visual_url ? { background: palette.soft, boxShadow: '0 10px 24px -16px rgba(22,41,76,0.5)' } : undefined}>
                         {customEvent.visual_url ? (
                           <Image
                             src={customEvent.visual_url}
@@ -653,30 +653,11 @@ export default function Events() {
                         ) : (
                           <div className="w-32 h-32 flex items-center justify-center rounded-2xl">
                             <Image
-                              src={`/missing/${(() => {
-                                const placeholderImages = [
-                                  'Animals with Balloons.svg',
-                                  'Cat Astronaut Illustration.svg', 
-                                  'Cat Pumpkin Illustration.svg',
-                                  'Cat Throwing Vase.svg',
-                                  'Chicken Eating a Worm.svg',
-                                  'Cute Chicken Illustration.svg',
-                                  'Diving with Animals.svg',
-                                  'Dog Paw Illustration.svg',
-                                  'Kiwi Bird Illustration.svg',
-                                  'Octopus Vector Illustration.svg',
-                                  'Penguin Family Illustration.svg',
-                                  'Playful Cat Illustration.svg',
-                                  'cat.svg'
-                                ];
-                                // Use event ID to deterministically choose an image
-                                const index = parseInt(customEvent.id.slice(-1), 16) % placeholderImages.length;
-                                return placeholderImages[index];
-                              })()}`}
-                              alt="Event placeholder illustration"
-                              width={96}
-                              height={96}
-                              className="w-24 h-24"
+                              src="/fika.png"
+                              alt="Fika"
+                              width={128}
+                              height={128}
+                              className="w-28 h-28 object-contain"
                             />
                           </div>
                         )}
@@ -686,7 +667,9 @@ export default function Events() {
                     {/* Event Details */}
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl">☕</div>
+                        {customEvent.visual_url && (
+                          <Image src="/fika.png" alt="Fika" width={32} height={32} className="w-8 h-auto flex-shrink-0" />
+                        )}
                         <div>
                           <h4 className="text-2xl" style={{ fontFamily: SERIF, fontWeight: 400, color: C.ink }}>{customEvent.title}</h4>
                           <p className="text-sm" style={{ color: C.body }}>Organized by {customEvent.organizer_name}</p>
@@ -854,14 +837,14 @@ export default function Events() {
                                       <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
                                         {event.type === 'birthday'
                                           ? <Image src="/cake.png" alt="Birthday" width={16} height={16} className="w-4 h-auto" />
-                                          : '☕'}
+                                          : <Image src="/fika.png" alt="Fika" width={16} height={16} className="w-4 h-auto" />}
                                       </div>
                                     </div>
                                   );
                                 } else {
                                   return event.type === 'birthday'
                                     ? <Image src="/cake.png" alt="Birthday" width={32} height={32} className="w-8 h-auto" />
-                                    : <div className="text-2xl">☕</div>;
+                                    : <Image src="/fika.png" alt="Fika" width={32} height={32} className="w-8 h-auto" />;
                                 }
                               })()}
                             </div>

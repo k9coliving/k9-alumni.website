@@ -168,34 +168,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add placeholder image if no photo is provided
-    if (!body.photo_url) {
-      const placeholderImages = [
-        'Animals with Balloons.svg',
-        'Cat Astronaut Illustration.svg',
-        'Cat Pumpkin Illustration.svg',
-        'Cat Throwing Vase.svg',
-        'Chicken Eating a Worm.svg',
-        'Cute Chicken Illustration.svg',
-        'Diving with Animals.svg',
-        'Dog Paw Illustration.svg',
-        'Kiwi Bird Illustration.svg',
-        'Octopus Vector Illustration.svg',
-        'Penguin Family Illustration.svg',
-        'Playful Cat Illustration.svg',
-        'cat.svg'
-      ];
-      const selectedImage = placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
-      preferences.placeholder_image = selectedImage;
-
-      // Log placeholder image assignment
-      logger.info('Placeholder image assigned to new resident', {
-        endpoint: 'residents',
-        method: request.method,
-        placeholderImage: selectedImage,
-        availableImages: placeholderImages.length
-      });
-    } else {
+    if (body.photo_url) {
       // Log photo upload correlation
       logger.info('Photo URL provided for new resident profile', {
         endpoint: 'residents',
@@ -230,7 +203,6 @@ export async function POST(request: NextRequest) {
       duration: Date.now() - startTime,
       residentId: result.id,
       hasPhoto: !!result.photo_url,
-      hasPlaceholderImage: !!result.preferences?.placeholder_image,
       involvementLevel: result.preferences?.involvement_level || 'not_specified',
       currentlyLivingInHouse: result.currently_living_in_house || false,
       interestCount: result.interests?.length || 0,
@@ -451,7 +423,7 @@ export async function PUT(request: NextRequest) {
       currently_living_in_house: body.currentlyLivingInHouse || false
     };
 
-    // Merge preferences with existing preferences to preserve fields like placeholder_image
+    // Merge preferences with existing preferences to preserve fields like involvement_level
     const existingPreferences = existingResident.preferences || {};
     const newPreferences: Record<string, string | boolean | undefined> = { ...existingPreferences };
 

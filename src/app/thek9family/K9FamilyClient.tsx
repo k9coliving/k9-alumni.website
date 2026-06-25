@@ -46,7 +46,6 @@ interface AlumniMember {
     url: string;
     alt: string;
   };
-  placeholderImage?: string;
   currentlyLivingInHouse: boolean;
   birthday?: Date | null;
   involvementLevel?: string;
@@ -208,7 +207,6 @@ export default function K9FamilyClient({
           url: result.resident.photo_url,
           alt: result.resident.photo_alt || `${result.resident.name} profile photo`
         } : undefined,
-        placeholderImage: result.resident.preferences?.placeholder_image,
         currentlyLivingInHouse: result.resident.currently_living_in_house || false
       };
 
@@ -278,7 +276,6 @@ export default function K9FamilyClient({
           url: result.resident.photo_url,
           alt: result.resident.photo_alt || `${result.resident.name} profile photo`
         } : undefined,
-        placeholderImage: result.resident.preferences?.placeholder_image,
         currentlyLivingInHouse: result.resident.currently_living_in_house || false
       };
 

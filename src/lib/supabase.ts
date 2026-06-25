@@ -56,7 +56,6 @@ export interface ResidentRecord {
     involvement_level?: string;
     involvement_level_full?: string;
     other_involvement_text?: string;
-    placeholder_image?: string;
     is_team_member?: boolean;
     nickname?: string;
     team_role?: string;

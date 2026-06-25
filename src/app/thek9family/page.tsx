@@ -16,7 +16,6 @@ interface AlumniMember {
     url: string;
     alt: string;
   };
-  placeholderImage?: string;
   currentlyLivingInHouse: boolean;
   birthday?: Date | null;
   involvementLevel?: string;
@@ -38,7 +37,6 @@ function transformResidentRecord(record: ResidentRecord): AlumniMember {
       url: record.photo_url,
       alt: record.photo_alt || `${record.name} profile photo`
     } : undefined,
-    placeholderImage: record.preferences?.placeholder_image,
     currentlyLivingInHouse: record.currently_living_in_house || false,
     birthday: record.birthday || null,
     involvementLevel: record.preferences?.involvement_level,
