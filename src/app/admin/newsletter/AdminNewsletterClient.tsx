@@ -603,6 +603,22 @@ function SubmissionRow({
             {s.name} <span className="font-normal text-gray-400">· {s.period_in_k9}</span>
           </p>
           <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{s.whats_up}</p>
+          {s.data?.celebration_rsvp && (
+            <p className="text-xs mt-2">
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 font-semibold ${
+                  s.data.celebration_rsvp === 'yes'
+                    ? 'bg-green-100 text-green-700'
+                    : s.data.celebration_rsvp === 'no'
+                      ? 'bg-gray-100 text-gray-600'
+                      : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                Stockholm: {s.data.celebration_rsvp}
+              </span>
+              {s.data.celebration_notes && <span className="ml-2 text-gray-500">{s.data.celebration_notes}</span>}
+            </p>
+          )}
           <p className="text-xs text-gray-400 mt-2">
             {s.email || 'no email'}
             {s.photos && s.photos.length > 0 ? ` · ${s.photos.length} photo(s)` : ''}

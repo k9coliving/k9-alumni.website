@@ -8,7 +8,7 @@ import NewsletterForm, {
   type NewsletterFormValues,
 } from '@/components/NewsletterForm';
 import ResubscribePrompt from '@/components/newsletter/ResubscribePrompt';
-import type { NewsletterPhoto } from '@/lib/newsletter';
+import type { NewsletterPhoto, SubmissionData } from '@/lib/newsletter';
 
 interface PublicSubmission {
   name: string;
@@ -21,6 +21,7 @@ interface PublicSubmission {
   recommendation_context: string | null;
   happy_story: string | null;
   photos: NewsletterPhoto[];
+  data: SubmissionData | null;
   subscribed: boolean;
 }
 
@@ -47,6 +48,8 @@ function toFormValues(s: PublicSubmission): NewsletterFormValues {
     recommendation_link: s.recommendation_link ?? '',
     recommendation_context: s.recommendation_context ?? '',
     happy_story: s.happy_story ?? '',
+    celebration_rsvp: s.data?.celebration_rsvp ?? '',
+    celebration_notes: s.data?.celebration_notes ?? '',
     subscribe: s.subscribed,
     photos: s.photos ?? [],
   };

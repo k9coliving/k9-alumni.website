@@ -1,6 +1,7 @@
 import type { NewsletterSubmissionRecord } from '@/lib/newsletter';
 import { FONT_DISPLAY, FONT_HAND, INK, firstNameOf, type Palette } from './theme';
 import MemberPhotos from './MemberPhotos';
+import { CELEBRATION_QUESTION, celebrationAnswer } from './celebration';
 
 // ---------------------------------------------------------------------------
 // A single member's life-update card. Shared by the public newsletter view and
@@ -168,6 +169,25 @@ export default function MemberCard({ s, palette, index = 0, preview = false }: M
 
         {s.happy_story && <MemberBlurb label="A K9 happy story" value={s.happy_story} palette={palette} />}
         {s.hold_my_hair && <MemberBlurb label="Could use a hand with" value={s.hold_my_hair} palette={palette} />}
+
+        {/* One-off for this issue: whether they're coming to the 10-year
+            celebration, so K9ers can see who else will be there. */}
+        {s.data?.celebration_rsvp && (
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: palette.deep, marginBottom: '5px' }}>
+              {CELEBRATION_QUESTION}
+            </div>
+            <div style={{ fontSize: '15.5px', color: INK }}>
+              <span style={{ fontWeight: 500, color: '#5b6b85' }}>Answer: </span>
+              <span style={{ fontWeight: 800 }}>{celebrationAnswer(s.data.celebration_rsvp)}</span>
+            </div>
+            {s.data.celebration_notes && (
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: '#5b6b85', margin: '3px 0 0', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+                {s.data.celebration_notes}
+              </p>
+            )}
+          </div>
+        )}
 
         {(s.recommendation_link || s.recommendation_context) && (
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '24px' }}>

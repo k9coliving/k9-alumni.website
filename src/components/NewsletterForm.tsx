@@ -6,8 +6,9 @@ import FormField from '@/components/FormField';
 import MultiImageDrop from '@/components/MultiImageDrop';
 // Type-only import: erased at build time, so the server-only lib/newsletter
 // module (supabase admin client) is never pulled into this client bundle.
-import type { NewsletterPhoto, PhotoFocus, NewsletterSubmissionRecord } from '@/lib/newsletter';
+import type { NewsletterPhoto, PhotoFocus, NewsletterSubmissionRecord, CelebrationRsvp } from '@/lib/newsletter';
 import MemberCard from '@/components/newsletter/MemberCard';
+import { CELEBRATION_RSVP_OPTIONS } from '@/components/newsletter/celebration';
 import { PALETTE } from '@/components/newsletter/theme';
 
 const MAX_PHOTOS = 5;
@@ -41,6 +42,8 @@ export interface NewsletterFormValues {
   recommendation_link: string;
   recommendation_context: string;
   happy_story: string;
+  celebration_rsvp: CelebrationRsvp | '';
+  celebration_notes: string;
   // Newsletter subscription intent for the entered email. Drives
   // newsletter_subscribers via the submit/edit API (not stored on the submission).
   subscribe: boolean;
@@ -227,6 +230,8 @@ const EMPTY: NewsletterFormValues = {
   recommendation_link: '',
   recommendation_context: '',
   happy_story: '',
+  celebration_rsvp: '',
+  celebration_notes: '',
   subscribe: false,
   photos: [],
 };
@@ -450,6 +455,9 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
     recommendation_context: values.recommendation_context.trim() || null,
     happy_story: values.happy_story.trim() || null,
     photos: previewPhotos,
+    data: values.celebration_rsvp
+      ? { celebration_rsvp: values.celebration_rsvp, celebration_notes: values.celebration_notes.trim() || undefined }
+      : null,
   };
 
   return (
@@ -602,6 +610,47 @@ export default function NewsletterForm({ initialValues, submitText, onSubmit, fo
           placeholder="e.g. someone reached out or you did after reading the news, say thanks for a tip"
         />
       </FormField>
+
+      <fieldset>
+        <legend className="block text-sm font-medium text-gray-700 mb-2">
+          Coming to the 10 years of K9 celebration in Stockholm?
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {CELEBRATION_RSVP_OPTIONS.map((opt) => {
+            const selected = values.celebration_rsvp === opt.value;
+            return (
+              <label
+                key={opt.value}
+                className={`cursor-pointer select-none rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  selected
+                    ? 'border-blue-600 bg-blue-600 text-white shadow'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="celebration_rsvp"
+                  value={opt.value}
+                  checked={selected}
+                  // Clicking the selected pill again clears the answer.
+                  onClick={() => selected && set('celebration_rsvp', '')}
+                  onChange={() => set('celebration_rsvp', opt.value)}
+                  className="sr-only"
+                />
+                {opt.label}
+              </label>
+            );
+          })}
+        </div>
+        <textarea
+          rows={2}
+          value={values.celebration_notes}
+          onChange={(e) => set('celebration_notes', e.target.value)}
+          className="form-input mt-3"
+          placeholder="Optional notes — bringing someone, need a couch, arriving late…"
+          aria-label="Notes about the celebration"
+        />
+      </fieldset>
 
       <FormField label="">
         <label className="flex items-center gap-3 cursor-pointer">

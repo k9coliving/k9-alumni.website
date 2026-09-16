@@ -31,6 +31,22 @@ export interface NewsletterPhoto {
   focus?: PhotoFocus;
 }
 
+// RSVP for the "10 years of K9" celebration in Stockholm — a one-off question
+// for this issue, shown on the member card so K9ers see who's coming. Lives in
+// the submission's `data` jsonb, not a column.
+export const CELEBRATION_RSVPS = ['yes', 'no', 'maybe'] as const;
+export type CelebrationRsvp = (typeof CELEBRATION_RSVPS)[number];
+
+// Loose bag for minor or temporary per-submission fields (like a one-off RSVP)
+// that don't deserve their own column — same idea as `newsletters.data`. Keys
+// are absent when unanswered. The form owns this object wholesale: every
+// submit/edit rewrites it from the form's fields.
+export interface SubmissionData {
+  celebration_rsvp?: CelebrationRsvp;
+  celebration_notes?: string;
+  [key: string]: unknown;
+}
+
 export interface NewsletterSubmissionRecord {
   id: string;
   created_at?: string;
@@ -47,6 +63,7 @@ export interface NewsletterSubmissionRecord {
   recommendation_context?: string | null;
   happy_story?: string | null;
   photos?: NewsletterPhoto[];
+  data?: SubmissionData | null;
 
   edit_token?: NewsletterEditTokenData | null;
   newsletter_id?: string | null;
@@ -212,6 +229,13 @@ export function parseSubmissionInput(
       .slice(0, MAX_PHOTOS);
   }
 
+  // Minor/temporary fields arrive flat from the form and are packed into `data`.
+  const data: SubmissionData = {};
+  const rsvp = CELEBRATION_RSVPS.find((r) => r === raw.celebration_rsvp);
+  if (rsvp) data.celebration_rsvp = rsvp;
+  const notes = str(raw.celebration_notes);
+  if (notes) data.celebration_notes = notes;
+
   return {
     ok: true,
     value: {
@@ -225,6 +249,7 @@ export function parseSubmissionInput(
       recommendation_context: str(raw.recommendation_context) ?? null,
       happy_story: str(raw.happy_story) ?? null,
       photos,
+      data: Object.keys(data).length ? data : null,
     },
   };
 }
