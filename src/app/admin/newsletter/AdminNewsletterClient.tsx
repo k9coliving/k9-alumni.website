@@ -330,7 +330,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
       </div>
     )}
     {isEdit && !editing ? (
-      <div className="bg-white rounded-xl shadow p-6 space-y-4">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Current draft</h2>
           <a
@@ -355,7 +355,7 @@ function DraftEditor({ draft, defaultReplyTo }: { draft: NewsletterRecord | null
         </div>
       </div>
     ) : (
-    <form id="draft-editor-form" onSubmit={submit} className="bg-white rounded-xl shadow p-6 space-y-4">
+    <form id="draft-editor-form" onSubmit={submit} className="bg-white rounded-xl shadow p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
           {isEdit ? 'Current draft' : 'Create next newsletter'}
@@ -591,8 +591,8 @@ function SubmissionRow({
   };
 
   return (
-    <div className={`rounded-lg p-4 ${isPinned ? 'border-2 border-amber-300 bg-amber-50/40' : 'border border-gray-200'}`}>
-      <div className="flex items-start justify-between gap-4">
+    <div className={`rounded-lg p-3 sm:p-4 ${isPinned ? 'border-2 border-amber-300 bg-amber-50/40' : 'border border-gray-200'}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <p className="font-medium text-gray-900">
             {isPinned && (
@@ -604,7 +604,7 @@ function SubmissionRow({
           </p>
           <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{s.whats_up}</p>
           {s.data?.celebration_rsvp && (
-            <p className="text-xs mt-2">
+            <div className="text-xs mt-2">
               <span
                 className={`inline-block rounded-full px-2 py-0.5 font-semibold ${
                   s.data.celebration_rsvp === 'yes'
@@ -616,8 +616,10 @@ function SubmissionRow({
               >
                 Stockholm: {s.data.celebration_rsvp}
               </span>
-              {s.data.celebration_notes && <span className="ml-2 text-gray-500">{s.data.celebration_notes}</span>}
-            </p>
+              {s.data.celebration_notes && (
+                <p className="mt-1 text-gray-500 line-clamp-2 whitespace-pre-line">{s.data.celebration_notes}</p>
+              )}
+            </div>
           )}
           <p className="text-xs text-gray-400 mt-2">
             {s.email || 'no email'}
@@ -625,7 +627,7 @@ function SubmissionRow({
             {s.created_at ? ` · submitted ${relativeDays(s.created_at)}` : ''}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-sm sm:shrink-0 sm:gap-3 sm:border-0 sm:pt-0">
           {/* "Send to top" stamps pinned_at=now, so it floats above earlier pins.
               Always available — even for an already-pinned row, so a pinned #2 can
               be re-bumped to the top. */}
@@ -676,7 +678,7 @@ function Submissions({ submissions }: { submissions: NewsletterSubmissionRecord[
   const router = useRouter();
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
+    <div className="bg-white rounded-xl shadow p-4 sm:p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-1">
         Unassigned submissions <span className="text-gray-400 font-normal">({submissions.length})</span>
       </h2>
@@ -705,14 +707,14 @@ function Submissions({ submissions }: { submissions: NewsletterSubmissionRecord[
 
 function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
   return (
-    <div className="bg-white rounded-xl shadow p-6">
+    <div className="bg-white rounded-xl shadow p-4 sm:p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Newsletters</h2>
       {newsletters.length === 0 ? (
         <p className="text-gray-500 text-sm py-4">No newsletters yet. Create a draft above.</p>
       ) : (
         <div className="space-y-3">
           {newsletters.map((n) => (
-            <div key={n.id} className="flex items-center justify-between gap-4 border border-gray-200 rounded-lg p-4">
+            <div key={n.id} className="flex flex-col gap-3 border border-gray-200 rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
               <div className="min-w-0">
                 <p className="font-medium text-gray-900 truncate">{n.title}</p>
                 <p className="text-xs mt-1">
@@ -726,7 +728,7 @@ function PastNewsletters({ newsletters }: { newsletters: NewsletterRecord[] }) {
                   {n.sent_at && <span className="text-gray-400 ml-2">sent {new Date(n.sent_at).toLocaleDateString()}</span>}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3 text-sm sm:shrink-0 sm:border-0 sm:pt-0">
                 <a
                   href={`/newsletter/n/${n.token}`}
                   target="_blank"
