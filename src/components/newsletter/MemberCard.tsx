@@ -190,9 +190,9 @@ export default function MemberCard({ s, palette, index = 0, preview = false }: M
         )}
 
         {(s.recommendation_link || s.recommendation_context) && (
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', background: palette.soft, borderRadius: '16px', padding: '13px 17px', marginTop: '24px' }}>
+          <div className={preview ? 'nl-recommends nl-recommends-stacked' : 'nl-recommends'} style={{ background: palette.soft }}>
             <RecommendIcon id={s.id} />
-            <div style={{ flex: 'none', fontFamily: FONT_DISPLAY, fontSize: '11px', fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff', background: palette.accent, padding: '6px 11px', borderRadius: '9px' }}>
+            <div className="nl-recommends-label" style={{ fontFamily: FONT_DISPLAY, color: '#fff', background: palette.accent }}>
               Recommends
             </div>
             <div style={{ fontSize: '15px', color: INK, fontWeight: 800, lineHeight: 1.35, minWidth: 0, wordBreak: 'break-word' }}>

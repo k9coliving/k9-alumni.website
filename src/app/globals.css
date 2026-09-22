@@ -137,6 +137,40 @@ html {
   width: 100%;
   margin: 0 0 20px;
 }
+/* The "Recommends" band: pill label beside the recommendation on wide screens.
+   Styled here rather than inline so the narrow-screen rules below can win —
+   inline styles would outrank the media query. */
+.nl-recommends {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 16px;
+  padding: 13px 17px;
+  margin-top: 24px;
+}
+.nl-recommends-label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 11px;
+  border-radius: 9px;
+}
+
+/* Forced stacked layout for the form's narrow live-preview column. */
+.nl-recommends-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+.nl-recommends-stacked .nl-recommends-label {
+  font-size: 9.5px;
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+
 /* The K9 Family directory floats one photo per card. Rather than fixing the
    column width (which makes a portrait tower over a landscape), we cap the
    image's long side: both max-width and max-height get the same bound, so the
@@ -166,6 +200,19 @@ html {
   }
   .k9-photo-img {
     margin: 0 auto; /* center when stacked full-width */
+  }
+  /* The label pill would eat half the row next to the text, so it moves above
+     it and shrinks. */
+  .nl-recommends {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 12px 14px;
+  }
+  .nl-recommends-label {
+    font-size: 9.5px;
+    padding: 3px 8px;
+    border-radius: 7px;
   }
   /* Footer corner decorations would crowd the CTA on small screens. */
   .nl-footer-deco {
